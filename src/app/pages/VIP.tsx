@@ -340,4 +340,8 @@ export function VIP() {
           </div>
         </div>
 
-     
+        <div className="pb-4" />
+      </div>
+    </div>
+  );
+}
