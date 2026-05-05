@@ -13,9 +13,6 @@
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         BUNDLE_ID: "com.bextrader.app"
-        APP_STORE_CONNECT_PRIVATE_KEY: 
-        APP_STORE_CONNECT_KEY_IDENTIFIER: 
-        APP_STORE_CONNECT_ISSUER_ID: 
 
     scripts:
       - name: Install dependencies
@@ -32,7 +29,7 @@
 
       - name: Fetch iOS signing files
         script: |
-          app-store-connect fetch-signing-files "" \
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create
 
@@ -54,7 +51,7 @@
 
     publishing:
       app_store_connect:
-        api_key: 
-        key_id: 
-        issuer_id: 
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
