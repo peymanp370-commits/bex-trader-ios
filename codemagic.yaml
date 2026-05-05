@@ -1,4 +1,4 @@
-workflows:
+﻿workflows:
   ios-capacitor-release:
     name: BEX Trader iOS Release
     max_build_duration: 60
@@ -26,14 +26,10 @@ workflows:
         script: |
           npx cap sync ios
 
-      - name: Install CocoaPods
-        script: |
-          cd ios/App
-          pod install
-
       - name: Build unsigned iOS app
         script: |
           xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release -sdk iphoneos build CODE_SIGNING_ALLOWED=NO
 
     artifacts:
       - /tmp/xcodebuild_logs/*.log
+      - ios/App/build/**/*.app
