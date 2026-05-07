@@ -25,18 +25,15 @@ workflows:
         script: |
           npx cap sync ios
 
-      - name: Clean broken Xcode cache
+      - name: Clean Xcode cache
         script: |
-          rm -rf ios/App/App.xcodeproj/project.xcworkspace || true
-          find ios/App -name Package.resolved -delete || true
-          rm -rf ios/App/CapApp-SPM/.swiftpm || true
           rm -rf ~/Library/Developer/Xcode/DerivedData/* || true
+          find ios/App -name Package.resolved -delete || true
 
       - name: Auto increase iOS build number
         script: |
-          echo "Using Codemagic BUILD_NUMBER=$BUILD_NUMBER"
+          echo "Using BUILD_NUMBER=$BUILD_NUMBER"
           perl -0pi -e "s/CURRENT_PROJECT_VERSION = [0-9]+;/CURRENT_PROJECT_VERSION = $ENV{BUILD_NUMBER};/g" ios/App/App.xcodeproj/project.pbxproj
-          grep -n "CURRENT_PROJECT_VERSION" ios/App/App.xcodeproj/project.pbxproj
 
       - name: Fetch iOS signing files
         script: |
@@ -52,22 +49,30 @@ workflows:
         script: |
           keychain initialize
           keychain add-certificates
+          xcode-project use-profiles
 
       - name: Create export options plist
         script: |
-          python3 - <<'PY'
-          import plistlib
-          data = {
-              "method": "app-store-connect",
-              "signingStyle": "automatic",
-              "uploadBitcode": False,
-              "compileBitcode": False
-          }
-          with open("/Users/builder/export_options.plist", "wb") as f:
-              plistlib.dump(data, f)
-          PY
-          plutil -lint /Users/builder/export_options.plist
+          cat <<'EOF' > /Users/builder/export_options.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+
+            <key>signingStyle</key>
+            <string>automatic</string>
+          </dict>
+          </plist>
+          EOF
+
+          sed -i '' 's/^          //' /Users/builder/export_options.plist
+
+          echo "=== VERIFY EXPORT OPTIONS ==="
           cat /Users/builder/export_options.plist
+
+          plutil -lint /Users/builder/export_options.plist
 
       - name: Build signed IPA
         script: |
