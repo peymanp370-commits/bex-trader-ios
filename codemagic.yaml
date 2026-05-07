@@ -45,7 +45,6 @@ workflows:
         script: |
           keychain initialize
           keychain add-certificates
-          xcode-project use-profiles
 
       - name: Build signed IPA
         script: |
