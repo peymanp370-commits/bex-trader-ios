@@ -51,37 +51,53 @@ workflows:
           keychain initialize
           keychain add-certificates
 
+      - name: Apply code signing settings
+        script: |
+          xcode-project use-profiles \
+            --project ios/App/App.xcodeproj
+
+      - name: Show signing info
+        script: |
+          echo "=== PROFILES ==="
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles || true
+
+          echo "=== CERTIFICATES ==="
+          security find-identity -v -p codesigning || true
+
+          echo "=== PROJECT ==="
+          ls -la ios/App
+          ls -la ios/App/App.xcodeproj
+          cat ios/App/App/App.entitlements || true
+
       - name: Create export options plist
         script: |
           python3 - <<'PY'
           import plistlib
           data = {
-              "method": "app-store-connect",
+              "method": "app-store",
               "signingStyle": "automatic",
               "uploadBitcode": False,
-              "compileBitcode": False
+              "compileBitcode": False,
+              "destination": "export"
           }
           with open("/Users/builder/export_options.plist", "wb") as f:
               plistlib.dump(data, f)
           PY
           plutil -lint /Users/builder/export_options.plist
+          cat /Users/builder/export_options.plist
 
       - name: Build signed IPA
         script: |
-          echo "=== CHECK IOS FILES ==="
-          ls -la ios/App
-          ls -la ios/App/App.xcodeproj
-          cat ios/App/App/App.entitlements || true
-
-          echo "=== BUILD IPA ==="
           xcode-project build-ipa \
             --project ios/App/App.xcodeproj \
             --scheme App \
-            --export-options-plist /Users/builder/export_options.plist
+            --export-options-plist /Users/builder/export_options.plist \
+            --verbose
 
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+      - /Users/builder/export_options.plist
 
     publishing:
       app_store_connect:
