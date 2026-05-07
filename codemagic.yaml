@@ -25,6 +25,11 @@ workflows:
         script: |
           npx cap sync ios
 
+      - name: Clean broken Xcode SwiftPM cache
+        script: |
+          find ios/App -name Package.resolved -delete || true
+          rm -rf ~/Library/Developer/Xcode/DerivedData/* || true
+
       - name: Auto increase iOS build number
         script: |
           echo "Using Codemagic BUILD_NUMBER=$BUILD_NUMBER"
@@ -53,8 +58,8 @@ workflows:
           ls -la ios/App/App.xcodeproj
           cat ios/App/App/App.entitlements || true
 
-          echo "=== XCODE BUILD SETTINGS ==="
-          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -showBuildSettings
+          echo "=== RESOLVE PACKAGES ==="
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -resolvePackageDependencies
 
           echo "=== BUILD IPA ==="
           xcode-project build-ipa \
