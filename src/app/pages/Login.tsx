@@ -1,10 +1,17 @@
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
+import { SignInWithApple } from "@capacitor-community/apple-sign-in";
 import { Eye, EyeOff } from "lucide-react";
 import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
 
 const AUTH_BASE =
   import.meta.env.VITE_API_URL || "https://auth.bextrader.com";
+
+const HISTORY_BASE =
+  import.meta.env.VITE_MT5_HISTORY_API_URL ||
+  import.meta.env.VITE_HISTORY_API_URL ||
+  "https://bex-mt5-history-ingest.peymanp370.workers.dev";
 
 type AppLanguage =
   | "en"
@@ -98,7 +105,78 @@ type AuthUser = {
   timezone?: string;
   country?: string;
   plan?: string;
+  mt5_account_login?: string;
+  account_login?: string;
+  client_id?: string;
+  vip_token?: string;
+  vip_client?: {
+    mt5_account_login?: string;
+    account_login?: string;
+    client_id?: string;
+    token?: string;
+  };
 };
+
+
+function saveAccountProfileToLocalStorage(profile: any) {
+  const accountLogin = String(
+    profile?.account_login ||
+      profile?.mt5_account_login ||
+      profile?.vip_client?.account_login ||
+      profile?.vip_client?.mt5_account_login ||
+      profile?.profile?.account_login ||
+      profile?.profile?.mt5_account_login ||
+      ""
+  ).trim();
+
+  const clientId = String(
+    profile?.client_id ||
+      profile?.vip_client?.client_id ||
+      profile?.profile?.client_id ||
+      ""
+  ).trim();
+
+  const vipToken = String(
+    profile?.vip_token ||
+      profile?.token ||
+      profile?.vip_client?.token ||
+      profile?.profile?.vip_token ||
+      profile?.profile?.token ||
+      ""
+  ).trim();
+
+  if (accountLogin) {
+    localStorage.setItem("account_login", accountLogin);
+    localStorage.setItem("mt5_account_login", accountLogin);
+    localStorage.setItem("bex_account_login", accountLogin);
+  }
+  if (clientId) {
+    localStorage.setItem("client_id", clientId);
+    localStorage.setItem("bex_client_id", clientId);
+  }
+  if (vipToken) {
+    localStorage.setItem("vip_token", vipToken);
+    localStorage.setItem("bex_vip_token", vipToken);
+  }
+}
+
+async function hydrateAccountProfile(emailOrIdentity: string) {
+  const identity = String(emailOrIdentity || "").trim();
+  if (!identity) return;
+
+  const qs = new URLSearchParams();
+  qs.set(identity.includes("@") ? "email" : "user_id", identity);
+
+  try {
+    const res = await fetch(`${HISTORY_BASE}/client-profile?${qs.toString()}`, {
+      headers: { accept: "application/json" },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data?.ok !== false) saveAccountProfileToLocalStorage(data?.profile || data);
+  } catch {
+    // Account page can retry later. Login must not fail because profile lookup failed.
+  }
+}
 
 async function loginUser(payload: { identity: string; password: string }) {
   const res = await fetch(`${AUTH_BASE}/auth/login`, {
@@ -397,6 +475,7 @@ export function Login() {
     localStorage.setItem("userEmail", resultUser?.email || fallbackIdentity);
     localStorage.setItem("userName", displayName);
     localStorage.setItem("userPlan", resultUser?.plan || "PRO");
+    saveAccountProfileToLocalStorage(resultUser || {});
     window.dispatchEvent(new Event("storage"));
   };
 
@@ -471,6 +550,7 @@ export function Login() {
       }
 
       saveUserToLocalStorage(result.user, cleanIdentity);
+      await hydrateAccountProfile(result.user?.email || cleanIdentity);
       navigate("/app");
     } catch {
       setError(tx(lang, {
@@ -508,12 +588,72 @@ export function Login() {
     window.location.href = `${AUTH_BASE}/auth/google/start`;
   };
 
-  const handleAppleSignIn = () => {
+  const handleAppleSignIn = async () => {
     if (!ensureLegalAccepted()) return;
+
     setError("");
     setSocialLoading("apple");
     clearStoredAuthUser();
-    window.location.href = `${AUTH_BASE}/auth/apple/start`;
+
+    try {
+      if (Capacitor.getPlatform() === "ios") {
+        const result = await SignInWithApple.authorize({
+          clientId: "com.bextrader.app",
+          redirectURI: "https://bextrader.com/auth/apple/callback",
+          scopes: "email name",
+          state: "bex-ios-native",
+        });
+
+        const response = result?.response || {};
+
+        const res = await fetch(`${AUTH_BASE}/auth/apple/native`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            identityToken: response.identityToken,
+            authorizationCode: response.authorizationCode,
+            user: response.user,
+            email: response.email,
+            givenName: response.givenName,
+            familyName: response.familyName,
+          }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || !data?.ok || !data?.user) {
+          throw new Error(data?.code || data?.message || "APPLE_NATIVE_LOGIN_FAILED");
+        }
+
+        saveUserToLocalStorage(data.user, data.user.email || "apple");
+        await hydrateAccountProfile(data.user?.email || "");
+        navigate("/app");
+        return;
+      }
+
+      // Desktop / web fallback keeps the existing browser OAuth flow.
+      window.location.href = `${AUTH_BASE}/auth/apple/start`;
+    } catch (err) {
+      console.error("Apple native sign-in failed", err);
+      setError(tx(lang, {
+        en: "Apple Sign-In failed. Please try again.",
+        fa: "ورود با اپل ناموفق بود. دوباره تلاش کنید.",
+        ar: "فشل تسجيل الدخول عبر Apple. حاول مرة أخرى.",
+        es: "Falló el inicio de sesión con Apple. Inténtalo de nuevo.",
+        "pt-BR": "Falha no login com Apple. Tente novamente.",
+        hi: "Apple लॉगिन विफल रहा। कृपया फिर कोशिश करें।",
+        tr: "Apple ile giriş başarısız oldu. Lütfen tekrar deneyin.",
+        de: "Apple-Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
+        fr: "La connexion avec Apple a échoué. Veuillez réessayer.",
+        zh: "Apple 登录失败，请重试。",
+        ko: "Apple 로그인이 실패했습니다. 다시 시도하세요.",
+      }));
+    } finally {
+      setSocialLoading(null);
+    }
   };
 
   const rtl = isRTL(lang);

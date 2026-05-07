@@ -1,16 +1,34 @@
-import { Crown, Check, Menu, Settings } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { Crown, Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { SideMenu } from "../components/SideMenu";
+import { AppHeader } from "../components/AppHeader";
 import { getLanguage, tr, formatNumber } from "../utils/i18n";
 
 export function VIP() {
   const [showMenu, setShowMenu] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem("darkMode");
+    return saved ? JSON.parse(saved) : true;
+  });
   const navigate = useNavigate();
   const lang = getLanguage();
 
   const t = (dict: Record<string, string>) => tr(lang, dict);
+
+  useEffect(() => {
+    const handleThemeChange = () => {
+      const saved = localStorage.getItem("darkMode");
+      setDarkMode(saved ? JSON.parse(saved) : true);
+    };
+    window.addEventListener("themeChange", handleThemeChange as EventListener);
+    window.addEventListener("storage", handleThemeChange);
+    return () => {
+      window.removeEventListener("themeChange", handleThemeChange as EventListener);
+      window.removeEventListener("storage", handleThemeChange);
+    };
+  }, []);
 
 
   const isAndroidInstalledApp = () => {
@@ -36,7 +54,7 @@ export function VIP() {
   const checkoutPlanId = (planId: string) => {
     // Stripe / web checkout IDs used by Checkout.tsx
     if (planId === "vip") return "vip_auto";
-    if (planId === "lifetime") return "lifetime";
+    if (planId === "lifetime") return "vip_lifetime";
     if (planId === "basic") return "basic";
     return "pro";
   };
@@ -46,35 +64,82 @@ export function VIP() {
     if (planId === "basic") return cycle === "yearly" ? "basic_yearly" : "basic_monthly";
     if (planId === "pro") return cycle === "yearly" ? "pro_yearly_v2" : "pro_monthly";
     if (planId === "vip") return cycle === "yearly" ? "vip_yearly" : "vip_monthly";
-    if (planId === "lifetime") return "lifetime";
+    if (planId === "lifetime") return "vip_lifetime";
     return "";
+  };
+
+  const googleBillingDebug = (title: string, details: Record<string, unknown> = {}) => {
+    const lines = [
+      `DEBUG: ${title}`,
+      `url=${window.location.href}`,
+      `ua=${navigator.userAgent}`,
+      `standalone=${window.matchMedia?.("(display-mode: standalone)")?.matches ? "yes" : "no"}`,
+      ...Object.entries(details).map(([key, value]) => `${key}=${String(value)}`),
+    ];
+
+    alert(lines.join("\n"));
   };
 
   const startGooglePlayBilling = async (plan: (typeof plans)[0]) => {
     const productId = googlePlayProductId(plan.id, billingCycle);
 
     if (!productId) {
-      alert("Google Play product ID پیدا نشد.");
+      googleBillingDebug("NO_PRODUCT_ID", { plan: plan.id, billingCycle });
       return;
     }
 
+    const w = window as any;
+
+    if (!("getDigitalGoodsService" in w)) {
+      googleBillingDebug("NO_DIGITAL_GOODS_SERVICE", {
+        productId,
+        reason: "Android/TWA billing bridge is not exposed. Check app/build.gradle billing dependency, DelegationService, Manifest service, and install from Play.",
+      });
+      return;
+    }
+
+    if (!("PaymentRequest" in w)) {
+      googleBillingDebug("NO_PAYMENT_REQUEST", {
+        productId,
+        reason: "PaymentRequest API is not available.",
+      });
+      return;
+    }
+
+    let service: any;
     try {
-      const w = window as any;
+      service = await w.getDigitalGoodsService("https://play.google.com/billing");
+    } catch (e: any) {
+      googleBillingDebug("GET_SERVICE_FAILED", {
+        productId,
+        errorName: e?.name || "",
+        errorMessage: e?.message || String(e),
+      });
+      return;
+    }
 
-      if (!("getDigitalGoodsService" in w) || !("PaymentRequest" in w)) {
-        alert("Google Play Billing روی این نصب فعال نیست. اپ باید از Google Play نصب شده باشد، Chrome/Play Store آپدیت باشد، و Gmail گوشی تستر باشد.");
-        return;
-      }
+    let itemDetails: any[] = [];
+    try {
+      itemDetails = await service.getDetails([productId]);
+    } catch (e: any) {
+      googleBillingDebug("GET_DETAILS_FAILED", {
+        productId,
+        errorName: e?.name || "",
+        errorMessage: e?.message || String(e),
+      });
+      return;
+    }
 
-      const service = await w.getDigitalGoodsService("https://play.google.com/billing");
+    if (!itemDetails || itemDetails.length === 0) {
+      googleBillingDebug("GET_DETAILS_EMPTY", {
+        productId,
+        reason: "Product is not found/active/synced for this tester, country, or app install.",
+      });
+      return;
+    }
 
-      // This catches wrong / inactive product IDs before opening the purchase popup.
-      const itemDetails = await service.getDetails([productId]);
-      if (!itemDetails || itemDetails.length === 0) {
-        alert(`محصول Google Play پیدا نشد یا هنوز Active نیست: ${productId}`);
-        return;
-      }
-
+    let response: any;
+    try {
       const request = new w.PaymentRequest(
         [
           {
@@ -93,17 +158,40 @@ export function VIP() {
         }
       );
 
-      const response = await request.show();
-      await response.complete("success");
+      response = await request.show();
+    } catch (e: any) {
+      const errorName = e?.name || "";
+      const errorMessage = e?.message || String(e);
 
-      localStorage.setItem("userPlan", plan.name);
-      localStorage.setItem("googlePlayProductId", productId);
-      alert(subscribedMessage(plan.name));
-      navigate("/app");
-    } catch (err) {
-      console.error("Google Play Billing failed:", err);
-      alert("پرداخت Google Play باز نشد یا لغو شد. Product ID، Active بودن محصول، License tester بودن Gmail و نسخه جدید AAB را چک کن.");
+      // User cancelled/closed the Google Play purchase sheet.
+      // This is normal; do not show an error alert.
+      if (
+        errorName === "AbortError" ||
+        errorMessage.includes("RESULT_CANCELED") ||
+        errorMessage.toLowerCase().includes("cancel")
+      ) {
+        return;
+      }
+
+      googleBillingDebug("PAYMENT_REQUEST_FAILED", {
+        productId,
+        title: itemDetails[0]?.title || "",
+        errorName,
+        errorMessage,
+      });
+      return;
     }
+
+    try {
+      await response.complete("success");
+    } catch (e) {
+      // Do not block entitlement flow for response.complete edge cases.
+    }
+
+    localStorage.setItem("userPlan", plan.name);
+    localStorage.setItem("googlePlayProductId", productId);
+    alert(subscribedMessage(plan.name));
+    navigate("/app");
   };
 
   const startPlanCheckout = async (plan: (typeof plans)[0]) => {
@@ -117,7 +205,7 @@ export function VIP() {
       return;
     }
 
-    // Web / Desktop / normal browser path: Stripe through Checkout.tsx
+    // Web/Desktop/normal browser: Stripe checkout.
     const checkoutBilling = plan.id === "lifetime" ? "lifetime" : billingCycle;
     navigate(`/app/checkout?plan=${checkoutPlanId(plan.id)}&billing=${checkoutBilling}`);
   };
@@ -223,27 +311,20 @@ export function VIP() {
     });
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white pb-24">
+    <div className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}>
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
-
-      <header className="bg-[#0f1623] border-b border-gray-800 p-4">
-        <div className="flex items-center justify-between">
-          <button onClick={() => setShowMenu(true)} className="p-2 rounded-lg hover:bg-[#1a2332]">
-            <Menu className="w-5 h-5" />
-          </button>
-
-          <h1 className="font-bold text-xl">{t({ en: "VIP Plans", fa: "پلن‌های VIP", ar: "خطط VIP", es: "Planes VIP", "pt-BR": "Planos VIP", hi: "VIP प्लान", tr: "VIP Planlar", de: "VIP-Pläne", fr: "Plans VIP", zh: "VIP套餐", ko: "VIP 플랜" })}</h1>
-
-          <Link to="/app/settings">
-            <button className="p-2 rounded-lg hover:bg-[#1a2332]">
-              <Settings className="w-5 h-5" />
-            </button>
-          </Link>
-        </div>
-      </header>
+<AppHeader
+        title={t({ en: "VIP Plans", fa: "پلن‌های VIP", ar: "خطط VIP", es: "Planes VIP", "pt-BR": "Planos VIP", hi: "VIP प्लान", tr: "VIP Planlar", de: "VIP-Pläne", fr: "Plans VIP", zh: "VIP套餐", ko: "VIP 플랜" })}
+        subtitle="BEX AI Gold Trader"
+        darkMode={darkMode}
+        onMenuClick={() => setShowMenu(true)}
+        onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem("darkMode", JSON.stringify(next)); window.dispatchEvent(new Event("themeChange")); }}
+        showSettings={true}
+        showThemeToggle={true}
+      />
 
       <div className="p-4 space-y-5">
-        <div className="flex items-center justify-center gap-3 bg-[#0f1623] rounded-2xl p-2 border border-gray-800">
+        <div className={`flex items-center justify-center gap-3 ${darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200"} rounded-2xl p-2 border`}>
           <button
             onClick={() => setBillingCycle("monthly")}
             className={`flex-1 py-3 rounded-xl font-bold transition-all ${
@@ -330,9 +411,9 @@ export function VIP() {
           </div>
         ))}
 
-        <div className="bg-[#0f1623] rounded-2xl p-5 border border-gray-800">
+        <div className={`${darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200"} rounded-2xl p-5 border`}>
           <h3 className="text-yellow-400 text-sm font-bold mb-4">💎 {t({ en: "Why Subscribe?", fa: "چرا اشتراک بگیریم؟", ar: "لماذا الاشتراك؟", es: "¿Por qué suscribirse?", "pt-BR": "Por que assinar?", hi: "सब्सक्राइब क्यों करें?", tr: "Neden abone olmalı?", de: "Warum abonnieren?", fr: "Pourquoi s’abonner ?", zh: "为什么订阅？", ko: "왜 구독해야 하나요?" })}</h3>
-          <div className="space-y-3 text-sm text-gray-300">
+          <div className={`space-y-3 text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
             <p>• {t({ en: "Get access to institutional-grade trading signals powered by AI", fa: "به سیگنال‌های معاملاتی سطح حرفه‌ای با هوش مصنوعی دسترسی بگیر", ar: "احصل على إشارات تداول احترافية مدعومة بالذكاء الاصطناعي", es: "Accede a señales de trading de nivel institucional impulsadas por IA", "pt-BR": "Tenha acesso a sinais de trading de nível institucional com IA", hi: "AI द्वारा संचालित प्रोफेशनल स्तर के ट्रेडिंग सिग्नल पाएं", tr: "Yapay zekâ destekli kurumsal düzey işlem sinyallerine eriş", de: "Erhalte Zugang zu institutionellen Trading-Signalen mit KI", fr: "Accédez à des signaux de trading de niveau institutionnel propulsés par l’IA", zh: "获取AI驱动的机构级交易信号", ko: "AI 기반 기관급 트레이딩 신호에 접근하세요" })}</p>
             <p>• {t({ en: "Receive real-time alerts before major market moves", fa: "قبل از حرکت‌های مهم بازار هشدار لحظه‌ای بگیر", ar: "استلم تنبيهات فورية قبل تحركات السوق المهمة", es: "Recibe alertas en tiempo real antes de grandes movimientos del mercado", "pt-BR": "Receba alertas em tempo real antes de grandes movimentos do mercado", hi: "बड़े मार्केट मूव से पहले रियल-टाइम अलर्ट पाएं", tr: "Büyük piyasa hareketlerinden önce gerçek zamanlı uyarılar al", de: "Erhalte Echtzeit-Alarme vor großen Marktbewegungen", fr: "Recevez des alertes en temps réel avant les grands mouvements du marché", zh: "在重大市场波动前接收实时提醒", ko: "주요 시장 움직임 전에 실시간 알림을 받으세요" })}</p>
             <p>• {t({ en: "Join exclusive community of professional traders", fa: "به جامعه اختصاصی معامله‌گران حرفه‌ای بپیوند", ar: "انضم إلى مجتمع حصري من المتداولين المحترفين", es: "Únete a una comunidad exclusiva de traders profesionales", "pt-BR": "Entre para uma comunidade exclusiva de traders profissionais", hi: "प्रोफेशनल ट्रेडर्स की विशेष कम्युनिटी से जुड़ें", tr: "Profesyonel trader’lardan oluşan özel topluluğa katıl", de: "Tritt einer exklusiven Community professioneller Trader bei", fr: "Rejoignez une communauté exclusive de traders professionnels", zh: "加入专业交易者专属社区", ko: "전문 트레이더 전용 커뮤니티에 참여하세요" })}</p>

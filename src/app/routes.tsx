@@ -10,10 +10,6 @@ import { Home } from "./pages/Home";
 import { Market } from "./pages/Market";
 import { Signal } from "./pages/Signal";
 import { Stats } from "./pages/Stats";
-import { MyStats } from "./pages/MyStats";
-import { VIPAutoTrading } from "./pages/VIPAutoTrading";
-import { Admin } from "./pages/Admin";
-import { Checkout } from "./pages/Checkout";
 import { VIP } from "./pages/VIP";
 import { Settings } from "./pages/Settings";
 import { Tools } from "./pages/Tools";
@@ -24,8 +20,7 @@ import { Welcome } from "./pages/Welcome";
 import { AgeVerification } from "./pages/AgeVerification";
 import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
-import { Privacy } from "./pages/Privacy";
-import { Terms } from "./pages/Terms";
+import { HelpCenter } from "./pages/HelpCenter";
 
 export const router = createBrowserRouter([
   {
@@ -65,14 +60,6 @@ export const router = createBrowserRouter([
         element: <AgeVerification />,
       },
       {
-        path: "privacy",
-        element: <Privacy />,
-      },
-      {
-        path: "terms",
-        element: <Terms />,
-      },
-      {
         path: "app",
         element: (
           <ProtectedRoute>
@@ -101,32 +88,8 @@ export const router = createBrowserRouter([
             element: <Stats />,
           },
           {
-            path: "my-stats",
-            element: <MyStats />,
-          },
-          {
-            path: "vip-auto",
-            element: <VIPAutoTrading />,
-          },
-          {
-            path: "admin",
-            element: <Admin />,
-          },
-          {
             path: "vip",
             element: <VIP />,
-          },
-          {
-            path: "checkout",
-            element: <Checkout />,
-          },
-          {
-            path: "privacy",
-            element: <Privacy />,
-          },
-          {
-            path: "terms",
-            element: <Terms />,
           },
           {
             path: "tools",
@@ -139,6 +102,14 @@ export const router = createBrowserRouter([
           {
             path: "settings-detail",
             element: <SettingsDetail />,
+          },
+          {
+            path: "settings-detail/:section",
+            element: <SettingsDetail />,
+          },
+          {
+            path: "help",
+            element: <HelpCenter />,
           },
           {
             path: "results",

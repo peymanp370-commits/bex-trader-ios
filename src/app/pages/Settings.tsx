@@ -123,7 +123,6 @@ const TXT = {
   riskDisclaimer: { en: "Risk Disclaimer", fa: "هشدار ریسک", ar: "إخلاء مسؤولية المخاطر", es: "Aviso de riesgo", "pt-BR": "Aviso de risco", hi: "जोखिम अस्वीकरण", tr: "Risk uyarısı", de: "Risikohinweis", fr: "Avertissement sur les risques", zh: "风险免责声明", ko: "위험 고지" },
   support: { en: "💬 SUPPORT", fa: "💬 پشتیبانی", ar: "💬 الدعم", es: "💬 SOPORTE", "pt-BR": "💬 SUPORTE", hi: "💬 सहायता", tr: "💬 DESTEK", de: "💬 SUPPORT", fr: "💬 ASSISTANCE", zh: "💬 支持", ko: "💬 지원" },
   emailSupport: { en: "Email Support", fa: "پشتیبانی ایمیلی", ar: "دعم البريد الإلكتروني", es: "Soporte por email", "pt-BR": "Suporte por e-mail", hi: "ईमेल सहायता", tr: "E-posta desteği", de: "E-Mail-Support", fr: "Assistance par e-mail", zh: "邮件支持", ko: "이메일 지원" },
-  helpCenter: { en: "Help Center", fa: "مرکز راهنما", ar: "مركز المساعدة", es: "Centro de ayuda", "pt-BR": "Central de ajuda", hi: "सहायता केंद्र", tr: "Yardım merkezi", de: "Hilfe-Center", fr: "Centre d’aide", zh: "帮助中心", ko: "도움말 센터" },
   telegramChannel: { en: "Telegram Channel", fa: "کانال تلگرام", ar: "قناة تليجرام", es: "Canal de Telegram", "pt-BR": "Canal do Telegram", hi: "टेलीग्राम चैनल", tr: "Telegram kanalı", de: "Telegram-Kanal", fr: "Canal Telegram", zh: "Telegram 频道", ko: "텔레그램 채널" },
   legal: { en: "⚖️ LEGAL", fa: "⚖️ قوانین", ar: "⚖️ قانوني", es: "⚖️ LEGAL", "pt-BR": "⚖️ LEGAL", hi: "⚖️ कानूनी", tr: "⚖️ YASAL", de: "⚖️ RECHTLICHES", fr: "⚖️ LÉGAL", zh: "⚖️ 法律", ko: "⚖️ 법률" },
   terms: { en: "Terms & Conditions", fa: "شرایط و قوانین", ar: "الشروط والأحكام", es: "Términos y condiciones", "pt-BR": "Termos e condições", hi: "नियम और शर्तें", tr: "Şartlar ve koşullar", de: "Allgemeine Geschäftsbedingungen", fr: "Conditions générales", zh: "条款和条件", ko: "이용약관" },
@@ -239,30 +238,6 @@ export function Settings() {
     window.dispatchEvent(new CustomEvent("languageChange", { detail: { lang: nextLang } }));
     window.dispatchEvent(new Event("storage"));
     setShowLanguageModal(false);
-  };
-
-  const openEmailSupport = () => {
-    const to = "support@bextrader.com";
-    const subject = encodeURIComponent("BEX Trader Support");
-
-    // On phones, open the native Mail app.
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) {
-      window.location.href = `mailto:${to}?subject=${subject}`;
-      return;
-    }
-
-    // On desktop browsers, mailto often does nothing if no default mail app is set.
-    // Open a real web compose page instead so the click always works.
-    window.open(
-      `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${subject}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
-  };
-
-  const openHelpCenter = () => {
-    window.location.href = "/support.html";
   };
 
   const notificationTimes = [
@@ -454,7 +429,7 @@ export function Settings() {
             <ChevronRight className={`w-5 h-5 ${darkMode ? "text-gray-400" : "text-gray-600"} ${rtl ? "rotate-180" : ""}`} />
           </button>
 
-          <button className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}>
+          <button onClick={() => navigate("/app/help")} className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}>
             <div className="flex items-center gap-3">
               <HelpCircle className="w-5 h-5 text-teal-400" />
               <span className="font-medium">{T(lang, TXT.howToUse)}</span>
@@ -462,7 +437,7 @@ export function Settings() {
             <ChevronRight className={`w-5 h-5 ${darkMode ? "text-gray-400" : "text-gray-600"} ${rtl ? "rotate-180" : ""}`} />
           </button>
 
-          <button className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl transition-colors`}>
+          <button onClick={() => navigate("/app/help")} className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl transition-colors`}>
             <div className="flex items-center gap-3">
               <Shield className="w-5 h-5 text-red-400" />
               <span className="font-medium">{T(lang, TXT.riskDisclaimer)}</span>
@@ -474,32 +449,18 @@ export function Settings() {
         <div className={`${darkMode ? "bg-[#0f1623] border-gray-800/50" : "bg-white border-gray-200"} rounded-2xl p-5 border`}>
           <h2 className="text-teal-400 text-xs font-bold tracking-widest mb-4">{T(lang, TXT.support)}</h2>
 
-          <button
-            type="button"
-            onClick={openEmailSupport}
-            className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}
-          >
-            <div className="flex items-center gap-3">
-              <Mail className="w-5 h-5 text-teal-400" />
-              <span className="font-medium">{T(lang, TXT.emailSupport)}</span>
-            </div>
-            <ExternalLink className={`w-4 h-4 ${darkMode ? "text-gray-400" : "text-gray-600"}`} />
-          </button>
-
-          <button
-            type="button"
-            onClick={openHelpCenter}
-            className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}
-          >
-            <div className="flex items-center gap-3">
-              <HelpCircle className="w-5 h-5 text-teal-400" />
-              <span className="font-medium">{T(lang, TXT.helpCenter)}</span>
-            </div>
-            <ExternalLink className={`w-4 h-4 ${darkMode ? "text-gray-400" : "text-gray-600"}`} />
-          </button>
+          <a href="mailto:support@bextrader.com">
+            <button className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}>
+              <div className="flex items-center gap-3">
+                <Mail className="w-5 h-5 text-teal-400" />
+                <span className="font-medium">{T(lang, TXT.emailSupport)}</span>
+              </div>
+              <ExternalLink className={`w-4 h-4 ${darkMode ? "text-gray-400" : "text-gray-600"}`} />
+            </button>
+          </a>
 
           <a href="https://t.me/bextraderbot" target="_blank" rel="noopener noreferrer">
-            <button type="button" className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl transition-colors`}>
+            <button className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl transition-colors`}>
               <div className="flex items-center gap-3">
                 <MessageCircle className="w-5 h-5 text-teal-400" />
                 <span className="font-medium">@bextraderbot</span>
@@ -512,21 +473,21 @@ export function Settings() {
         <div className={`${darkMode ? "bg-[#0f1623] border-gray-800/50" : "bg-white border-gray-200"} rounded-2xl p-5 border`}>
           <h2 className="text-yellow-400 text-xs font-bold tracking-widest mb-4">{T(lang, TXT.legal)}</h2>
 
-          <Link to="/app/terms" className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}>
+          <button className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}>
             <div className="flex items-center gap-3">
               <FileText className="w-5 h-5 text-teal-400" />
               <span className="font-medium">{T(lang, TXT.terms)}</span>
             </div>
             <ChevronRight className={`w-5 h-5 ${darkMode ? "text-gray-400" : "text-gray-600"} ${rtl ? "rotate-180" : ""}`} />
-          </Link>
+          </button>
 
-          <Link to="/app/privacy" className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl transition-colors`}>
+          <button className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl transition-colors`}>
             <div className="flex items-center gap-3">
               <Lock className="w-5 h-5 text-teal-400" />
               <span className="font-medium">{T(lang, TXT.privacy)}</span>
             </div>
             <ChevronRight className={`w-5 h-5 ${darkMode ? "text-gray-400" : "text-gray-600"} ${rtl ? "rotate-180" : ""}`} />
-          </Link>
+          </button>
         </div>
       </div>
 

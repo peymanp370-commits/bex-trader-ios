@@ -1,9 +1,9 @@
-import { Menu, Settings, TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { SideMenu } from "../components/SideMenu";
 import { BottomNav } from "../components/BottomNav";
-import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
+import { AppHeader } from "../components/AppHeader";
 import { fetchDashboard, PricesResponse } from "../utils/api";
 import {
   formatNumber,
@@ -355,61 +355,15 @@ export function Market() {
       className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}
     >
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
-
-      <header
-        className={`${darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200"} p-4 border-b`}
-      >
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setShowMenu(true)}
-            className={`p-2 rounded-lg ${darkMode ? "hover:bg-[#1a2332]" : "hover:bg-gray-100"}`}
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-
-          <div className="flex items-center gap-3">
-            <img src={logoImage} alt="BEX AI" className="h-16 md:h-20" />
-            <div>
-              <h1 className="font-bold text-lg md:text-xl leading-tight">
-                BEX AI
-              </h1>
-              <p
-                className={`text-xs md:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"} leading-tight`}
-              >
-                {tr(lang, {
-                  en: "GOLD TRADER",
-                  fa: "معامله‌گر طلا",
-                  ar: "متداول الذهب",
-                  es: "TRADER DE ORO",
-                  "pt-BR": "TRADER DE OURO",
-                  hi: "गोल्ड ट्रेडर",
-                  tr: "ALTIN TRADER",
-                  de: "GOLD-TRADER",
-                  fr: "TRADER OR",
-                  zh: "黄金交易员",
-                  ko: "골드 트레이더",
-                })}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div
-              className={`px-2 py-1 rounded-lg text-xs font-bold ${(localStorage.getItem("userPlan") || "PRO") === "VIP" ? "bg-gradient-to-r from-yellow-500 to-yellow-600 text-black" : (localStorage.getItem("userPlan") || "PRO") === "PRO" ? "bg-gradient-to-r from-teal-500 to-blue-500 text-white" : "bg-gray-500 text-white"}`}
-            >
-              {localStorage.getItem("userPlan") || "PRO"}
-            </div>
-
-            <Link to="/app/settings">
-              <button
-                className={`p-2 rounded-lg ${darkMode ? "hover:bg-[#1a2332]" : "hover:bg-gray-100"}`}
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-            </Link>
-          </div>
-        </div>
-      </header>
+<AppHeader
+        title={tr(lang, { en: "Market", fa: "بازار", ar: "السوق", es: "Mercado", "pt-BR": "Mercado", hi: "बाज़ार", tr: "Piyasa", de: "Markt", fr: "Marché", zh: "市场", ko: "시장" })}
+        subtitle={tr(lang, { en: "Live Market Data", fa: "داده‌های زنده بازار", ar: "بيانات السوق الحية", es: "Datos de mercado en vivo", "pt-BR": "Dados de mercado ao vivo", hi: "लाइव मार्केट डेटा", tr: "Canlı piyasa verileri", de: "Live-Marktdaten", fr: "Données de marché en direct", zh: "实时市场数据", ko: "실시간 시장 데이터" })}
+        darkMode={darkMode}
+        onMenuClick={() => setShowMenu(true)}
+        onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem("darkMode", JSON.stringify(next)); window.dispatchEvent(new Event("themeChange")); }}
+        showSettings={true}
+        showThemeToggle={true}
+      />
 
       <div className="p-4 space-y-4">
         <h2

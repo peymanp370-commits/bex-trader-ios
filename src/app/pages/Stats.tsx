@@ -1,6 +1,4 @@
 import {
-  Menu,
-  Settings,
   CalendarDays,
   TrendingUp,
   TrendingDown,
@@ -9,6 +7,7 @@ import { Link } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { SideMenu } from "../components/SideMenu";
 import { BottomNav } from "../components/BottomNav";
+import { AppHeader } from "../components/AppHeader";
 import { fetchTradeHistory, ClosedTrade } from "../utils/api";
 
 type SummaryItem = {
@@ -111,6 +110,8 @@ type CompareResponse = {
 
 const STATS_TZ = "America/Toronto";
 const DAY_MS = 24 * 60 * 60 * 1000;
+const PUBLIC_STATS_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // low-cost: max 4 refreshes/day
+const PUBLIC_STATS_CACHE_PREFIX = "bex_public_stats_cache_v3";
 
 
 function toNumber(value: unknown, fallback = 0): number {
@@ -802,76 +803,131 @@ export function Stats() {
     let mounted = true;
     let refreshTimer: number | undefined;
     let lastSuccessfulLoadAt = 0;
+    const cacheKey = `${PUBLIC_STATS_CACHE_PREFIX}:${selectedSymbol}`;
 
-    const loadStats = async (showLoading = true) => {
+    const applyCache = (cached: any) => {
+      if (!cached || typeof cached !== "object") return false;
+      setSummaryItems(Array.isArray(cached.summaryItems) ? cached.summaryItems : []);
+      setWeeklyReport(cached.weeklyReport || null);
+      setMonthlyReport(cached.monthlyReport || null);
+      setRecentTrades(Array.isArray(cached.recentTrades) ? cached.recentTrades : []);
+      setDeepDailyRows(Array.isArray(cached.deepDailyRows) ? cached.deepDailyRows : []);
+      setLastError(cached.lastError || null);
+      if (cached.savedAt) lastSuccessfulLoadAt = Number(cached.savedAt) || 0;
+      return true;
+    };
+
+    const readCache = () => {
       try {
-        if (showLoading) setLoading(true);
+        const raw = localStorage.getItem(cacheKey);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const writeCache = (payload: any) => {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({ ...payload, savedAt: Date.now() }));
+      } catch {}
+    };
+
+    const loadStats = async (showLoading = true, force = false) => {
+      const cached = readCache();
+      const cacheAge = cached?.savedAt ? Date.now() - Number(cached.savedAt) : Infinity;
+
+      if (cached && mounted) {
+        applyCache(cached);
+        setLoading(false);
+      }
+
+      // Public Stats is a low-cost marketing page. Do not hit APIs on every page visit.
+      // It refreshes at most every 6 hours (4x/day) unless the user has no cache yet.
+      if (!force && cached && cacheAge < PUBLIC_STATS_CACHE_TTL_MS) {
+        return;
+      }
+
+      try {
+        if (showLoading && !cached) setLoading(true);
         setLastError(null);
 
         const symbolArg = selectedSymbol === "ALL" ? undefined : selectedSymbol;
 
-        const [summaryResult, weeklyResult, monthlyResult, historyResult, deepHistoryResult, rawDailyRowsResult] = await Promise.allSettled([
+        const [summaryResult, weeklyResult, monthlyResult, rawDailyRowsResult] = await Promise.allSettled([
           fetchSummary(symbolArg),
           fetchReport("weekly", symbolArg),
           fetchReport("monthly", symbolArg),
-          fetchTradeHistory(10000),
-          fetchTradeHistoryDeep(10000),
           fetchFreshDailyRows(21, symbolArg),
         ]);
 
         if (!mounted) return;
 
-        const summary = summaryResult.status === "fulfilled" ? summaryResult.value : [];
-        const weekly = weeklyResult.status === "fulfilled" ? weeklyResult.value : null;
-        const monthly = monthlyResult.status === "fulfilled" ? monthlyResult.value : null;
-        const history = historyResult.status === "fulfilled" ? historyResult.value : null;
-        const deepHistory = deepHistoryResult.status === "fulfilled" ? deepHistoryResult.value : [];
-        const rawDailyRows = rawDailyRowsResult.status === "fulfilled" ? rawDailyRowsResult.value : [];
+        const summary = summaryResult.status === "fulfilled" ? summaryResult.value : cached?.summaryItems || [];
+        const weekly = weeklyResult.status === "fulfilled" ? weeklyResult.value : cached?.weeklyReport || null;
+        const monthly = monthlyResult.status === "fulfilled" ? monthlyResult.value : cached?.monthlyReport || null;
+        const rawDailyRows = rawDailyRowsResult.status === "fulfilled" ? rawDailyRowsResult.value : cached?.deepDailyRows || [];
+
+        // Important: do NOT call bex-app /history here. That endpoint is not the public stats source
+        // and causes 404 spam + extra cost. Public Stats must come from cached report/summary workers only.
+        const recent: ClosedTrade[] = Array.isArray(cached?.recentTrades) ? cached.recentTrades : [];
+
+        const errors = [summaryResult, weeklyResult, monthlyResult, rawDailyRowsResult]
+          .filter((r) => r.status === "rejected")
+          .map((r: any) => r.reason?.message || String(r.reason));
+        const nextError = errors.length ? errors.join(" | ") : null;
 
         setSummaryItems(Array.isArray(summary) ? summary : []);
         setWeeklyReport(weekly);
         setMonthlyReport(monthly);
-        const apiTrades = Array.isArray((history as any)?.trades)
-          ? (history as any).trades.map(normalizeHistoryTrade).filter((trade: ClosedTrade | null): trade is ClosedTrade => !!trade)
-          : [];
-        setRecentTrades(mergeTrades(apiTrades, Array.isArray(deepHistory) ? deepHistory : []));
+        setRecentTrades(recent);
         setDeepDailyRows(Array.isArray(rawDailyRows) ? rawDailyRows : []);
+        setLastError(nextError);
         lastSuccessfulLoadAt = Date.now();
 
-        const errors = [summaryResult, weeklyResult, monthlyResult, historyResult, deepHistoryResult, rawDailyRowsResult]
-          .filter((r) => r.status === "rejected")
-          .map((r: any) => r.reason?.message || String(r.reason));
-        setLastError(errors.length ? errors.join(" | ") : null);
+        writeCache({
+          summaryItems: Array.isArray(summary) ? summary : [],
+          weeklyReport: weekly,
+          monthlyReport: monthly,
+          recentTrades: recent,
+          deepDailyRows: Array.isArray(rawDailyRows) ? rawDailyRows : [],
+          lastError: nextError,
+        });
       } catch (err: any) {
         if (!mounted) return;
-        setLastError(err?.message || "Failed to load stats");
-        setSummaryItems([]);
-        setWeeklyReport(null);
-        setMonthlyReport(null);
-        setRecentTrades([]);
-        setDeepDailyRows([]);
+        const cachedAgain = readCache();
+        if (cachedAgain) {
+          applyCache(cachedAgain);
+          setLastError(null);
+        } else {
+          setLastError(err?.message || "Failed to load stats");
+          setSummaryItems([]);
+          setWeeklyReport(null);
+          setMonthlyReport(null);
+          setRecentTrades([]);
+          setDeepDailyRows([]);
+        }
       } finally {
         if (mounted && showLoading) setLoading(false);
       }
     };
 
-    const scheduleNextToronto9amRefresh = () => {
+    const scheduleNextLowCostRefresh = () => {
       window.clearTimeout(refreshTimer);
       refreshTimer = window.setTimeout(async () => {
         if (!mounted) return;
-        await loadStats(false);
-        if (mounted) scheduleNextToronto9amRefresh();
-      }, msUntilNextTorontoNine());
+        await loadStats(false, true);
+        if (mounted) scheduleNextLowCostRefresh();
+      }, PUBLIC_STATS_CACHE_TTL_MS);
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState !== "visible") return;
-      const staleForOneDay = Date.now() - lastSuccessfulLoadAt > DAY_MS - 5 * 60 * 1000;
-      if (staleForOneDay) loadStats(false);
+      const staleForSixHours = Date.now() - lastSuccessfulLoadAt > PUBLIC_STATS_CACHE_TTL_MS;
+      if (staleForSixHours) loadStats(false, true);
     };
 
     loadStats();
-    scheduleNextToronto9amRefresh();
+    scheduleNextLowCostRefresh();
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
@@ -1302,38 +1358,24 @@ export function Stats() {
       } pb-24`}
     >
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
-
-      <header
-        className={`${
-          darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200"
-        } border-b p-4`}
-      >
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setShowMenu(true)}
-            className={`p-2 rounded-lg ${
-              darkMode ? "hover:bg-[#1a2332]" : "hover:bg-gray-100"
-            }`}
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-
-          <h1 className="font-bold text-xl">BEX Public Stats</h1>
-
-          <Link to="/app/settings">
-            <button
-              className={`p-2 rounded-lg ${
-                darkMode ? "hover:bg-[#1a2332]" : "hover:bg-gray-100"
-              }`}
-            >
-              <Settings className="w-5 h-5" />
-            </button>
-          </Link>
-        </div>
-      </header>
+<AppHeader
+        title="BEX Public Stats"
+        subtitle="Public system performance"
+        darkMode={darkMode}
+        onMenuClick={() => setShowMenu(true)}
+        onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem("darkMode", JSON.stringify(next)); window.dispatchEvent(new Event("themeChange")); }}
+        showSettings={true}
+        showThemeToggle={true}
+      />
 
       <div className="p-4 space-y-5">
-        <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/10 p-4 text-sm text-yellow-100">
+        <div
+          className={`rounded-2xl border p-4 text-sm ${
+            darkMode
+              ? "border-yellow-500/20 bg-yellow-500/10 text-yellow-100"
+              : "border-yellow-300/50 bg-yellow-50 text-yellow-900"
+          }`}
+        >
           Public BEX system performance for marketing. This is not a customer personal MT5 account. Use My Stats for your own trades.
         </div>
         <div

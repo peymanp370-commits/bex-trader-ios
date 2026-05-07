@@ -61,7 +61,8 @@ export default {
             "GET /auth/google/start",
             "GET /auth/google/callback",
             "GET /auth/apple/start",
-            "POST /auth/apple/callback"
+            "POST /auth/apple/callback",
+            "POST /auth/apple/native"
           ],
           cookie: {
             domain: resolveCookieDomain(request, env),
@@ -642,6 +643,64 @@ export default {
             clearTempCookie(request, env, "oauth_apple_nonce", { sameSite: "None" })
           ]
         );
+      }
+
+
+      if (url.pathname === "/auth/apple/native" && request.method === "POST") {
+        const body = await readJson(request);
+        const identityToken = String(body.identityToken || body.identity_token || "").trim();
+        const authorizationCode = String(body.authorizationCode || body.authorization_code || "").trim();
+
+        if (!identityToken) {
+          return fail(request, 400, "APPLE_ID_TOKEN_MISSING", "Apple identity token is missing");
+        }
+
+        let claims;
+        try {
+          claims = await verifyAppleNativeIdToken(identityToken, env);
+        } catch (err) {
+          return fail(request, 401, err.code || "APPLE_ID_TOKEN_INVALID", err?.message || "Apple identity token is invalid");
+        }
+
+        const submittedUser = typeof body.user === "string"
+          ? (() => { try { return JSON.parse(body.user); } catch { return null; } })()
+          : (body.user || null);
+
+        const email = normalizeEmail(claims.email || body.email);
+        const firstName =
+          clean(body.givenName) ||
+          clean(submittedUser?.name?.firstName) ||
+          clean(submittedUser?.givenName) ||
+          "Apple";
+        const lastName =
+          clean(body.familyName) ||
+          clean(submittedUser?.name?.lastName) ||
+          clean(submittedUser?.familyName) ||
+          "User";
+
+        const linked = await findOrCreateSocialUser(env.DB, {
+          provider: "apple",
+          providerUserId: String(claims.sub),
+          providerEmail: email,
+          firstName,
+          lastName,
+          emailVerified: claims.email_verified === true || claims.email_verified === "true",
+          usernameBase:
+            normalizeUsername(email?.split("@")[0]) ||
+            normalizeUsername(`${firstName}_${lastName}`) ||
+            "apple_user",
+          country: request.cf?.country || "Unknown",
+          timezone: "UTC",
+          providerRefreshToken: authorizationCode || null
+        });
+
+        const session = await createRefreshSession(env.DB, linked.userId, request);
+
+        return okWithCookies(request, {
+          message: "Apple native login successful",
+          code: "APPLE_NATIVE_LOGIN_SUCCESS",
+          user: await getSafeUser(env.DB, linked.userId)
+        }, [buildRefreshCookie(request, env, session.refreshToken)]);
       }
 
 
@@ -1581,6 +1640,36 @@ async function verifyAppleIdToken(idToken, env, expectedNonce) {
     err.code = "APPLE_NONCE_INVALID";
     throw err;
   }
+
+  if (!payload.sub) {
+    const err = new Error("Apple subject missing");
+    err.code = "APPLE_SUB_MISSING";
+    throw err;
+  }
+
+  return payload;
+}
+
+
+function getAppleNativeAudiences(env) {
+  const out = [];
+  for (const value of [
+    env.APPLE_IOS_CLIENT_ID,
+    env.APPLE_BUNDLE_ID,
+    "com.bextrader.app",
+    env.APPLE_CLIENT_ID
+  ]) {
+    const v = String(value || "").trim();
+    if (v && !out.includes(v)) out.push(v);
+  }
+  return out;
+}
+
+async function verifyAppleNativeIdToken(idToken, env) {
+  const { payload } = await jwtVerify(idToken, getAppleJwks(), {
+    issuer: "https://appleid.apple.com",
+    audience: getAppleNativeAudiences(env)
+  });
 
   if (!payload.sub) {
     const err = new Error("Apple subject missing");

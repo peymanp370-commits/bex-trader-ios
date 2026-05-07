@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
-import { ArrowLeft, Calculator, ShieldCheck, TrendingUp, Server, Copy, Zap, Lock } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ShieldCheck, TrendingUp, Server, Copy, Zap, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getLanguage, tr } from "../utils/i18n";
+import { AppHeader } from "../components/AppHeader";
 
 type SymbolName = "XAUUSD" | "XAGUSD";
 type VolumeMode = "AUTO" | "MANUAL";
@@ -22,7 +23,7 @@ function generateBridgeToken() {
 export function Tools() {
   const navigate = useNavigate();
   const lang = getLanguage();
-  const [darkMode] = useState(() => {
+  const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("darkMode");
     return saved ? JSON.parse(saved) : true;
   });
@@ -109,27 +110,15 @@ export function Tools() {
 
   return (
     <div className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}>
-      <header className={`${darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200"} p-4 border-b sticky top-0 z-10`}>
-        <div className="max-w-7xl mx-auto flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className={`p-2 rounded-lg ${darkMode ? "hover:bg-[#1a2332]" : "hover:bg-gray-100"}`}
-            aria-label={tr(lang, "Back", "بازگشت", "رجوع")}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-r from-yellow-500 to-yellow-600 text-black flex items-center justify-center shadow-lg shadow-yellow-500/20">
-            <Calculator className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="font-bold text-xl">{tr(lang, "Trading Tools", "ابزارهای معاملاتی", "أدوات التداول")}</h1>
-            <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-              {tr(lang, "Fast calculators for risk and position planning", "محاسبه سریع ریسک و حجم معامله", "حاسبات سريعة للمخاطر وحجم الصفقة")}
-            </p>
-          </div>
-        </div>
-      </header>
+<AppHeader
+        title={tr(lang, "Trading Tools", "ابزارهای معاملاتی", "أدوات التداول")}
+        subtitle={tr(lang, "Fast calculators for risk and position planning", "محاسبه سریع ریسک و حجم معامله", "حاسبات سريعة للمخاطر وحجم الصفقة")}
+        darkMode={darkMode}
+        onBackClick={() => navigate(-1)}
+        onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem("darkMode", JSON.stringify(next)); window.dispatchEvent(new Event("themeChange")); }}
+        showSettings={true}
+        showThemeToggle={true}
+      />
 
       <main className="px-4 space-y-5 max-w-7xl mx-auto mt-5">
         <div className={cardClass}>

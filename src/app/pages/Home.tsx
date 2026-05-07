@@ -3,8 +3,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { SideMenu } from "../components/SideMenu";
 import { PlanBadge } from "../components/PlanBadge";
-import { formatDate, formatDateTime, formatNumber, getLanguage, tr, translateBias, translateMarketPhase, translateNews, translateRisk, translateSide } from "../utils/i18n";
-import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
+import { AppHeader } from "../components/AppHeader";
+import { applyDocumentLanguage, formatDate, formatDateTime, formatNumber, getLanguage, LANGUAGE_OPTIONS, setLanguage, tr, translateBias, translateMarketPhase, translateNews, translateRisk, translateSide, type SupportedLanguage } from "../utils/i18n";
 import {
   fetchDashboard,
   DashboardPrices,
@@ -424,7 +424,27 @@ export function Home() {
     return saved ? JSON.parse(saved) : true;
   });
 
-  const lang = getLanguage();
+  const [lang, setHomeLang] = useState<SupportedLanguage>(() => getLanguage());
+
+  useEffect(() => {
+    applyDocumentLanguage(lang);
+  }, [lang]);
+
+  useEffect(() => {
+    const syncLanguage = () => setHomeLang(getLanguage());
+    window.addEventListener("languageChange", syncLanguage as EventListener);
+    window.addEventListener("storage", syncLanguage);
+    return () => {
+      window.removeEventListener("languageChange", syncLanguage as EventListener);
+      window.removeEventListener("storage", syncLanguage);
+    };
+  }, []);
+
+  const changeHomeLanguage = (next: unknown) => {
+    const value = setLanguage(next);
+    setHomeLang(value);
+    applyDocumentLanguage(value);
+  };
 
   const [prices, setPrices] = useState<DashboardPrices | null>(null);
   const [signal, setSignal] = useState<DashboardSignal | null>(null);
@@ -730,44 +750,53 @@ export function Home() {
           {mobilePushHint}
         </div>
       )}
+<AppHeader
+        title="BEX AI"
+        subtitle={tr(lang, "GOLD TRADER", "معامله‌گر طلا", "متداول الذهب")}
+        darkMode={darkMode}
+        onMenuClick={() => setShowMenu(true)}
+        onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem("darkMode", JSON.stringify(next)); window.dispatchEvent(new Event("themeChange")); }}
+        showSettings={true}
+        showThemeToggle={true}
+        badge={
+          <PlanBadge
+            plan={localStorage.getItem("userPlan") || localStorage.getItem("plan") || "free"}
+            className="shrink-0"
+          />
+        }
+      />
 
-      <header className={`${darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200"} p-4 border-b`}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setShowMenu(true)} className={`p-2 rounded-lg ${darkMode ? "hover:bg-[#1a2332]" : "hover:bg-gray-100"}`}>
-              <Menu className="w-5 h-5" />
-            </button>
-            <img src={logoImage} alt="BEX AI" className="h-20 md:h-24" />
-            <div>
-              <h1 className="font-bold text-xl md:text-2xl leading-tight">BEX AI</h1>
-              <p className={`text-sm md:text-base ${darkMode ? "text-gray-400" : "text-gray-500"} leading-tight`}>
-                {tr(lang, "GOLD TRADER", "معامله‌گر طلا", "متداول الذهب")}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="text-right">
-              <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{tr(lang, tr(lang, "Hello", "سلام", "سلام"), "سلام", "مرحبًا")}</p>
-              <p className={`font-bold text-sm ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {localStorage.getItem("userName") || tr(lang, "Trader", "معامله‌گر", "معامله‌گر")}
-              </p>
-            </div>
-            <PlanBadge
-              plan={localStorage.getItem("userPlan") || localStorage.getItem("plan") || "free"}
-              className="shrink-0"
-            />
-          </div>
-        </div>
-
-        <div className={`mt-3 ${darkMode ? "bg-[#1a2332]" : "bg-gray-100"} rounded-lg p-2 flex items-center justify-between`}>
+      <div className="px-4 pt-3 space-y-3 max-w-7xl mx-auto">
+        <div className={`${darkMode ? "bg-[#1a2332]" : "bg-gray-100"} rounded-lg p-2 flex items-center justify-between`}>
           <div className="flex items-center gap-2">
             <span className="text-yellow-400 text-sm font-bold">⏰</span>
             <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-600"}`}>{formattedDate}</span>
           </div>
           <div className="text-teal-400 font-mono font-bold text-sm">{formattedTime}</div>
         </div>
-      </header>
+
+        <div className={`${darkMode ? "bg-[#1a2332] border-gray-700" : "bg-gray-100 border-gray-300"} rounded-xl border p-2 flex items-center justify-between gap-3`}>
+          <button
+            type="button"
+            onClick={() => navigate("/app/settings")}
+            className={`shrink-0 px-3 py-2 rounded-lg text-xs font-bold ${darkMode ? "bg-[#0f1623] text-yellow-400 hover:bg-[#131c2b]" : "bg-white text-yellow-600 hover:bg-gray-50"}`}
+            aria-label={tr(lang, "Change Language", "تغییر زبان", "تغيير اللغة")}
+          >
+            🌐 {tr(lang, "Change Language", "تغییر زبان", "تغيير اللغة")}
+          </button>
+
+          <select
+            value={lang}
+            onChange={(e) => changeHomeLanguage(e.target.value)}
+            className={`min-w-0 flex-1 ${darkMode ? "bg-[#0f1623] border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"} border rounded-lg px-3 py-2 text-xs font-bold outline-none`}
+            aria-label={tr(lang, "Select language", "انتخاب زبان", "اختيار اللغة")}
+          >
+            {LANGUAGE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       <div className="px-4 space-y-5 md:space-y-3 max-w-7xl md:mx-auto mt-5">
         <div className="flex gap-3">
