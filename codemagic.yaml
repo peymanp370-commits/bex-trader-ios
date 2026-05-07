@@ -25,9 +25,11 @@ workflows:
         script: |
           npx cap sync ios
 
-      - name: Clean broken Xcode SwiftPM cache
+      - name: Clean broken Xcode cache
         script: |
+          rm -rf ios/App/App.xcodeproj/project.xcworkspace || true
           find ios/App -name Package.resolved -delete || true
+          rm -rf ios/App/CapApp-SPM/.swiftpm || true
           rm -rf ~/Library/Developer/Xcode/DerivedData/* || true
 
       - name: Auto increase iOS build number
@@ -51,6 +53,25 @@ workflows:
           keychain initialize
           keychain add-certificates
 
+      - name: Create export options
+        script: |
+          cat > /Users/builder/export_options.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>compileBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          EOF
+
       - name: Build signed IPA
         script: |
           echo "=== CHECK IOS FILES ==="
@@ -58,13 +79,11 @@ workflows:
           ls -la ios/App/App.xcodeproj
           cat ios/App/App/App.entitlements || true
 
-          echo "=== RESOLVE PACKAGES ==="
-          xcodebuild -project ios/App/App.xcodeproj -scheme App -resolvePackageDependencies
-
           echo "=== BUILD IPA ==="
           xcode-project build-ipa \
             --project ios/App/App.xcodeproj \
-            --scheme App
+            --scheme App \
+            --export-options-plist /Users/builder/export_options.plist
 
     artifacts:
       - build/ios/ipa/*.ipa
