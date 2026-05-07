@@ -53,6 +53,22 @@ workflows:
           keychain initialize
           keychain add-certificates
 
+      - name: Create export options plist
+        script: |
+          python3 - <<'PY'
+          import plistlib
+          data = {
+              "method": "app-store-connect",
+              "signingStyle": "automatic",
+              "uploadBitcode": False,
+              "compileBitcode": False
+          }
+          with open("/Users/builder/export_options.plist", "wb") as f:
+              plistlib.dump(data, f)
+          PY
+          plutil -lint /Users/builder/export_options.plist
+          cat /Users/builder/export_options.plist
+
       - name: Build signed IPA
         script: |
           echo "=== CHECK IOS FILES ==="
@@ -63,7 +79,8 @@ workflows:
           echo "=== BUILD IPA ==="
           xcode-project build-ipa \
             --project ios/App/App.xcodeproj \
-            --scheme App
+            --scheme App \
+            --export-options-plist /Users/builder/export_options.plist
 
     artifacts:
       - build/ios/ipa/*.ipa
