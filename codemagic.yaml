@@ -25,6 +25,12 @@ workflows:
         script: |
           npx cap sync ios
 
+      - name: Auto increase iOS build number
+        script: |
+          echo "Using Codemagic BUILD_NUMBER=$BUILD_NUMBER"
+          perl -0pi -e "s/CURRENT_PROJECT_VERSION = [0-9]+;/CURRENT_PROJECT_VERSION = $ENV{BUILD_NUMBER};/g" ios/App/App.xcodeproj/project.pbxproj
+          grep -n "CURRENT_PROJECT_VERSION" ios/App/App.xcodeproj/project.pbxproj
+
       - name: Fetch iOS signing files
         script: |
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
