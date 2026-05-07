@@ -10,8 +10,6 @@
       groups:
         - appstore
       vars:
-        XCODE_PROJECT: "ios/App/App.xcodeproj"
-        XCODE_SCHEME: "App"
         BUNDLE_ID: "com.bextrader.app"
 
     scripts:
@@ -45,9 +43,19 @@
 
       - name: Build signed IPA
         script: |
+          echo "=== CHECK IOS FILES ==="
+          ls -la ios/App
+          ls -la ios/App/App.xcodeproj
+          cat ios/App/App/App.entitlements || true
+
+          echo "=== XCODE BUILD SETTINGS ==="
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -showBuildSettings
+
+          echo "=== BUILD IPA ==="
           xcode-project build-ipa \
             --project ios/App/App.xcodeproj \
-            --scheme App
+            --scheme App \
+            --configuration Release
 
     artifacts:
       - build/ios/ipa/*.ipa
