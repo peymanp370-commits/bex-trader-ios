@@ -114,27 +114,61 @@ workflows:
           xcode-project use-profiles \
             --project ios/App/App.xcodeproj
 
-      - name: Create export options plist
+            - name: Create export options plist
         script: |
-          cat > /Users/builder/export_options.plist <<'PLIST'
+          echo "=== FIND APP STORE PROVISIONING PROFILE ==="
+
+          PROFILE_PATH="$(find "$HOME/Library/MobileDevice/Provisioning Profiles" -name "*.mobileprovision" | head -n 1)"
+
+          if [ -z "$PROFILE_PATH" ]; then
+            echo "No provisioning profile found"
+            exit 1
+          fi
+
+          echo "Using profile: $PROFILE_PATH"
+
+          security cms -D -i "$PROFILE_PATH" > /tmp/profile.plist
+
+          PROFILE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :Name' /tmp/profile.plist)"
+          TEAM_ID="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' /tmp/profile.plist)"
+
+          echo "PROFILE_NAME=$PROFILE_NAME"
+          echo "TEAM_ID=$TEAM_ID"
+          echo "BUNDLE_ID=$BUNDLE_ID"
+
+          cat > /Users/builder/export_options.plist <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
             <key>method</key>
             <string>app-store</string>
+
             <key>signingStyle</key>
             <string>manual</string>
+
+            <key>teamID</key>
+            <string>$TEAM_ID</string>
+
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>$BUNDLE_ID</key>
+              <string>$PROFILE_NAME</string>
+            </dict>
+
             <key>destination</key>
             <string>export</string>
+
             <key>compileBitcode</key>
             <false/>
+
             <key>uploadBitcode</key>
             <false/>
           </dict>
           </plist>
           PLIST
 
+          echo "=== EXPORT OPTIONS ==="
           plutil -lint /Users/builder/export_options.plist
           cat /Users/builder/export_options.plist
 
