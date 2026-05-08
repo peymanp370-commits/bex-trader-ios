@@ -21,21 +21,42 @@ workflows:
         script: |
           npm run build
 
-      - name: Sync Capacitor iOS
+      - name: Recreate clean iOS project inside Codemagic
         script: |
+          echo "=== REMOVE OLD IOS PROJECT FROM CI CLONE ==="
+          rm -rf ios
+
+          echo "=== ADD CLEAN CAPACITOR IOS PROJECT ==="
+          npx cap add ios
+
+          echo "=== SYNC CAPACITOR IOS ==="
           npx cap sync ios
 
-      - name: Clean Xcode cache
-        script: |
-          rm -rf ~/Library/Developer/Xcode/DerivedData/* || true
+          echo "=== DELETE BAD XCODE CACHE / PACKAGE FILES ==="
           find ios/App -name Package.resolved -delete || true
           find ios/App -name "*.xcuserstate" -delete || true
+          rm -rf ~/Library/Developer/Xcode/DerivedData/* || true
+
+          echo "=== IOS FILES AFTER RECREATE ==="
+          ls -la ios
+          ls -la ios/App
+          ls -la ios/App/App.xcodeproj
+          ls -la ios/App/App.xcworkspace || true
+
+          echo "=== PBXPROJ LINT ==="
+          plutil -lint ios/App/App.xcodeproj/project.pbxproj
+
+          echo "=== WORKSPACE CONTENT ==="
+          cat ios/App/App.xcworkspace/contents.xcworkspacedata || true
+
+          echo "=== XCODE LIST WORKSPACE ==="
+          xcodebuild -workspace ios/App/App.xcworkspace -list || true
 
       - name: Auto increase iOS build number
         script: |
           echo "Using BUILD_NUMBER=$BUILD_NUMBER"
           perl -0pi -e "s/CURRENT_PROJECT_VERSION = [0-9]+;/CURRENT_PROJECT_VERSION = $ENV{BUILD_NUMBER};/g" ios/App/App.xcodeproj/project.pbxproj
-          grep -n "CURRENT_PROJECT_VERSION" ios/App/App.xcodeproj/project.pbxproj
+          grep -n "CURRENT_PROJECT_VERSION" ios/App/App.xcodeproj/project.pbxproj || true
 
       - name: Fetch iOS signing files
         script: |
@@ -51,22 +72,6 @@ workflows:
         script: |
           keychain initialize
           keychain add-certificates
-
-      - name: Show signing info
-        script: |
-          echo "=== PROFILES ==="
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles || true
-
-          echo "=== CERTIFICATES ==="
-          security find-identity -v -p codesigning || true
-
-          echo "=== IOS FILES ==="
-          ls -la ios/App
-          ls -la ios/App/App.xcodeproj
-          ls -la ios/App/App.xcworkspace || true
-
-          echo "=== ENTITLEMENTS ==="
-          cat ios/App/App/App.entitlements || true
 
       - name: Create export options plist
         script: |
@@ -94,43 +99,9 @@ workflows:
           plutil -lint /Users/builder/export_options.plist
           cat /Users/builder/export_options.plist
 
-      - name: Diagnose iOS Xcode project
-        script: |
-          echo "=== CURRENT COMMIT ==="
-          git rev-parse --short HEAD
-          git log --oneline -5
-
-          echo "=== IOS TREE ==="
-          find ios/App -maxdepth 5 -type f | sort
-
-          echo "=== PBXPROJ FILE INFO ==="
-          ls -la ios/App/App.xcodeproj/project.pbxproj
-          file ios/App/App.xcodeproj/project.pbxproj || true
-
-          echo "=== PBXPROJ FIRST 80 LINES ==="
-          sed -n '1,80p' ios/App/App.xcodeproj/project.pbxproj
-
-          echo "=== PBXPROJ CONFLICT CHECK ==="
-          grep -n "<<<<<<<\|=======\|>>>>>>>" ios/App/App.xcodeproj/project.pbxproj || true
-
-          echo "=== PBXPROJ LINT ==="
-          plutil -lint ios/App/App.xcodeproj/project.pbxproj || true
-
-          echo "=== WORKSPACE CONTENT ==="
-          cat ios/App/App.xcworkspace/contents.xcworkspacedata || true
-
-          echo "=== PODFILE ==="
-          cat ios/App/Podfile || true
-
-          echo "=== XCODE LIST PROJECT ==="
-          xcodebuild -project ios/App/App.xcodeproj -list || true
-
-          echo "=== XCODE LIST WORKSPACE ==="
-          xcodebuild -workspace ios/App/App.xcworkspace -list || true
-
       - name: Build signed IPA
         script: |
-          echo "=== BUILD SIGNED IPA WITH WORKSPACE ==="
+          echo "=== BUILD SIGNED IPA WITH CLEAN WORKSPACE ==="
 
           xcode-project build-ipa \
             --workspace ios/App/App.xcworkspace \
