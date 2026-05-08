@@ -10,6 +10,7 @@ import { Home } from "./pages/Home";
 import { Market } from "./pages/Market";
 import { Signal } from "./pages/Signal";
 import { Stats } from "./pages/Stats";
+import { MyStats } from "./pages/MyStats";
 import { VIP } from "./pages/VIP";
 import { Settings } from "./pages/Settings";
 import { Tools } from "./pages/Tools";
@@ -20,45 +21,20 @@ import { Welcome } from "./pages/Welcome";
 import { AgeVerification } from "./pages/AgeVerification";
 import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
-import { HelpCenter } from "./pages/HelpCenter";
 
 export const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
     children: [
-      {
-        index: true,
-        element: <Navigate to="/welcome" replace />,
-      },
-      {
-        path: "login",
-        element: <Login />,
-      },
-      {
-        path: "register",
-        element: <Register />,
-      },
-      {
-        path: "verify-email",
-        element: <VerifyEmail />,
-      },
-      {
-        path: "forgot-password",
-        element: <ForgotPassword />,
-      },
-      {
-        path: "reset-password",
-        element: <ResetPassword />,
-      },
-      {
-        path: "welcome",
-        element: <Welcome />,
-      },
-      {
-        path: "age-verification",
-        element: <AgeVerification />,
-      },
+      { index: true, element: <Navigate to="/welcome" replace /> },
+      { path: "login", element: <Login /> },
+      { path: "register", element: <Register /> },
+      { path: "verify-email", element: <VerifyEmail /> },
+      { path: "forgot-password", element: <ForgotPassword /> },
+      { path: "reset-password", element: <ResetPassword /> },
+      { path: "welcome", element: <Welcome /> },
+      { path: "age-verification", element: <AgeVerification /> },
       {
         path: "app",
         element: (
@@ -67,64 +43,22 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
         children: [
-          {
-            index: true,
-            element: <Home />,
-          },
-          {
-            path: "home",
-            element: <Home />,
-          },
-          {
-            path: "market",
-            element: <Market />,
-          },
-          {
-            path: "signal",
-            element: <Signal />,
-          },
-          {
-            path: "stats",
-            element: <Stats />,
-          },
-          {
-            path: "vip",
-            element: <VIP />,
-          },
-          {
-            path: "tools",
-            element: <Tools />,
-          },
-          {
-            path: "settings",
-            element: <Settings />,
-          },
-          {
-            path: "settings-detail",
-            element: <SettingsDetail />,
-          },
-          {
-            path: "settings-detail/:section",
-            element: <SettingsDetail />,
-          },
-          {
-            path: "help",
-            element: <HelpCenter />,
-          },
-          {
-            path: "results",
-            element: <Results />,
-          },
-          {
-            path: "chart",
-            element: <Chart />,
-          },
+          { index: true, element: <Home /> },
+          { path: "home", element: <Home /> },
+          { path: "market", element: <Market /> },
+          { path: "signal", element: <Signal /> },
+          { path: "stats", element: <Stats /> },
+          { path: "account", element: <MyStats /> },
+          { path: "my-stats", element: <MyStats /> },
+          { path: "vip", element: <VIP /> },
+          { path: "tools", element: <Tools /> },
+          { path: "settings", element: <Settings /> },
+          { path: "settings-detail", element: <SettingsDetail /> },
+          { path: "results", element: <Results /> },
+          { path: "chart", element: <Chart /> },
         ],
       },
-      {
-        path: "*",
-        element: <Navigate to="/welcome" replace />,
-      },
+      { path: "*", element: <Navigate to="/welcome" replace /> },
     ],
   },
 ]);

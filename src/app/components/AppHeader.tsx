@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 import { ArrowLeft, Menu, Moon, Settings, Sun, UserCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import bexLogoTransparent from "../../assets/bex-logo-transparent.png";
 
 type AppHeaderProps = {
   title: string;
   subtitle?: string;
-  darkMode: boolean;
+  darkMode?: boolean;
   onToggleDark?: () => void;
   onMenuClick?: () => void;
   onBackClick?: () => void;
@@ -16,12 +16,47 @@ type AppHeaderProps = {
   userName?: string | null;
   badge?: ReactNode;
   rtl?: boolean;
+  mode?: string;
+  showBack?: boolean;
+  backTo?: string;
+  showPlan?: boolean;
 };
+
+function readStoredName() {
+  try {
+    return (
+      localStorage.getItem("userName") ||
+      localStorage.getItem("name") ||
+      localStorage.getItem("bex_user_name") ||
+      ""
+    );
+  } catch {
+    return "";
+  }
+}
+
+function readDarkMode(fallback = true) {
+  try {
+    const saved = localStorage.getItem("darkMode");
+    return saved ? JSON.parse(saved) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function toggleStoredDarkMode(current: boolean) {
+  const next = !current;
+  try {
+    localStorage.setItem("darkMode", JSON.stringify(next));
+    window.dispatchEvent(new Event("themeChange"));
+  } catch {}
+  return next;
+}
 
 export function AppHeader({
   title,
   subtitle,
-  darkMode,
+  darkMode: darkModeProp,
   onToggleDark,
   onMenuClick,
   onBackClick,
@@ -31,49 +66,62 @@ export function AppHeader({
   userName,
   badge,
   rtl = false,
+  showBack = false,
+  backTo,
 }: AppHeaderProps) {
-  const savedName =
-    userName ||
-    localStorage.getItem("userName") ||
-    localStorage.getItem("name") ||
-    localStorage.getItem("bex_user_name") ||
-    "Trader";
-
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isSettingsPage = location.pathname.includes("/settings");
+  const darkMode = typeof darkModeProp === "boolean" ? darkModeProp : readDarkMode(true);
+  const savedName = userName || readStoredName();
   const iconButton = `${darkMode ? "hover:bg-[#1a2332] text-white" : "hover:bg-gray-100 text-gray-900"} p-2 rounded-xl transition-colors`;
 
+  const doBack = () => {
+    if (onBackClick) return onBackClick();
+    if (backTo) return navigate(backTo);
+    return navigate(-1);
+  };
+
+  const doTheme = () => {
+    if (onToggleDark) return onToggleDark();
+    toggleStoredDarkMode(darkMode);
+  };
+
   return (
-    <header className={`${darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200"} sticky top-0 z-20 border-b px-4 py-3`}>
+    <header className={`${darkMode ? "bg-[#0f1623] border-gray-800 text-white" : "bg-white border-gray-200 text-gray-950"} sticky top-0 z-40 border-b px-4 py-3`}>
       <div className="mx-auto flex max-w-7xl items-center gap-3">
-        {onBackClick ? (
-          <button type="button" onClick={onBackClick} className={iconButton} aria-label="Back">
+        {showBack || onBackClick || backTo ? (
+          <button type="button" onClick={doBack} className={iconButton} aria-label="Back">
             <ArrowLeft className={`h-5 w-5 ${rtl ? "rotate-180" : ""}`} />
           </button>
         ) : onMenuClick ? (
           <button type="button" onClick={onMenuClick} className={iconButton} aria-label="Menu">
             <Menu className="h-5 w-5" />
           </button>
-        ) : null}
+        ) : (
+          <div className="w-9 shrink-0" />
+        )}
 
-        <img src={bexLogoTransparent} alt="BEX" className="h-14 w-16 shrink-0 object-contain" />
+        <img src={bexLogoTransparent} alt="BEX" className="h-14 w-20 shrink-0 object-contain" />
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="break-words text-xl font-extrabold leading-tight sm:text-2xl">{title}</h1>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <h1 className="min-w-0 break-words text-xl font-extrabold leading-tight sm:text-2xl">{title}</h1>
             {badge ? <div className="shrink-0">{badge}</div> : null}
           </div>
           <div className={`mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
             {subtitle ? <span>{subtitle}</span> : null}
-            {showUser ? (
-              <span className="inline-flex items-center gap-1 font-semibold">
+            {showUser && savedName ? (
+              <Link to="/app/account" className="inline-flex items-center gap-1 font-semibold hover:underline">
                 <UserCircle className="h-3.5 w-3.5" /> {savedName}
-              </span>
+              </Link>
             ) : null}
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          {showThemeToggle && onToggleDark ? (
-            <button type="button" onClick={onToggleDark} className={iconButton} aria-label="Toggle theme">
+          {showThemeToggle && !isSettingsPage ? (
+            <button type="button" onClick={doTheme} className={iconButton} aria-label="Toggle theme">
               {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
           ) : null}

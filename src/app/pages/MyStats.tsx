@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { SideMenu } from "../components/SideMenu";
+import { BottomNav } from "../components/BottomNav";
+import { AppHeader } from "../components/AppHeader";
 import {
   formatDateTime,
   formatNumber,
@@ -8,7 +11,6 @@ import {
   t,
   type SupportedLanguage,
 } from "../utils/i18n";
-import { AppHeader } from "../components/AppHeader";
 
 type Trade = {
   deal_id: string;
@@ -100,47 +102,28 @@ function Card({
   title,
   value,
   tone,
-  darkMode = true,
+  darkMode,
 }: {
   title: string;
   value: string | number;
   tone?: "good" | "bad";
-  darkMode?: boolean;
+  darkMode: boolean;
 }) {
-  const color =
-    tone === "good"
-      ? darkMode
-        ? "text-emerald-300"
-        : "text-emerald-600"
-      : tone === "bad"
-        ? darkMode
-          ? "text-red-300"
-          : "text-red-600"
-        : darkMode
-          ? "text-white"
-          : "text-slate-950";
-
+  const color = tone === "good" ? "text-emerald-400" : tone === "bad" ? "text-red-400" : darkMode ? "text-white" : "text-gray-900";
   return (
-    <div
-      className={`rounded-2xl border p-4 ${
-        darkMode
-          ? "border-white/10 bg-white/[0.04] shadow-lg shadow-black/20"
-          : "border-gray-200 bg-white shadow-sm"
-      }`}
-    >
-      <div
-        className={`text-xs uppercase tracking-[0.18em] ${
-          darkMode ? "text-sky-200/70" : "text-slate-500"
-        }`}
-      >
-        {title}
-      </div>
-      <div className={`mt-2 text-2xl font-semibold ${color}`}>{value}</div>
+    <div className={`${darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200"} rounded-2xl p-5 border shadow-lg`}>
+      <div className="text-xs uppercase tracking-[0.18em] text-yellow-400 font-bold">{title}</div>
+      <div className={`mt-2 text-2xl font-bold ${color}`}>{value}</div>
     </div>
   );
 }
 
 export function MyStats() {
+  const [showMenu, setShowMenu] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem("darkMode");
+    return saved ? JSON.parse(saved) : true;
+  });
   const [lang, setLang] = useState<SupportedLanguage>(getLanguage());
   const [range, setRange] = useState<RangeKey>("7D");
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -148,10 +131,6 @@ export function MyStats() {
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [fromCache, setFromCache] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem("darkMode");
-    return saved ? JSON.parse(saved) : true;
-  });
 
   const account = getStored(["account_login", "mt5_account_login", "bex_account_login"]);
   const clientId = getStored(["client_id", "bex_client_id"]);
@@ -159,10 +138,25 @@ export function MyStats() {
   useEffect(() => {
     const onLang = () => setLang(getLanguage());
     window.addEventListener("languageChange", onLang as EventListener);
+    window.addEventListener("langChange", onLang as EventListener);
     window.addEventListener("storage", onLang);
     return () => {
       window.removeEventListener("languageChange", onLang as EventListener);
+      window.removeEventListener("langChange", onLang as EventListener);
       window.removeEventListener("storage", onLang);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleThemeChange = () => {
+      const saved = localStorage.getItem("darkMode");
+      setDarkMode(saved ? JSON.parse(saved) : true);
+    };
+    window.addEventListener("storage", handleThemeChange);
+    window.addEventListener("themeChange", handleThemeChange as EventListener);
+    return () => {
+      window.removeEventListener("storage", handleThemeChange);
+      window.removeEventListener("themeChange", handleThemeChange as EventListener);
     };
   }, []);
 
@@ -229,19 +223,6 @@ export function MyStats() {
     load(false);
   }, [load]);
 
-  useEffect(() => {
-    const handleThemeChange = () => {
-      const saved = localStorage.getItem("darkMode");
-      setDarkMode(saved ? JSON.parse(saved) : true);
-    };
-    window.addEventListener("themeChange", handleThemeChange as EventListener);
-    window.addEventListener("storage", handleThemeChange);
-    return () => {
-      window.removeEventListener("themeChange", handleThemeChange as EventListener);
-      window.removeEventListener("storage", handleThemeChange);
-    };
-  }, []);
-
   const filtered = useMemo(() => {
     const now = Date.now();
     const days = range === "7D" ? 7 : range === "30D" ? 30 : null;
@@ -286,62 +267,70 @@ export function MyStats() {
   const rtl = isRTL(lang);
   const nextRefreshAt = lastUpdated ? lastUpdated + ACCOUNT_CACHE_TTL_MS : null;
 
+  const panelClass = darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200";
+  const softPanelClass = darkMode ? "bg-[#1a2332]/50" : "bg-gray-50";
+  const mutedText = darkMode ? "text-gray-400" : "text-gray-500";
+  const mainText = darkMode ? "text-white" : "text-gray-900";
+  const tableText = darkMode ? "text-gray-200" : "text-gray-700";
+
   return (
-    <main className={`${darkMode ? "bg-[#05070d] text-white" : "bg-gray-50 text-gray-900"} min-h-screen pb-24`} {...markRTL(lang)}>
+    <div
+      className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}
+      {...markRTL(lang)}
+    >
+      <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
       <AppHeader
         title={t("account_page", lang)}
         subtitle={t("personal_trading_account", lang)}
         darkMode={darkMode}
-        onBackClick={() => window.history.back()}
-        onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem("darkMode", JSON.stringify(next)); window.dispatchEvent(new Event("themeChange")); }}
+        onMenuClick={() => setShowMenu(true)}
+        onToggleDark={() => {
+          const next = !darkMode;
+          setDarkMode(next);
+          localStorage.setItem("darkMode", JSON.stringify(next));
+          window.dispatchEvent(new Event("themeChange"));
+        }}
         showSettings={true}
         showThemeToggle={true}
-        rtl={rtl}
       />
-      <div className="px-4 py-5 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="text-xs uppercase tracking-[0.24em] text-amber-300/80">BEX Trader</div>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight">{t("account_page", lang)}</h1>
-            <p className={`mt-1 text-sm ${darkMode ? "text-slate-400" : "text-slate-600"}`}>{t("personal_trading_account", lang)}</p>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {(["7D", "30D", "ALL"] as RangeKey[]).map((item) => (
-              <button
-                key={item}
-                onClick={() => setRange(item)}
-                className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
-                  range === item
-                    ? "border-amber-300 bg-amber-300 text-black"
-                    : darkMode ? "border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]" : "border-gray-200 bg-white text-slate-700 shadow-sm hover:bg-gray-50"
-                }`}
-              >
-                {rangeLabel(item, lang)}
-              </button>
-            ))}
+      <div className="p-4 space-y-5">
+        <div className="flex flex-wrap items-center gap-2">
+          {(["7D", "30D", "ALL"] as RangeKey[]).map((item) => (
             <button
-              onClick={() => load(true)}
-              className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${darkMode ? "border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]" : "border-gray-200 bg-white text-slate-700 shadow-sm hover:bg-gray-50"}`}
+              key={item}
+              onClick={() => setRange(item)}
+              className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold transition-all sm:flex-none ${
+                range === item
+                  ? "bg-yellow-500 text-black shadow-lg shadow-yellow-500/20"
+                  : `${panelClass} border ${mutedText}`
+              }`}
             >
-              {t("refresh", lang)}
+              {rangeLabel(item, lang)}
             </button>
+          ))}
+          <button
+            onClick={() => load(true)}
+            className={`${panelClass} ${mutedText} rounded-xl border px-4 py-3 text-sm font-bold transition-all hover:opacity-80`}
+          >
+            {t("refresh", lang)}
+          </button>
+        </div>
+
+        <div className={`${panelClass} rounded-2xl p-5 border`}>
+          <div className="grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <span className={mutedText}>{t("account", lang)}: </span>
+              <span className={`font-bold ${mainText}`}>{account || "—"}</span>
+            </div>
+            <div className={rtl ? "sm:text-left" : "sm:text-right"}>
+              <span className={mutedText}>{t("client", lang)}: </span>
+              <span className={`font-bold ${mainText}`}>{clientId || "—"}</span>
+            </div>
           </div>
         </div>
 
-        <div className={`mb-5 grid gap-3 rounded-2xl border p-4 text-sm sm:grid-cols-2 ${darkMode ? "border-white/10 bg-white/[0.03] text-slate-300" : "border-gray-200 bg-white text-slate-700 shadow-sm"}`}>
-          <div>
-            <span className="text-slate-500">{t("account", lang)}: </span>
-            <span className={`font-semibold ${darkMode ? "text-white" : "text-slate-950"}`}>{account || "—"}</span>
-          </div>
-          <div className={rtl ? "sm:text-left" : "sm:text-right"}>
-            <span className="text-slate-500">{t("client", lang)}: </span>
-            <span className={`font-semibold ${darkMode ? "text-white" : "text-slate-950"}`}>{clientId || "—"}</span>
-          </div>
-        </div>
-
-        <div className={`mb-5 rounded-2xl border p-3 text-xs ${darkMode ? "border-amber-300/15 bg-amber-300/[0.04] text-amber-100/80" : "border-amber-300/30 bg-amber-50 text-amber-900"}`}>
+        <div className={`${darkMode ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-100" : "bg-yellow-50 border-yellow-200 text-yellow-800"} rounded-2xl p-4 border text-xs`}>
           {lastUpdated ? (
             <>
               {t("last_updated", lang)}: {formatDateTime(lastUpdated, lang)}
@@ -354,12 +343,12 @@ export function MyStats() {
         </div>
 
         {loading ? (
-          <div className={`rounded-2xl border p-6 ${darkMode ? "border-white/10 bg-white/[0.04] text-slate-300" : "border-gray-200 bg-white text-slate-700 shadow-sm"}`}>{t("loading", lang)}</div>
+          <div className={`${panelClass} ${mutedText} rounded-2xl p-6 border`}>{t("loading", lang)}</div>
         ) : error ? (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-red-200">{error}</div>
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-red-400">{error}</div>
         ) : (
           <>
-            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Card darkMode={darkMode} title={t("trades", lang)} value={formatNumber(stats.total, lang)} />
               <Card darkMode={darkMode} title={t("wins", lang)} value={formatNumber(stats.wins, lang)} tone="good" />
               <Card darkMode={darkMode} title={t("losses", lang)} value={formatNumber(stats.losses, lang)} tone="bad" />
@@ -368,18 +357,18 @@ export function MyStats() {
               <Card darkMode={darkMode} title={t("avg_trade", lang)} value={formatNumber(stats.avgPnl, lang, { maximumFractionDigits: 2 })} tone={stats.avgPnl >= 0 ? "good" : "bad"} />
             </section>
 
-            <section className="mt-5 grid gap-5 lg:grid-cols-[1.25fr_0.75fr]">
-              <div className={`rounded-2xl border p-4 ${darkMode ? "border-white/10 bg-white/[0.04]" : "border-gray-200 bg-white shadow-sm"}`}>
+            <section className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr]">
+              <div className={`${panelClass} rounded-2xl p-5 border`}>
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-lg font-semibold">{t("trade_pnl_chart", lang)}</h2>
-                    <div className="mt-1 text-xs text-slate-500">{t("green_profit_red_loss", lang)}</div>
+                    <h2 className={`text-lg font-bold ${mainText}`}>{t("trade_pnl_chart", lang)}</h2>
+                    <div className={`mt-1 text-xs ${mutedText}`}>{t("green_profit_red_loss", lang)}</div>
                   </div>
-                  <span className="text-xs text-slate-500">{formatNumber(chartTrades.length, lang)} pts</span>
+                  <span className={`text-xs ${mutedText}`}>{formatNumber(chartTrades.length, lang)} pts</span>
                 </div>
-                <div className={`flex h-48 items-end gap-1 rounded-xl p-3 ${darkMode ? "bg-black/20" : "bg-slate-100"}`}>
+                <div className={`flex h-48 items-end gap-1 rounded-xl p-3 ${softPanelClass}`}>
                   {chartTrades.length === 0 ? (
-                    <div className="m-auto text-sm text-slate-500">{t("no_personal_trades", lang)}</div>
+                    <div className={`m-auto text-sm ${mutedText}`}>{t("no_personal_trades", lang)}</div>
                   ) : (
                     chartTrades.map((trade, index) => {
                       const h = Math.max(5, Math.min(100, (Math.abs(trade.pnl_net) / maxAbsPnl) * 100));
@@ -396,21 +385,21 @@ export function MyStats() {
                 </div>
               </div>
 
-              <div className={`rounded-2xl border p-4 ${darkMode ? "border-white/10 bg-white/[0.04]" : "border-gray-200 bg-white shadow-sm"}`}>
-                <h2 className="mb-4 text-lg font-semibold">{t("symbol_breakdown", lang)}</h2>
+              <div className={`${panelClass} rounded-2xl p-5 border`}>
+                <h2 className={`mb-4 text-lg font-bold ${mainText}`}>{t("symbol_breakdown", lang)}</h2>
                 <div className="space-y-3">
                   {stats.symbols.length === 0 ? (
-                    <div className="text-sm text-slate-500">{t("no_personal_trades", lang)}</div>
+                    <div className={`text-sm ${mutedText}`}>{t("no_personal_trades", lang)}</div>
                   ) : (
                     stats.symbols.map((row) => (
-                      <div key={row.symbol} className={`rounded-xl p-3 ${darkMode ? "bg-black/20" : "bg-slate-100"}`}>
+                      <div key={row.symbol} className={`${softPanelClass} rounded-xl p-3`}>
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold">{row.symbol}</span>
-                          <span className={row.pnl >= 0 ? "text-emerald-300" : "text-red-300"}>
+                          <span className="font-bold">{row.symbol}</span>
+                          <span className={row.pnl >= 0 ? "text-emerald-400" : "text-red-400"}>
                             {formatNumber(row.pnl, lang, { maximumFractionDigits: 2 })}
                           </span>
                         </div>
-                        <div className="mt-1 text-xs text-slate-500">
+                        <div className={`mt-1 text-xs ${mutedText}`}>
                           {formatNumber(row.trades, lang)} {t("trades", lang)} • {formatNumber(row.winRate, lang, { maximumFractionDigits: 1 })}%
                         </div>
                       </div>
@@ -420,34 +409,34 @@ export function MyStats() {
               </div>
             </section>
 
-            <section className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <h2 className="mb-4 text-lg font-semibold">{t("latest_trades_title", lang)}</h2>
+            <section className={`${panelClass} rounded-2xl p-5 border`}>
+              <h2 className={`mb-4 text-lg font-bold ${mainText}`}>{t("latest_trades_title", lang)}</h2>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[620px] text-sm">
-                  <thead className="text-left text-xs uppercase tracking-[0.16em] text-slate-500">
+                  <thead className={`text-xs uppercase tracking-[0.16em] ${mutedText}`}>
                     <tr>
-                      <th className="py-3">{t("symbol", lang)}</th>
-                      <th className="py-3">{t("pnl", lang)}</th>
-                      <th className="py-3">{t("time", lang)}</th>
-                      <th className="py-3">ID</th>
+                      <th className={`py-3 ${rtl ? "text-right" : "text-left"}`}>{t("symbol", lang)}</th>
+                      <th className={`py-3 ${rtl ? "text-right" : "text-left"}`}>{t("pnl", lang)}</th>
+                      <th className={`py-3 ${rtl ? "text-right" : "text-left"}`}>{t("time", lang)}</th>
+                      <th className={`py-3 ${rtl ? "text-right" : "text-left"}`}>ID</th>
                     </tr>
                   </thead>
-                  <tbody className={darkMode ? "divide-y divide-white/10" : "divide-y divide-gray-200"}>
+                  <tbody className={`${darkMode ? "divide-white/10" : "divide-gray-200"} divide-y`}>
                     {filtered.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="py-6 text-center text-slate-500">
+                        <td colSpan={4} className={`py-6 text-center ${mutedText}`}>
                           {t("no_personal_trades", lang)}
                         </td>
                       </tr>
                     ) : (
                       filtered.slice(0, 50).map((trade) => (
-                        <tr key={trade.deal_id} className={darkMode ? "text-slate-200" : "text-slate-800"}>
-                          <td className="py-3 font-semibold">{trade.symbol}</td>
-                          <td className={`py-3 font-semibold ${trade.pnl_net >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+                        <tr key={trade.deal_id} className={tableText}>
+                          <td className="py-3 font-bold">{trade.symbol}</td>
+                          <td className={`py-3 font-bold ${trade.pnl_net >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                             {formatNumber(trade.pnl_net, lang, { maximumFractionDigits: 2 })}
                           </td>
-                          <td className="py-3 text-slate-400">{formatDateTime(trade.close_time, lang)}</td>
-                          <td className="py-3 text-slate-500">{trade.deal_id}</td>
+                          <td className={`py-3 ${mutedText}`}>{formatDateTime(trade.close_time, lang)}</td>
+                          <td className={`py-3 ${mutedText}`}>{trade.deal_id}</td>
                         </tr>
                       ))
                     )}
@@ -458,8 +447,9 @@ export function MyStats() {
           </>
         )}
       </div>
-          </div>
-</main>
+
+      <BottomNav />
+    </div>
   );
 }
 
