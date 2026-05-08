@@ -69,25 +69,31 @@ workflows:
 
       - name: Create export options plist
         script: |
-          python3 - <<'PY'
-          import plistlib
+          cat > /Users/builder/export_options.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>destination</key>
+            <string>export</string>
+            <key>compileBitcode</key>
+            <false/>
+            <key>uploadBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          PLIST
 
-          data = {
-              "method": "app-store",
-              "signingStyle": "automatic",
-              "uploadBitcode": False,
-              "compileBitcode": False,
-              "destination": "export"
-          }
-
-          with open("/Users/builder/export_options.plist", "wb") as f:
-              plistlib.dump(data, f)
-          PY
-
+          echo "=== EXPORT OPTIONS CREATED ==="
+          ls -la /Users/builder/export_options.plist
           plutil -lint /Users/builder/export_options.plist
           cat /Users/builder/export_options.plist
 
-            - name: Build signed IPA
+      - name: Build signed IPA
         script: |
           echo "=== BUILD SIGNED IPA WITH XCODEPROJ ==="
 
