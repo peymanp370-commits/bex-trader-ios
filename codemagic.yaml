@@ -17,22 +17,49 @@ workflows:
         script: |
           npm ci
 
+          echo "=== ENSURE CAPACITOR PACKAGES ==="
+          npm install @capacitor/core @capacitor/cli @capacitor/ios --save
+
+      - name: Create Capacitor config
+        script: |
+          echo "=== CREATE CLEAN capacitor.config.json ==="
+
+          cat > capacitor.config.json <<'JSON'
+          {
+            "appId": "com.bextrader.app",
+            "appName": "BEX Trader",
+            "webDir": "dist",
+            "server": {
+              "androidScheme": "https"
+            }
+          }
+          JSON
+
+          echo "=== VALIDATE ROOT CAPACITOR CONFIG ==="
+          cat capacitor.config.json
+          node -e "JSON.parse(require('fs').readFileSync('capacitor.config.json','utf8')); console.log('capacitor.config.json OK')"
+
       - name: Build web app
         script: |
           npm run build
 
       - name: Recreate clean iOS project
         script: |
-          echo "=== REMOVE IOS ==="
+          echo "=== REMOVE OLD IOS ==="
           rm -rf ios
 
-          echo "=== ADD IOS ==="
+          echo "=== ADD CLEAN IOS ==="
           npx cap add ios
 
           echo "=== SYNC IOS ==="
           npx cap sync ios
 
-          echo "=== REMOVE BROKEN XCODE JSON / USER FILES ==="
+          echo "=== FIX/VALIDATE IOS CAPACITOR CONFIG ==="
+          cp capacitor.config.json ios/App/App/capacitor.config.json
+          cat ios/App/App/capacitor.config.json
+          node -e "JSON.parse(require('fs').readFileSync('ios/App/App/capacitor.config.json','utf8')); console.log('ios capacitor.config.json OK')"
+
+          echo "=== CLEAN XCODE USER / CACHE FILES ==="
           find ios -name Package.resolved -delete || true
           find ios -name "*.xcuserstate" -delete || true
           find ios -path "*/xcuserdata/*" -delete || true
@@ -40,27 +67,19 @@ workflows:
           rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcuserdata || true
           rm -rf ~/Library/Developer/Xcode/DerivedData/* || true
 
-          echo "=== IOS FILES ==="
-          ls -la ios/App
-          ls -la ios/App/App.xcodeproj
-          ls -la ios/App/App.xcworkspace || true
-
-          echo "=== PBXPROJ FIRST 30 LINES ==="
-          sed -n '1,30p' ios/App/App.xcodeproj/project.pbxproj
-
-          echo "=== CONFLICT CHECK ==="
-          if grep -n "<<<<<<<\|=======\|>>>>>>>" ios/App/App.xcodeproj/project.pbxproj; then
-            echo "PBXPROJ HAS CONFLICT MARKERS"
-            exit 1
-          fi
-
-          echo "=== PBXPROJ LINT ==="
-          plutil -lint ios/App/App.xcodeproj/project.pbxproj
-
           echo "=== POD INSTALL ==="
           cd ios/App
           pod install --repo-update
           cd ../..
+
+          echo "=== IOS FILES ==="
+          ls -la ios/App
+          ls -la ios/App/App
+          ls -la ios/App/App.xcodeproj
+          ls -la ios/App/App.xcworkspace || true
+
+          echo "=== PBXPROJ LINT ==="
+          plutil -lint ios/App/App.xcodeproj/project.pbxproj
 
           echo "=== XCODE PROJECT LIST ==="
           xcodebuild -project ios/App/App.xcodeproj -list
@@ -111,6 +130,7 @@ workflows:
           PLIST
 
           plutil -lint /Users/builder/export_options.plist
+          cat /Users/builder/export_options.plist
 
       - name: Build signed IPA
         script: |
