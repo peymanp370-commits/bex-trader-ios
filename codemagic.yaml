@@ -109,6 +109,11 @@ workflows:
           keychain initialize
           keychain add-certificates
 
+      - name: Apply code signing profiles
+        script: |
+          xcode-project use-profiles \
+            --project ios/App/App.xcodeproj
+
       - name: Create export options plist
         script: |
           cat > /Users/builder/export_options.plist <<'PLIST'
@@ -119,7 +124,7 @@ workflows:
             <key>method</key>
             <string>app-store</string>
             <key>signingStyle</key>
-            <string>automatic</string>
+            <string>manual</string>
             <key>destination</key>
             <string>export</string>
             <key>compileBitcode</key>
