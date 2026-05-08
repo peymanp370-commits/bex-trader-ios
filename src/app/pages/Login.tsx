@@ -1,7 +1,8 @@
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
-import { SignInWithApple } from "@capacitor-community/apple-sign-in";
+import { Browser } from "@capacitor/browser";
+import { App as CapacitorApp } from "@capacitor/app";
 import { Eye, EyeOff } from "lucide-react";
 import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
 
@@ -238,6 +239,23 @@ function AppleIcon() {
   );
 }
 
+function getNativePlatform(): "web" | "ios" | "android" {
+  if (!Capacitor.isNativePlatform()) return "web";
+  const platform = Capacitor.getPlatform();
+  if (platform === "ios") return "ios";
+  if (platform === "android") return "android";
+  return "web";
+}
+
+async function getCurrentAuthUser() {
+  try {
+    const res = await fetch(`${AUTH_BASE}/auth/me`, { credentials: "include" });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data?.user) return data.user as AuthUser;
+  } catch {}
+  return null;
+}
+
 export function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -267,8 +285,60 @@ export function Login() {
   }, []);
 
   useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let removeListener: (() => void) | undefined;
+
+    CapacitorApp.addListener("appUrlOpen", async (event) => {
+      const url = event?.url || "";
+
+      try {
+        await Browser.close();
+      } catch {}
+
+      setSocialLoading(null);
+
+      if (url.includes("auth=success")) {
+        const user = await getCurrentAuthUser();
+        if (user) {
+          saveUserToLocalStorage(user, user.email || "");
+          await hydrateAccountProfile(user.email || user.id || "");
+        }
+        navigate("/app?auth=success", { replace: true });
+        return;
+      }
+
+      if (url.includes("error=")) {
+        const parsed = new URL(url);
+        const code = parsed.searchParams.get("error") || "LOGIN_CANCELLED";
+        setError(code);
+        navigate(`/login?error=${encodeURIComponent(code)}`, { replace: true });
+      }
+    }).then((listener) => {
+      removeListener = () => listener.remove();
+    });
+
+    return () => {
+      if (removeListener) removeListener();
+    };
+  }, [navigate]);
+
+  useEffect(() => {
     const mode = searchParams.get("mode");
     setTitle(mode === "welcome_back" ? "welcome_back" : "welcome");
+
+    const oauthSuccess = searchParams.get("auth");
+    if (oauthSuccess === "success") {
+      setSocialLoading(null);
+      getCurrentAuthUser().then(async (user) => {
+        if (user) {
+          saveUserToLocalStorage(user, user.email || "");
+          await hydrateAccountProfile(user.email || user.id || "");
+        }
+        navigate("/app?auth=success", { replace: true });
+      });
+      return;
+    }
 
     const oauthError = searchParams.get("error");
     if (!oauthError) return;
@@ -446,7 +516,7 @@ export function Login() {
       ko: "로그인에 실패했습니다. 다시 시도하세요.",
     }));
     setSocialLoading(null);
-  }, [searchParams, lang]);
+  }, [searchParams, lang, navigate]);
 
   const handleLanguageChange = (value: string) => {
     const nextLang = normalizeLanguage(value);
@@ -580,81 +650,48 @@ export function Login() {
     window.dispatchEvent(new Event("storage"));
   };
 
-  const handleGoogleSignIn = () => {
-    if (!ensureLegalAccepted()) return;
-    setError("");
-    setSocialLoading("google");
-    clearStoredAuthUser();
-    window.location.href = `${AUTH_BASE}/auth/google/start`;
-  };
-
-  const handleAppleSignIn = async () => {
+  const openSocialAuth = async (provider: "google" | "apple") => {
     if (!ensureLegalAccepted()) return;
 
     setError("");
-    setSocialLoading("apple");
+    setSocialLoading(provider);
     clearStoredAuthUser();
+
+    const platform = getNativePlatform();
+    const url = `${AUTH_BASE}/auth/${provider}/start?platform=${encodeURIComponent(platform)}`;
 
     try {
-      if (Capacitor.getPlatform() === "ios") {
-        const result = await SignInWithApple.authorize({
-          clientId: "com.bextrader.app",
-          redirectURI: "https://bextrader.com/auth/apple/callback",
-          scopes: "email name",
-          state: "bex-ios-native",
+      if (Capacitor.isNativePlatform()) {
+        await Browser.open({
+          url,
+          presentationStyle: "fullscreen",
         });
-
-        const response = result?.response || {};
-
-        const res = await fetch(`${AUTH_BASE}/auth/apple/native`, {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            identityToken: response.identityToken,
-            authorizationCode: response.authorizationCode,
-            user: response.user,
-            email: response.email,
-            givenName: response.givenName,
-            familyName: response.familyName,
-          }),
-        });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok || !data?.ok || !data?.user) {
-          throw new Error(data?.code || data?.message || "APPLE_NATIVE_LOGIN_FAILED");
-        }
-
-        saveUserToLocalStorage(data.user, data.user.email || "apple");
-        await hydrateAccountProfile(data.user?.email || "");
-        navigate("/app");
         return;
       }
 
-      // Desktop / web fallback keeps the existing browser OAuth flow.
-      window.location.href = `${AUTH_BASE}/auth/apple/start`;
+      window.location.href = url;
     } catch (err) {
-      console.error("Apple native sign-in failed", err);
-      setError(tx(lang, {
-        en: "Apple Sign-In failed. Please try again.",
-        fa: "ورود با اپل ناموفق بود. دوباره تلاش کنید.",
-        ar: "فشل تسجيل الدخول عبر Apple. حاول مرة أخرى.",
-        es: "Falló el inicio de sesión con Apple. Inténtalo de nuevo.",
-        "pt-BR": "Falha no login com Apple. Tente novamente.",
-        hi: "Apple लॉगिन विफल रहा। कृपया फिर कोशिश करें।",
-        tr: "Apple ile giriş başarısız oldu. Lütfen tekrar deneyin.",
-        de: "Apple-Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
-        fr: "La connexion avec Apple a échoué. Veuillez réessayer.",
-        zh: "Apple 登录失败，请重试。",
-        ko: "Apple 로그인이 실패했습니다. 다시 시도하세요.",
-      }));
-    } finally {
+      console.error(`${provider} sign-in failed`, err);
       setSocialLoading(null);
+      setError(tx(lang, {
+        en: `${provider === "google" ? "Google" : "Apple"} login failed. Please try again.`,
+        fa: `ورود با ${provider === "google" ? "گوگل" : "اپل"} ناموفق بود. دوباره تلاش کنید.`,
+        ar: `فشل تسجيل الدخول عبر ${provider === "google" ? "Google" : "Apple"}. حاول مرة أخرى.`,
+        es: `Falló el inicio de sesión con ${provider === "google" ? "Google" : "Apple"}. Inténtalo de nuevo.`,
+        "pt-BR": `Falha no login com ${provider === "google" ? "Google" : "Apple"}. Tente novamente.`,
+        hi: `${provider === "google" ? "Google" : "Apple"} लॉगिन विफल रहा। कृपया फिर कोशिश करें।`,
+        tr: `${provider === "google" ? "Google" : "Apple"} ile giriş başarısız oldu. Lütfen tekrar deneyin.`,
+        de: `${provider === "google" ? "Google" : "Apple"}-Anmeldung fehlgeschlagen. Bitte erneut versuchen.`,
+        fr: `La connexion avec ${provider === "google" ? "Google" : "Apple"} a échoué. Veuillez réessayer.`,
+        zh: `${provider === "google" ? "Google" : "Apple"} 登录失败，请重试。`,
+        ko: `${provider === "google" ? "Google" : "Apple"} 로그인이 실패했습니다. 다시 시도하세요.`,
+      }));
     }
   };
+
+  const handleGoogleSignIn = () => openSocialAuth("google");
+
+  const handleAppleSignIn = () => openSocialAuth("apple");
 
   const rtl = isRTL(lang);
 

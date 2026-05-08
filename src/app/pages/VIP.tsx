@@ -200,14 +200,18 @@ export function VIP() {
       return;
     }
 
+    const checkoutBilling = plan.id === "lifetime" ? "lifetime" : billingCycle;
+
     if (isIOSInstalledApp()) {
-      alert("Apple In-App Purchase باید جدا وصل شود. پرداخت iOS را بعداً از App Store Connect تنظیم می‌کنیم.");
+      // iOS path is intentionally separate from Android Play Billing.
+      // Until native Apple IAP is wired, keep the user inside the logged-in app checkout flow
+      // instead of throwing them back to Welcome/Login.
+      navigate(`/app/checkout?platform=ios&plan=${checkoutPlanId(plan.id)}&billing=${checkoutBilling}`);
       return;
     }
 
     // Web/Desktop/normal browser: Stripe checkout.
-    const checkoutBilling = plan.id === "lifetime" ? "lifetime" : billingCycle;
-    navigate(`/app/checkout?plan=${checkoutPlanId(plan.id)}&billing=${checkoutBilling}`);
+    navigate(`/app/checkout?platform=web&plan=${checkoutPlanId(plan.id)}&billing=${checkoutBilling}`);
   };
 
   const plans = [

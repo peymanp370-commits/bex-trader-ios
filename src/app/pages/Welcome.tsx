@@ -1,9 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
 import { LANGUAGE_OPTIONS, tr } from "../utils/i18n";
 import { useLangState } from "../store/useLang";
 import { enableBexPushNotifications, registerBexServiceWorker } from "../utils/push";
+
+const AUTH_BASE = import.meta.env.VITE_API_URL || "https://auth.bextrader.com";
+
+async function hasActiveBexSession() {
+  try {
+    const res = await fetch(`${AUTH_BASE}/auth/me`, {
+      method: "GET",
+      credentials: "include",
+      headers: { accept: "application/json" },
+    });
+    const data = await res.json().catch(() => ({}));
+    return !!res.ok && !!data?.user;
+  } catch {
+    return false;
+  }
+}
 
 export function Welcome() {
   const navigate = useNavigate();
@@ -11,6 +27,16 @@ export function Welcome() {
   const [notificationStatus, setNotificationStatus] = useState<string>("");
 
   const goNext = () => navigate("/age-verification");
+
+  useEffect(() => {
+    let alive = true;
+    hasActiveBexSession().then((ok) => {
+      if (alive && ok) navigate("/app", { replace: true });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [navigate]);
 
   const handleAllowNotifications = async () => {
     setNotificationStatus(tr(lang, "Activating notifications...", "در حال فعال‌سازی اعلان‌ها...", "جارٍ تفعيل الإشعارات..."));
