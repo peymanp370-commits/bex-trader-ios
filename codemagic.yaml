@@ -17,13 +17,8 @@ workflows:
         script: |
           npm ci
 
-          echo "=== ENSURE CAPACITOR PACKAGES ==="
-          npm install @capacitor/core @capacitor/cli @capacitor/ios --save
-
       - name: Create Capacitor config
         script: |
-          echo "=== CREATE CLEAN capacitor.config.json ==="
-
           cat > capacitor.config.json <<'JSON'
           {
             "appId": "com.bextrader.app",
@@ -35,8 +30,6 @@ workflows:
           }
           JSON
 
-          echo "=== VALIDATE ROOT CAPACITOR CONFIG ==="
-          cat capacitor.config.json
           node -e "JSON.parse(require('fs').readFileSync('capacitor.config.json','utf8')); console.log('capacitor.config.json OK')"
 
       - name: Build web app
@@ -54,12 +47,11 @@ workflows:
           echo "=== SYNC IOS ==="
           npx cap sync ios
 
-          echo "=== FIX/VALIDATE IOS CAPACITOR CONFIG ==="
+          echo "=== FIX IOS CAPACITOR CONFIG ==="
           cp capacitor.config.json ios/App/App/capacitor.config.json
-          cat ios/App/App/capacitor.config.json
-          node -e "JSON.parse(require('fs').readFileSync('ios/App/App/capacitor.config.json','utf8')); console.log('ios capacitor.config.json OK')"
+          node -e "JSON.parse(require('fs').readFileSync('ios/App/App/capacitor.config.json','utf8')); console.log('ios capacitor config OK')"
 
-          echo "=== CLEAN XCODE USER / CACHE FILES ==="
+          echo "=== CLEAN BAD XCODE FILES ==="
           find ios -name Package.resolved -delete || true
           find ios -name "*.xcuserstate" -delete || true
           find ios -path "*/xcuserdata/*" -delete || true
@@ -72,26 +64,35 @@ workflows:
           pod install --repo-update
           cd ../..
 
-          echo "=== IOS FILES ==="
-          ls -la ios/App
-          ls -la ios/App/App
-          ls -la ios/App/App.xcodeproj
-          ls -la ios/App/App.xcworkspace || true
-
-          echo "=== PBXPROJ LINT ==="
+          echo "=== CHECK PROJECT BEFORE BUILD NUMBER ==="
           plutil -lint ios/App/App.xcodeproj/project.pbxproj
-
-          echo "=== XCODE PROJECT LIST ==="
           xcodebuild -project ios/App/App.xcodeproj -list
-
-          echo "=== XCODE WORKSPACE LIST ==="
           xcodebuild -workspace ios/App/App.xcworkspace -list
 
-      - name: Set iOS build number
+      - name: Set safe iOS build number
         script: |
-          echo "Using BUILD_NUMBER=$BUILD_NUMBER"
-          perl -0pi -e "s/CURRENT_PROJECT_VERSION = [0-9]+;/CURRENT_PROJECT_VERSION = $ENV{BUILD_NUMBER};/g" ios/App/App.xcodeproj/project.pbxproj
-          grep -n "CURRENT_PROJECT_VERSION" ios/App/App.xcodeproj/project.pbxproj || true
+          echo "=== SET SAFE BUILD NUMBER ==="
+
+          BN="${BUILD_NUMBER:-${CM_BUILD_NUMBER:-1}}"
+          BN="$(echo "$BN" | tr -cd '0-9')"
+
+          if [ -z "$BN" ]; then
+            BN="$(date +%s)"
+          fi
+
+          export IOS_BUILD_NUMBER="$BN"
+
+          echo "Using IOS_BUILD_NUMBER=$IOS_BUILD_NUMBER"
+
+          perl -0pi -e 's/CURRENT_PROJECT_VERSION = [^;]*;/CURRENT_PROJECT_VERSION = $ENV{IOS_BUILD_NUMBER};/g' ios/App/App.xcodeproj/project.pbxproj
+
+          echo "=== CHECK CURRENT_PROJECT_VERSION ==="
+          grep -n "CURRENT_PROJECT_VERSION" ios/App/App.xcodeproj/project.pbxproj
+
+          echo "=== CHECK PROJECT AFTER BUILD NUMBER ==="
+          plutil -lint ios/App/App.xcodeproj/project.pbxproj
+          xcodebuild -project ios/App/App.xcodeproj -list
+          xcodebuild -workspace ios/App/App.xcworkspace -list
 
       - name: Fetch iOS signing files
         script: |
