@@ -15,41 +15,35 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
-          npm ci
+          npm install --legacy-peer-deps
 
-      - name: Create Capacitor config
+      - name: Verify Capacitor config
         script: |
-          cat > capacitor.config.json <<'JSON'
-          {
-            "appId": "com.bextrader.app",
-            "appName": "BEX Trader",
-            "webDir": "dist",
-            "server": {
-              "androidScheme": "https"
-            }
-          }
-          JSON
-
+          echo "=== VERIFY CAPACITOR CONFIG ==="
           node -e "JSON.parse(require('fs').readFileSync('capacitor.config.json','utf8')); console.log('capacitor.config.json OK')"
+          cat capacitor.config.json
 
       - name: Build web app
         script: |
           npm run build
 
-      - name: Recreate clean iOS project
+      - name: Sync existing iOS project
         script: |
-          echo "=== REMOVE OLD IOS ==="
-          rm -rf ios
-
-          echo "=== ADD CLEAN IOS ==="
-          npx cap add ios
-
-          echo "=== SYNC IOS ==="
+          echo "=== SYNC EXISTING IOS PROJECT ==="
           npx cap sync ios
 
-          echo "=== FIX IOS CAPACITOR CONFIG ==="
-          cp capacitor.config.json ios/App/App/capacitor.config.json
-          node -e "JSON.parse(require('fs').readFileSync('ios/App/App/capacitor.config.json','utf8')); console.log('ios capacitor config OK')"
+          echo "=== VERIFY IOS FILES ==="
+          test -f ios/App/App/Info.plist
+          test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json
+          test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+          plutil -lint ios/App/App/Info.plist
+
+          echo "=== CHECK APP ICON FILES ==="
+          ls -la ios/App/App/Assets.xcassets/AppIcon.appiconset
+
+          echo "=== CHECK DEEP LINK / URL SCHEMES ==="
+          grep -n "bextrader" ios/App/App/Info.plist || true
+          grep -n "CFBundleURLSchemes" ios/App/App/Info.plist || true
 
           echo "=== CLEAN BAD XCODE FILES ==="
           find ios -name Package.resolved -delete || true
