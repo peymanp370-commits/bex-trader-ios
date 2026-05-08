@@ -87,12 +87,12 @@ workflows:
           plutil -lint /Users/builder/export_options.plist
           cat /Users/builder/export_options.plist
 
-      - name: Build signed IPA
+            - name: Build signed IPA
         script: |
-          echo "=== BUILD SIGNED IPA WITH WORKSPACE ==="
+          echo "=== BUILD SIGNED IPA WITH XCODEPROJ ==="
 
           xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
+            --project ios/App/App.xcodeproj \
             --scheme App \
             --export-options-plist /Users/builder/export_options.plist \
             --verbose
