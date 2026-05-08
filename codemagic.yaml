@@ -95,10 +95,10 @@ workflows:
 
       - name: Build signed IPA
         script: |
-          echo "=== BUILD SIGNED IPA WITH XCODEPROJ ==="
+          echo "=== BUILD SIGNED IPA WITH WORKSPACE ==="
 
           xcode-project build-ipa \
-            --project ios/App/App.xcodeproj \
+            --workspace ios/App/App.xcworkspace \
             --scheme App \
             --export-options-plist /Users/builder/export_options.plist \
             --verbose
