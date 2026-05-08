@@ -21,6 +21,59 @@ workflows:
         script: |
           npm run build
 
+      - name: Recreate clean iOS project
+        script: |
+          echo "=== REMOVE IOS ==="
+          rm -rf ios
+
+          echo "=== ADD IOS ==="
+          npx cap add ios
+
+          echo "=== SYNC IOS ==="
+          npx cap sync ios
+
+          echo "=== REMOVE BROKEN XCODE JSON / USER FILES ==="
+          find ios -name Package.resolved -delete || true
+          find ios -name "*.xcuserstate" -delete || true
+          find ios -path "*/xcuserdata/*" -delete || true
+          rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm || true
+          rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcuserdata || true
+          rm -rf ~/Library/Developer/Xcode/DerivedData/* || true
+
+          echo "=== IOS FILES ==="
+          ls -la ios/App
+          ls -la ios/App/App.xcodeproj
+          ls -la ios/App/App.xcworkspace || true
+
+          echo "=== PBXPROJ FIRST 30 LINES ==="
+          sed -n '1,30p' ios/App/App.xcodeproj/project.pbxproj
+
+          echo "=== CONFLICT CHECK ==="
+          if grep -n "<<<<<<<\|=======\|>>>>>>>" ios/App/App.xcodeproj/project.pbxproj; then
+            echo "PBXPROJ HAS CONFLICT MARKERS"
+            exit 1
+          fi
+
+          echo "=== PBXPROJ LINT ==="
+          plutil -lint ios/App/App.xcodeproj/project.pbxproj
+
+          echo "=== POD INSTALL ==="
+          cd ios/App
+          pod install --repo-update
+          cd ../..
+
+          echo "=== XCODE PROJECT LIST ==="
+          xcodebuild -project ios/App/App.xcodeproj -list
+
+          echo "=== XCODE WORKSPACE LIST ==="
+          xcodebuild -workspace ios/App/App.xcworkspace -list
+
+      - name: Set iOS build number
+        script: |
+          echo "Using BUILD_NUMBER=$BUILD_NUMBER"
+          perl -0pi -e "s/CURRENT_PROJECT_VERSION = [0-9]+;/CURRENT_PROJECT_VERSION = $ENV{BUILD_NUMBER};/g" ios/App/App.xcodeproj/project.pbxproj
+          grep -n "CURRENT_PROJECT_VERSION" ios/App/App.xcodeproj/project.pbxproj || true
+
       - name: Fetch iOS signing files
         script: |
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
@@ -58,43 +111,10 @@ workflows:
           PLIST
 
           plutil -lint /Users/builder/export_options.plist
-          cat /Users/builder/export_options.plist
 
       - name: Build signed IPA
         script: |
-          echo "=== FORCE RECREATE IOS INSIDE FINAL BUILD STEP ==="
-
-          rm -rf ios
-
-          npx cap add ios
-          npx cap sync ios
-
-          rm -rf ~/Library/Developer/Xcode/DerivedData/* || true
-          find ios -name Package.resolved -delete || true
-          find ios -name "*.xcuserstate" -delete || true
-
-          echo "=== IOS FILES ==="
-          ls -la ios
-          ls -la ios/App
-          ls -la ios/App/App.xcodeproj
-          ls -la ios/App/App.xcworkspace || true
-
-          echo "=== PBXPROJ FIRST LINES ==="
-          sed -n '1,40p' ios/App/App.xcodeproj/project.pbxproj
-
-          echo "=== CONFLICT CHECK ==="
-          grep -n "<<<<<<<\|=======\|>>>>>>>" ios/App/App.xcodeproj/project.pbxproj && exit 1 || true
-
-          echo "=== SET BUILD NUMBER ==="
-          perl -0pi -e "s/CURRENT_PROJECT_VERSION = [0-9]+;/CURRENT_PROJECT_VERSION = $ENV{BUILD_NUMBER};/g" ios/App/App.xcodeproj/project.pbxproj
-          grep -n "CURRENT_PROJECT_VERSION" ios/App/App.xcodeproj/project.pbxproj || true
-
-          echo "=== POD INSTALL ==="
-          cd ios/App
-          pod install --repo-update
-          cd ../..
-
-          echo "=== XCODE LIST WORKSPACE ==="
+          echo "=== FINAL SCHEME CHECK ==="
           xcodebuild -workspace ios/App/App.xcworkspace -list
 
           echo "=== BUILD SIGNED IPA ==="
