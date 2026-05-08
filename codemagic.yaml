@@ -96,6 +96,8 @@ workflows:
 
       - name: Fetch iOS signing files
         script: |
+          echo "=== FETCH IOS SIGNING FILES ==="
+
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --issuer-id @env:APP_STORE_CONNECT_ISSUER_ID \
             --key-id @env:APP_STORE_CONNECT_KEY_IDENTIFIER \
@@ -104,24 +106,45 @@ workflows:
             --create \
             --certificate-key @env:CERTIFICATE_PRIVATE_KEY
 
+          echo "=== SIGNING FILES AFTER FETCH ==="
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles" || true
+          ls -la "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" || true
+
       - name: Set up keychain
         script: |
+          echo "=== SET UP KEYCHAIN ==="
           keychain initialize
           keychain add-certificates
 
+          echo "=== CODE SIGNING IDENTITIES ==="
+          security find-identity -v -p codesigning || true
+
       - name: Apply code signing profiles
         script: |
+          echo "=== APPLY CODE SIGNING PROFILES ==="
+
           xcode-project use-profiles \
             --project ios/App/App.xcodeproj
 
-            - name: Create export options plist
+          echo "=== PROJECT SIGNING SETTINGS AFTER USE-PROFILES ==="
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -showBuildSettings | grep -E "PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM|PROVISIONING_PROFILE|PROVISIONING_PROFILE_SPECIFIER|CODE_SIGN_STYLE|CODE_SIGN_IDENTITY" || true
+
+      - name: Create export options plist
         script: |
           echo "=== FIND APP STORE PROVISIONING PROFILE ==="
 
-          PROFILE_PATH="$(find "$HOME/Library/MobileDevice/Provisioning Profiles" -name "*.mobileprovision" | head -n 1)"
+          echo "=== PROFILE DIRS ==="
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles" || true
+          ls -la "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" || true
+
+          PROFILE_PATH="$(
+            find "$HOME/Library/MobileDevice/Provisioning Profiles" \
+                 "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" \
+                 -type f \( -name "*.mobileprovision" -o -name "*.provisionprofile" \) 2>/dev/null | head -n 1
+          )"
 
           if [ -z "$PROFILE_PATH" ]; then
-            echo "No provisioning profile found"
+            echo "No provisioning profile found after fetch-signing-files and use-profiles"
             exit 1
           fi
 
@@ -176,6 +199,9 @@ workflows:
         script: |
           echo "=== FINAL SCHEME CHECK ==="
           xcodebuild -workspace ios/App/App.xcworkspace -list
+
+          echo "=== FINAL SIGNING SETTINGS ==="
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -showBuildSettings | grep -E "PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM|PROVISIONING_PROFILE|PROVISIONING_PROFILE_SPECIFIER|CODE_SIGN_STYLE|CODE_SIGN_IDENTITY" || true
 
           echo "=== BUILD SIGNED IPA ==="
           xcode-project build-ipa \
