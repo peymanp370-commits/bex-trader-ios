@@ -6,7 +6,7 @@ workflows:
 
     environment:
       node: 22
-      xcode: 16.4
+      xcode: latest
       groups:
         - appstore
       vars:
