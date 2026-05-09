@@ -239,23 +239,6 @@ function AppleIcon() {
   );
 }
 
-function getNativePlatform(): "web" | "ios" | "android" {
-  if (!Capacitor.isNativePlatform()) return "web";
-  const platform = Capacitor.getPlatform();
-  if (platform === "ios") return "ios";
-  if (platform === "android") return "android";
-  return "web";
-}
-
-async function getCurrentAuthUser() {
-  try {
-    const res = await fetch(`${AUTH_BASE}/auth/me`, { credentials: "include" });
-    const data = await res.json().catch(() => ({}));
-    if (res.ok && data?.user) return data.user as AuthUser;
-  } catch {}
-  return null;
-}
-
 export function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -299,12 +282,8 @@ export function Login() {
       setSocialLoading(null);
 
       if (url.includes("auth=success")) {
-        const user = await getCurrentAuthUser();
-        if (user) {
-          saveUserToLocalStorage(user, user.email || "");
-          await hydrateAccountProfile(user.email || user.id || "");
-        }
-        navigate("/app?auth=success", { replace: true });
+        await handleNativeAuthCallback(url);
+        navigate("/app", { replace: true });
         return;
       }
 
@@ -330,12 +309,8 @@ export function Login() {
     const oauthSuccess = searchParams.get("auth");
     if (oauthSuccess === "success") {
       setSocialLoading(null);
-      getCurrentAuthUser().then(async (user) => {
-        if (user) {
-          saveUserToLocalStorage(user, user.email || "");
-          await hydrateAccountProfile(user.email || user.id || "");
-        }
-        navigate("/app?auth=success", { replace: true });
+      void handleNativeAuthCallback(window.location.href).finally(() => {
+        navigate("/app", { replace: true });
       });
       return;
     }
@@ -549,6 +524,42 @@ export function Login() {
     window.dispatchEvent(new Event("storage"));
   };
 
+  const handleNativeAuthCallback = async (rawUrl: string) => {
+    let parsed: URL;
+
+    try {
+      parsed = new URL(rawUrl);
+    } catch {
+      return false;
+    }
+
+    const refreshToken = parsed.searchParams.get("refresh_token") || "";
+    const email = parsed.searchParams.get("user_email") || "";
+    const firstName = parsed.searchParams.get("user_first_name") || "";
+    const lastName = parsed.searchParams.get("user_last_name") || "";
+    const plan = parsed.searchParams.get("user_plan") || "free";
+
+    if (refreshToken) {
+      localStorage.setItem("bex_refresh_token", refreshToken);
+      localStorage.setItem("refresh_token", refreshToken);
+    }
+
+    if (email || firstName || lastName || refreshToken) {
+      const nativeUser = {
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        plan,
+      };
+      saveUserToLocalStorage(nativeUser, email || "Trader");
+      if (email) await hydrateAccountProfile(email);
+      window.dispatchEvent(new Event("storage"));
+      return true;
+    }
+
+    return false;
+  };
+
   const legalRequiredMessage = () => tx(lang, {
     en: "Please confirm that you are 18+ and agree to the Terms of Service and Privacy Policy.",
     fa: "لطفاً تأیید کنید که ۱۸ سال یا بیشتر دارید و با قوانین استفاده و سیاست حریم خصوصی موافق هستید.",
@@ -657,8 +668,10 @@ export function Login() {
     setSocialLoading(provider);
     clearStoredAuthUser();
 
-    const platform = getNativePlatform();
-    const url = `${AUTH_BASE}/auth/${provider}/start?platform=${encodeURIComponent(platform)}`;
+    const authUrl = new URL(`${AUTH_BASE}/auth/${provider}/start`);
+    const platform = Capacitor.isNativePlatform() ? Capacitor.getPlatform() : "web";
+    authUrl.searchParams.set("platform", platform === "ios" ? "ios" : platform === "android" ? "android" : "web");
+    const url = authUrl.toString();
 
     try {
       if (Capacitor.isNativePlatform()) {

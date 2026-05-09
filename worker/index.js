@@ -19,7 +19,7 @@ export default {
 
       if (url.pathname === "/health" || url.pathname === "/status") {
         return ok(request, {
-          worker: "bex-auth-worker-v2",
+          worker: "bex-auth-worker-v3-native-session",
           hasDB: !!env.DB,
           now: Date.now(),
           oauth: {
@@ -430,9 +430,7 @@ export default {
         }
 
         const state = crypto.randomUUID();
-        const platform = normalizeOauthPlatform(url.searchParams.get("platform") || url.searchParams.get("source"));
         const stateCookie = buildTempCookie(request, env, "oauth_google_state", state, 600);
-        const platformCookie = buildTempCookie(request, env, "oauth_google_platform", platform, 600);
 
         const googleUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
         googleUrl.searchParams.set("client_id", env.GOOGLE_CLIENT_ID);
@@ -443,7 +441,7 @@ export default {
         googleUrl.searchParams.set("prompt", "select_account");
         googleUrl.searchParams.set("state", state);
 
-        return redirectWithCookies(request, googleUrl.toString(), [stateCookie, platformCookie]);
+        return redirectWithCookies(request, googleUrl.toString(), [stateCookie]);
       }
 
       if (url.pathname === "/auth/google/callback" && request.method === "GET") {
@@ -454,7 +452,6 @@ export default {
         const code = url.searchParams.get("code");
         const state = url.searchParams.get("state");
         const storedState = getCookie(request, "oauth_google_state");
-        const oauthPlatform = normalizeOauthPlatform(getCookie(request, "oauth_google_platform") || url.searchParams.get("platform"));
 
         if (!code) {
           return redirectToAppError(env, "GOOGLE_CODE_MISSING");
@@ -513,11 +510,10 @@ export default {
 
         return redirectWithCookies(
           request,
-          buildAppSuccessRedirect(env, { provider: "google", platform: oauthPlatform, refreshToken: session.refreshToken, user: await getSafeUser(env.DB, linked.userId) }),
+          `${getAppRedirectUrl(env)}?auth=success`,
           [
             buildRefreshCookie(request, env, session.refreshToken),
-            clearTempCookie(request, env, "oauth_google_state"),
-            clearTempCookie(request, env, "oauth_google_platform")
+            clearTempCookie(request, env, "oauth_google_state")
           ]
         );
       }
@@ -531,12 +527,10 @@ export default {
 
         const state = crypto.randomUUID();
         const nonce = crypto.randomUUID();
-        const platform = normalizeOauthPlatform(url.searchParams.get("platform") || url.searchParams.get("source"));
 
         const cookies = [
           buildTempCookie(request, env, "oauth_apple_state", state, 600, { sameSite: "None" }),
-          buildTempCookie(request, env, "oauth_apple_nonce", nonce, 600, { sameSite: "None" }),
-          buildTempCookie(request, env, "oauth_apple_platform", platform, 600, { sameSite: "None" })
+          buildTempCookie(request, env, "oauth_apple_nonce", nonce, 600, { sameSite: "None" })
         ];
 
         const appleUrl = new URL("https://appleid.apple.com/auth/authorize");
@@ -564,7 +558,6 @@ export default {
 
         const storedState = getCookie(request, "oauth_apple_state");
         const storedNonce = getCookie(request, "oauth_apple_nonce");
-        const oauthPlatform = normalizeOauthPlatform(getCookie(request, "oauth_apple_platform") || url.searchParams.get("platform"));
 
         if (!code) {
           return redirectToAppError(env, "APPLE_CALLBACK_MISSING_CODE");
@@ -643,12 +636,11 @@ export default {
 
         return redirectWithCookies(
           request,
-          buildAppSuccessRedirect(env, { provider: "apple", platform: oauthPlatform, refreshToken: session.refreshToken, user: await getSafeUser(env.DB, linked.userId) }),
+          `${getAppRedirectUrl(env)}?auth=success`,
           [
             buildRefreshCookie(request, env, session.refreshToken),
             clearTempCookie(request, env, "oauth_apple_state", { sameSite: "None" }),
-            clearTempCookie(request, env, "oauth_apple_nonce", { sameSite: "None" }),
-            clearTempCookie(request, env, "oauth_apple_platform", { sameSite: "None" })
+            clearTempCookie(request, env, "oauth_apple_nonce", { sameSite: "None" })
           ]
         );
       }
@@ -972,37 +964,6 @@ function getAppRedirectUrl(env) {
   return env.APP_REDIRECT_URL || "https://bextrader.com/app";
 }
 
-function normalizeOauthPlatform(value) {
-  const raw = String(value || "web").trim().toLowerCase();
-  if (raw === "ios" || raw === "iphone" || raw === "apple") return "ios";
-  if (raw === "android" || raw === "google" || raw === "play") return "android";
-  return "web";
-}
-
-function buildAppSuccessRedirect(env, input = {}) {
-  const platform = normalizeOauthPlatform(input.platform);
-  const nativeRedirect = String(env.APP_NATIVE_REDIRECT_URL || "bextrader://auth/callback").trim();
-  const target = new URL(platform === "ios" || platform === "android" ? nativeRedirect : getAppRedirectUrl(env));
-
-  target.searchParams.set("auth", "success");
-  if (input.provider) target.searchParams.set("provider", input.provider);
-  target.searchParams.set("platform", platform);
-
-  // Native Capacitor apps do not reliably share Safari OAuth cookies with the WebView.
-  // Pass only the session token and safe display fields back to the app deep link.
-  if ((platform === "ios" || platform === "android") && input.refreshToken) {
-    target.searchParams.set("refresh_token", input.refreshToken);
-  }
-  if (input.user) {
-    if (input.user.email) target.searchParams.set("user_email", input.user.email);
-    if (input.user.first_name) target.searchParams.set("user_first_name", input.user.first_name);
-    if (input.user.last_name) target.searchParams.set("user_last_name", input.user.last_name);
-    if (input.user.plan) target.searchParams.set("user_plan", input.user.plan);
-  }
-
-  return target.toString();
-}
-
 
 function getAppBaseUrl(env) {
   const explicit = String(env.APP_BASE_URL || env.PUBLIC_APP_URL || "").trim();
@@ -1308,7 +1269,7 @@ function corsHeaders(request) {
   return {
     "Access-Control-Allow-Origin": finalOrigin,
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-BEX-Refresh-Token",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Credentials": "true",
     "Vary": "Origin"
   };
@@ -1348,18 +1309,8 @@ async function createRefreshSession(db, userId, request, rotatedFromSessionId = 
   };
 }
 
-function getAuthRefreshToken(request) {
-  const cookieToken = getCookie(request, "refresh_token");
-  if (cookieToken) return cookieToken;
-
-  const auth = String(request.headers.get("authorization") || "").trim();
-  if (auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
-
-  return String(request.headers.get("x-bex-refresh-token") || "").trim() || null;
-}
-
 async function requireUserByRefreshSession(db, request) {
-  const refreshToken = getAuthRefreshToken(request);
+  const refreshToken = getCookie(request, "refresh_token");
   if (!refreshToken) {
     return {
       ok: false,
