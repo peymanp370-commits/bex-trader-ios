@@ -13,7 +13,7 @@
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
     "@capacitor/ios": "^7.4.4",
-    "@capgo/capacitor-social-login": "^1.2.6",
+    "@capgo/capacitor-social-login": "^7.1.5",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@mui/icons-material": "7.3.5",
