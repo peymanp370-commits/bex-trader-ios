@@ -45,13 +45,15 @@ const SignInWithApple = registerPlugin<{
 
 
 type NativeGoogleResponse = {
+  result?: any;
   authentication?: {
-    idToken?: string;
-    accessToken?: string;
+    idToken?: string | { token?: string };
+    accessToken?: string | { token?: string };
   };
-  idToken?: string;
-  accessToken?: string;
+  idToken?: string | { token?: string };
+  accessToken?: string | { token?: string };
   serverAuthCode?: string;
+  authorizationCode?: string;
   email?: string;
   name?: string;
   givenName?: string;
@@ -65,6 +67,16 @@ type NativeGoogleResponse = {
     imageUrl?: string;
   };
 };
+
+function tokenString(value: any): string {
+  if (!value) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value?.token === "string") return value.token.trim();
+  if (typeof value?.jwt === "string") return value.jwt.trim();
+  if (typeof value?.accessToken === "string") return value.accessToken.trim();
+  if (typeof value?.idToken === "string") return value.idToken.trim();
+  return "";
+}
 
 const GOOGLE_WEB_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID ||
@@ -818,17 +830,40 @@ export function Login() {
   };
 
   const exchangeNativeGoogleToken = async (googleResult: NativeGoogleResponse) => {
-    const auth = googleResult?.authentication || {};
-    const profile = googleResult?.profile || {};
-    const idToken = googleResult?.idToken || auth.idToken || "";
-    const accessToken = googleResult?.accessToken || auth.accessToken || "";
-    const serverAuthCode = googleResult?.serverAuthCode || "";
-    const email = googleResult?.email || profile.email || "";
-    const firstName = googleResult?.givenName || profile.givenName || "";
-    const lastName = googleResult?.familyName || profile.familyName || "";
-    const name = googleResult?.name || profile.name || "";
+    const root: any = (googleResult as any)?.result || googleResult || {};
+    const auth: any = root?.authentication || (googleResult as any)?.authentication || {};
+    const profile: any = root?.profile || (googleResult as any)?.profile || {};
+
+    // Capgo returns different shapes between versions/platforms.
+    // Handle flat values, nested result values, and token objects like { token: "..." }.
+    const idToken =
+      tokenString(root?.idToken) ||
+      tokenString(root?.id_token) ||
+      tokenString(auth?.idToken) ||
+      tokenString(auth?.id_token) ||
+      tokenString((googleResult as any)?.idToken);
+
+    const accessToken =
+      tokenString(root?.accessToken) ||
+      tokenString(root?.access_token) ||
+      tokenString(auth?.accessToken) ||
+      tokenString(auth?.access_token) ||
+      tokenString((googleResult as any)?.accessToken);
+
+    const serverAuthCode =
+      tokenString(root?.serverAuthCode) ||
+      tokenString(root?.authorizationCode) ||
+      tokenString(root?.server_auth_code) ||
+      tokenString((googleResult as any)?.serverAuthCode) ||
+      tokenString((googleResult as any)?.authorizationCode);
+
+    const email = root?.email || profile.email || (googleResult as any)?.email || "";
+    const firstName = root?.givenName || root?.given_name || profile.givenName || profile.given_name || (googleResult as any)?.givenName || "";
+    const lastName = root?.familyName || root?.family_name || profile.familyName || profile.family_name || (googleResult as any)?.familyName || "";
+    const name = root?.name || profile.name || (googleResult as any)?.name || "";
 
     if (!idToken && !accessToken && !serverAuthCode) {
+      console.error("Google native response without token", googleResult);
       throw new Error("GOOGLE_NATIVE_MISSING_TOKEN");
     }
 
@@ -883,15 +918,14 @@ export function Login() {
           webClientId: GOOGLE_WEB_CLIENT_ID,
           iOSClientId: GOOGLE_IOS_CLIENT_ID,
           iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
-          mode: "offline",
+          mode: "online",
         },
       } as any);
 
       const googleResult = await SocialLogin.login({
         provider: "google",
         options: {
-          scopes: ["email", "profile"],
-          forceRefreshToken: true,
+          scopes: ["profile", "email"],
         },
       } as any) as NativeGoogleResponse;
 

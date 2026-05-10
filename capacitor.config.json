@@ -15,7 +15,7 @@
         "webClientId": "50746359348-l24lp3dj2m9plp7qc8godulthhdiaa6k.apps.googleusercontent.com",
         "iOSClientId": "50746359348-j196c7embvnelnj7rfm2s35vdgbthvv6.apps.googleusercontent.com",
         "iOSServerClientId": "50746359348-l24lp3dj2m9plp7qc8godulthhdiaa6k.apps.googleusercontent.com",
-        "mode": "offline"
+        "mode": "online"
       }
     }
   }
