@@ -289,7 +289,9 @@ export default {
       }
 
       if (url.pathname === "/auth/logout" && request.method === "POST") {
-        const refreshToken = getCookie(request, "refresh_token");
+        const authHeader = request.headers.get("authorization") || "";
+        const bearerToken = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
+        const refreshToken = getCookie(request, "refresh_token") || bearerToken;
 
         if (refreshToken) {
           const refreshHash = await sha256(refreshToken);
@@ -686,11 +688,13 @@ export default {
 
         const email = normalizeEmail(claims.email || body.email);
         const firstName =
+          clean(body.first_name) ||
           clean(body.givenName) ||
           clean(submittedUser?.name?.firstName) ||
           clean(submittedUser?.givenName) ||
           "Apple";
         const lastName =
+          clean(body.last_name) ||
           clean(body.familyName) ||
           clean(submittedUser?.name?.lastName) ||
           clean(submittedUser?.familyName) ||
@@ -717,6 +721,7 @@ export default {
         return okWithCookies(request, {
           message: "Apple native login successful",
           code: "APPLE_NATIVE_LOGIN_SUCCESS",
+          refresh_token: session.refreshToken,
           user: await getSafeUser(env.DB, linked.userId)
         }, [buildRefreshCookie(request, env, session.refreshToken)]);
       }
@@ -1343,7 +1348,9 @@ async function createRefreshSession(db, userId, request, rotatedFromSessionId = 
 }
 
 async function requireUserByRefreshSession(db, request) {
-  const refreshToken = getCookie(request, "refresh_token");
+  const authHeader = request.headers.get("authorization") || "";
+  const bearerToken = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
+  const refreshToken = getCookie(request, "refresh_token") || bearerToken;
   if (!refreshToken) {
     return {
       ok: false,

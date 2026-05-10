@@ -25,6 +25,55 @@ export type AuthResponse = {
   user?: AuthUser | null;
 };
 
+const LOCAL_AUTH_KEYS = [
+  "authToken",
+  "accessToken",
+  "token",
+  "refresh_token",
+  "bex_refresh_token",
+  "user",
+  "authUser",
+  "currentUser",
+  "userEmail",
+  "userName",
+  "userFirstName",
+  "userLastName",
+  "userPlan",
+  "bex_user",
+  "bex_auth",
+  "bex_token",
+  "isAuthenticated",
+];
+
+export function getStoredRefreshToken(): string {
+  try {
+    return (
+      localStorage.getItem("bex_refresh_token") ||
+      localStorage.getItem("refresh_token") ||
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("bex_token") ||
+      ""
+    ).trim();
+  } catch {
+    return "";
+  }
+}
+
+function authHeaders(): HeadersInit {
+  const token = getStoredRefreshToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export function clearLocalAuthState() {
+  try {
+    LOCAL_AUTH_KEYS.forEach((key) => localStorage.removeItem(key));
+    sessionStorage.clear();
+    window.dispatchEvent(new Event("storage"));
+  } catch {}
+}
+
 export type VipMeResponse = {
   ok: boolean;
   user?: AuthUser | null;
@@ -703,6 +752,7 @@ export async function getCurrentUser(): Promise<AuthResponse> {
       method: "GET",
       credentials: "include",
       cache: "no-store",
+      headers: authHeaders(),
     });
 
     const data = await safeJson<AuthResponse>(response);
@@ -723,20 +773,24 @@ export async function logout(): Promise<AuthResponse> {
     const response = await fetch(`${AUTH_BASE}/auth/logout`, {
       method: "POST",
       credentials: "include",
+      headers: authHeaders(),
     });
 
     const data = await safeJson<AuthResponse>(response);
+    clearLocalAuthState();
 
     if (!response.ok) {
       return data || { ok: false, message: `Logout failed (${response.status})` };
     }
 
-    return data || { ok: false, message: "Invalid server response" };
+    return data || { ok: true, message: "Logged out" };
   } catch (error) {
     console.error("Error logging out:", error);
-    return { ok: false, message: "Failed to logout" };
+    clearLocalAuthState();
+    return { ok: true, message: "Logged out locally" };
   }
 }
+
 
 export async function fetchPrices(): Promise<PricesResponse | null> {
   const attempts = [

@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, LineChart, BarChart3, Crown, Settings, X, UserRound, Shield, FileText, Lock, LogOut } from "lucide-react";
 import { tr } from "../utils/i18n";
 import { useLangState } from "../store/useLang";
+import { clearLocalAuthState, logout } from "../utils/api";
 
 type SideMenuProps = { open: boolean; onClose: () => void };
 
@@ -23,33 +24,14 @@ export function SideMenu({ open, onClose }: SideMenuProps) {
     { to: "/app/privacy", label: tr(lang, "Privacy", "حریم خصوصی", "الخصوصية"), icon: Lock },
   ];
 
-  const handleLogout = () => {
-    [
-      "authToken",
-      "accessToken",
-      "token",
-      "user",
-      "authUser",
-      "currentUser",
-      "userEmail",
-      "userName",
-      "userPlan",
-      "account_login",
-      "mt5_account_login",
-      "bex_account_login",
-      "client_id",
-      "bex_client_id",
-      "vip_token",
-      "bex_vip_token",
-      "isAuthenticated",
-      "bex_user",
-      "bex_auth",
-      "bex_token",
-    ].forEach((key) => localStorage.removeItem(key));
-
-    sessionStorage.clear();
-    onClose();
-    navigate("/", { replace: true });
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      clearLocalAuthState();
+      onClose();
+      navigate("/login?logged_out=1", { replace: true });
+    }
   };
 
   if (!open) return null;

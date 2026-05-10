@@ -17,7 +17,7 @@ import {
 import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
-import { logout } from "../utils/api";
+import { clearLocalAuthState, logout } from "../utils/api";
 import { getLanguage, setLanguage as saveAppLanguage } from "../utils/i18n";
 
 type LangCode = "en" | "fa" | "ar" | "es" | "pt-BR" | "hi" | "tr" | "de" | "fr" | "zh" | "ko";
@@ -198,17 +198,13 @@ export function Settings() {
     if (!confirm(T(lang, TXT.confirmLogout))) return;
 
     setLoggingOut(true);
-    await logout();
-
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userFamilyName");
-    localStorage.removeItem("userFirstName");
-    localStorage.removeItem("userLastName");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userPlan");
-    window.dispatchEvent(new Event("storage"));
-
-    navigate("/login");
+    try {
+      await logout();
+    } finally {
+      clearLocalAuthState();
+      setLoggingOut(false);
+      navigate("/login?logged_out=1", { replace: true });
+    }
   };
 
   const handleDarkModeToggle = (isDark: boolean) => {

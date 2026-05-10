@@ -1,12 +1,34 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getCurrentUser } from "../utils/api";
+import { getCurrentUser, getStoredRefreshToken } from "../utils/api";
 
 type ProtectedRouteProps = {
   children: React.ReactNode;
 };
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+
+function getCachedBexUser() {
+  try {
+    const raw = localStorage.getItem("bex_user") || localStorage.getItem("authUser") || localStorage.getItem("user");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") return parsed;
+    }
+  } catch {}
+
+  const email = localStorage.getItem("userEmail") || "";
+  if (!email) return null;
+  return {
+    email,
+    first_name: localStorage.getItem("userFirstName") || "",
+    last_name: localStorage.getItem("userLastName") || "",
+    plan: localStorage.getItem("userPlan") || "free",
+    timezone: localStorage.getItem("userTimezone") || "America/Toronto",
+    country: localStorage.getItem("userCountry") || "Unknown",
+  };
+}
 
 function saveBexUser(user: any) {
   const displayName =
@@ -63,11 +85,27 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           if (i < attempts - 1) await delay(350 + i * 250);
         }
 
+        const cachedUser = getCachedBexUser();
+        if (mounted && getStoredRefreshToken() && cachedUser) {
+          saveBexUser(cachedUser);
+          setAuthorized(true);
+          setLoading(false);
+          return;
+        }
+
         if (mounted) {
           setAuthorized(false);
           setLoading(false);
         }
       } catch {
+        const cachedUser = getCachedBexUser();
+        if (mounted && getStoredRefreshToken() && cachedUser) {
+          saveBexUser(cachedUser);
+          setAuthorized(true);
+          setLoading(false);
+          return;
+        }
+
         if (mounted) {
           setAuthorized(false);
           setLoading(false);

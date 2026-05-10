@@ -157,6 +157,19 @@ type AuthUser = {
 };
 
 
+
+function saveAuthTokenToLocalStorage(token: string) {
+  const cleanToken = String(token || "").trim();
+  if (!cleanToken) return;
+  localStorage.setItem("bex_refresh_token", cleanToken);
+  localStorage.setItem("refresh_token", cleanToken);
+  localStorage.setItem("authToken", cleanToken);
+  localStorage.setItem("accessToken", cleanToken);
+  localStorage.setItem("token", cleanToken);
+  localStorage.setItem("bex_token", cleanToken);
+  localStorage.setItem("isAuthenticated", "true");
+}
+
 function saveAccountProfileToLocalStorage(profile: any) {
   const accountLogin = String(
     profile?.account_login ||
@@ -319,8 +332,13 @@ export function Login() {
       setSocialLoading(null);
 
       if (url.includes("auth=success")) {
-        await handleNativeAuthCallback(url);
-        navigate("/app", { replace: true });
+        const saved = await handleNativeAuthCallback(url);
+        if (saved) {
+          navigate("/app", { replace: true });
+        } else {
+          setError("Login succeeded, but the app could not save the session. Please try again.");
+          navigate("/login?error=SESSION_SAVE_FAILED", { replace: true });
+        }
         return;
       }
 
@@ -346,8 +364,9 @@ export function Login() {
     const oauthSuccess = searchParams.get("auth");
     if (oauthSuccess === "success") {
       setSocialLoading(null);
-      void handleNativeAuthCallback(window.location.href).finally(() => {
-        navigate("/app", { replace: true });
+      void handleNativeAuthCallback(window.location.href).then((saved) => {
+        if (saved) navigate("/app", { replace: true });
+        else navigate("/login?error=SESSION_SAVE_FAILED", { replace: true });
       });
       return;
     }
@@ -569,6 +588,12 @@ export function Login() {
     localStorage.setItem("userName", displayName);
     localStorage.setItem("userPlan", resultUser?.plan || "PRO");
     saveAccountProfileToLocalStorage(resultUser || {});
+    try {
+      localStorage.setItem("user", JSON.stringify(resultUser || {}));
+      localStorage.setItem("bex_user", JSON.stringify(resultUser || {}));
+      localStorage.setItem("authUser", JSON.stringify(resultUser || {}));
+      localStorage.setItem("isAuthenticated", "true");
+    } catch {}
     window.dispatchEvent(new Event("storage"));
   };
 
@@ -588,8 +613,7 @@ export function Login() {
     const plan = parsed.searchParams.get("user_plan") || "free";
 
     if (refreshToken) {
-      localStorage.setItem("bex_refresh_token", refreshToken);
-      localStorage.setItem("refresh_token", refreshToken);
+      saveAuthTokenToLocalStorage(refreshToken);
     }
 
     if (email || firstName || lastName || refreshToken) {
@@ -727,8 +751,7 @@ export function Login() {
     }
 
     if (data?.refresh_token) {
-      localStorage.setItem("bex_refresh_token", data.refresh_token);
-      localStorage.setItem("refresh_token", data.refresh_token);
+      saveAuthTokenToLocalStorage(data.refresh_token);
     }
 
     const user = data?.user || {
