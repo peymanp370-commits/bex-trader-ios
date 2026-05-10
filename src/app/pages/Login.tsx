@@ -1,6 +1,6 @@
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Capacitor, registerPlugin } from "@capacitor/core";
+import { Capacitor } from "@capacitor/core";
 import { SocialLogin } from "@capgo/capacitor-social-login";
 import { Browser } from "@capacitor/browser";
 import { App as CapacitorApp } from "@capacitor/app";
@@ -33,17 +33,6 @@ type NativeAppleResponse = {
   user?: string;
 };
 
-const SignInWithApple = registerPlugin<{
-  authorize(options: {
-    clientId: string;
-    redirectURI: string;
-    scopes: string;
-    state: string;
-    nonce: string;
-  }): Promise<NativeAppleResponse>;
-}>("SignInWithApple");
-
-
 type NativeGoogleResponse = {
   result?: any;
   authentication?: {
@@ -66,6 +55,24 @@ type NativeGoogleResponse = {
     familyName?: string;
     imageUrl?: string;
   };
+};
+
+let nativeSocialLoginInitialized = false;
+
+const initializeNativeSocialLogin = async () => {
+  if (nativeSocialLoginInitialized) return;
+
+  await SocialLogin.initialize({
+    google: {
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+      iOSClientId: GOOGLE_IOS_CLIENT_ID,
+      iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
+      mode: "online",
+    },
+    apple: {},
+  } as any);
+
+  nativeSocialLoginInitialized = true;
 };
 
 function tokenString(value: any): string {
@@ -734,13 +741,31 @@ export function Login() {
   };
 
   const exchangeNativeAppleToken = async (appleResult: NativeAppleResponse, state: string, nonce: string) => {
-    const response = appleResult?.response || appleResult || {};
-    const identityToken = response.identityToken || "";
-    const authorizationCode = response.authorizationCode || "";
-    const email = response.email || "";
-    const firstName = response.givenName || "";
-    const lastName = response.familyName || "";
-    const appleUserId = response.user || "";
+    const root: any = (appleResult as any)?.result || appleResult || {};
+    const response: any = root?.response || (appleResult as any)?.response || root || {};
+
+    const identityToken =
+      tokenString(response.identityToken) ||
+      tokenString(response.idToken) ||
+      tokenString(response.id_token) ||
+      tokenString(root.identityToken) ||
+      tokenString(root.idToken) ||
+      tokenString(root.id_token) ||
+      "";
+
+    const authorizationCode =
+      tokenString(response.authorizationCode) ||
+      tokenString(response.authorization_code) ||
+      tokenString(response.code) ||
+      tokenString(root.authorizationCode) ||
+      tokenString(root.authorization_code) ||
+      tokenString(root.code) ||
+      "";
+
+    const email = response.email || root.email || "";
+    const firstName = response.givenName || response.given_name || root.givenName || root.given_name || "";
+    const lastName = response.familyName || response.family_name || root.familyName || root.family_name || "";
+    const appleUserId = response.user || root.user || root.userId || root.user_id || "";
 
     if (!identityToken && !authorizationCode) {
       throw new Error("APPLE_CALLBACK_MISSING_CODE");
@@ -799,21 +824,22 @@ export function Login() {
     const nonce = makeOAuthValue("apple_nonce");
 
     try {
-      const appleResult = await SignInWithApple.authorize({
-        clientId: "com.bextrader.app",
-        redirectURI: `${AUTH_BASE}/auth/apple/callback`,
-        scopes: "email name",
-        state,
-        nonce,
-      });
+      await initializeNativeSocialLogin();
+
+      const appleResult = await SocialLogin.login({
+        provider: "apple",
+        options: {
+          scopes: ["email", "name"],
+        },
+      } as any) as NativeAppleResponse;
 
       await exchangeNativeAppleToken(appleResult, state, nonce);
     } catch (err: any) {
       console.error("Apple native sign-in failed", err);
       const code = String(err?.message || err?.code || "APPLE_TOKEN_EXCHANGE_FAILED");
       setError(tx(lang, {
-        en: code.includes("cancel") || code.includes("CANCEL") ? "Apple sign-in was cancelled." : "Apple sign-in failed. Please try again.",
-        fa: code.includes("cancel") || code.includes("CANCEL") ? "ورود با اپل لغو شد." : "ورود با اپل ناموفق بود. دوباره تلاش کنید.",
+        en: code.includes("cancel") || code.includes("CANCEL") ? "Apple sign-in was cancelled." : `Apple sign-in failed: ${code}`,
+        fa: code.includes("cancel") || code.includes("CANCEL") ? "ورود با اپل لغو شد." : `ورود با اپل ناموفق بود: ${code}`,
         ar: code.includes("cancel") || code.includes("CANCEL") ? "تم إلغاء تسجيل الدخول عبر Apple." : "فشل تسجيل الدخول عبر Apple. حاول مرة أخرى.",
         es: code.includes("cancel") || code.includes("CANCEL") ? "El inicio con Apple fue cancelado." : "Falló el inicio de sesión con Apple. Inténtalo de nuevo.",
         "pt-BR": code.includes("cancel") || code.includes("CANCEL") ? "O login com Apple foi cancelado." : "Falha no login com Apple. Tente novamente.",
@@ -913,20 +939,11 @@ export function Login() {
     clearStoredAuthUser();
 
     try {
-      await SocialLogin.initialize({
-        google: {
-          webClientId: GOOGLE_WEB_CLIENT_ID,
-          iOSClientId: GOOGLE_IOS_CLIENT_ID,
-          iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
-          mode: "online",
-        },
-      } as any);
+      await initializeNativeSocialLogin();
 
       const googleResult = await SocialLogin.login({
         provider: "google",
-        options: {
-          scopes: ["profile", "email"],
-        },
+        options: {},
       } as any) as NativeGoogleResponse;
 
       await exchangeNativeGoogleToken(googleResult);
@@ -934,8 +951,8 @@ export function Login() {
       console.error("Google native sign-in failed", err);
       const code = String(err?.message || err?.code || "GOOGLE_NATIVE_SIGNIN_FAILED");
       setError(tx(lang, {
-        en: code.includes("cancel") || code.includes("CANCEL") ? "Google sign-in was cancelled." : "Google native sign-in failed. Check the iOS Google Client ID and try again.",
-        fa: code.includes("cancel") || code.includes("CANCEL") ? "ورود با گوگل لغو شد." : "ورود native گوگل ناموفق بود. Google iOS Client ID را چک کنید و دوباره تلاش کنید.",
+        en: code.includes("cancel") || code.includes("CANCEL") ? "Google sign-in was cancelled." : `Google native sign-in failed: ${code}`,
+        fa: code.includes("cancel") || code.includes("CANCEL") ? "ورود با گوگل لغو شد." : `ورود native گوگل ناموفق بود: ${code}`,
         ar: code.includes("cancel") || code.includes("CANCEL") ? "تم إلغاء تسجيل الدخول عبر Google." : "فشل تسجيل الدخول الأصلي عبر Google. تحقق من Google iOS Client ID وحاول مرة أخرى.",
         es: code.includes("cancel") || code.includes("CANCEL") ? "El inicio con Google fue cancelado." : "Falló el inicio nativo con Google. Revisa el Google iOS Client ID e inténtalo de nuevo.",
         "pt-BR": code.includes("cancel") || code.includes("CANCEL") ? "O login com Google foi cancelado." : "Falha no login nativo com Google. Verifique o Google iOS Client ID e tente novamente.",
