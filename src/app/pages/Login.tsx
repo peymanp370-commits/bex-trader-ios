@@ -1,6 +1,6 @@
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Eye, EyeOff } from "lucide-react";
@@ -13,6 +13,44 @@ const HISTORY_BASE =
   import.meta.env.VITE_MT5_HISTORY_API_URL ||
   import.meta.env.VITE_HISTORY_API_URL ||
   "https://bex-mt5-history-ingest.peymanp370.workers.dev";
+
+
+type NativeAppleResponse = {
+  response?: {
+    identityToken?: string;
+    authorizationCode?: string;
+    email?: string;
+    givenName?: string;
+    familyName?: string;
+    user?: string;
+  };
+  identityToken?: string;
+  authorizationCode?: string;
+  email?: string;
+  givenName?: string;
+  familyName?: string;
+  user?: string;
+};
+
+const SignInWithApple = registerPlugin<{
+  authorize(options: {
+    clientId: string;
+    redirectURI: string;
+    scopes: string;
+    state: string;
+    nonce: string;
+  }): Promise<NativeAppleResponse>;
+}>("SignInWithApple");
+
+function makeOAuthValue(prefix: string) {
+  try {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return `${prefix}_${Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+  } catch {
+    return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  }
+}
 
 type AppLanguage =
   | "en"
@@ -250,7 +288,6 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<"google" | "apple" | null>(null);
   const [error, setError] = useState("");
-  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [title, setTitle] = useState<"welcome" | "welcome_back">("welcome");
 
   useEffect(() => {
@@ -493,6 +530,17 @@ export function Login() {
     setSocialLoading(null);
   }, [searchParams, lang, navigate]);
 
+  useEffect(() => {
+    if (!loading && !socialLoading) return;
+
+    const timer = window.setTimeout(() => {
+      setLoading(false);
+      setSocialLoading(null);
+    }, 15000);
+
+    return () => window.clearTimeout(timer);
+  }, [loading, socialLoading]);
+
   const handleLanguageChange = (value: string) => {
     const nextLang = normalizeLanguage(value);
     setLang(nextLang);
@@ -560,32 +608,10 @@ export function Login() {
     return false;
   };
 
-  const legalRequiredMessage = () => tx(lang, {
-    en: "Please confirm that you are 18+ and agree to the Terms of Service and Privacy Policy.",
-    fa: "لطفاً تأیید کنید که ۱۸ سال یا بیشتر دارید و با قوانین استفاده و سیاست حریم خصوصی موافق هستید.",
-    ar: "يرجى تأكيد أنك تبلغ 18 عامًا أو أكثر وتوافق على شروط الخدمة وسياسة الخصوصية.",
-    es: "Confirma que tienes 18 años o más y aceptas los Términos de Servicio y la Política de Privacidad.",
-    "pt-BR": "Confirme que você tem 18 anos ou mais e concorda com os Termos de Serviço e a Política de Privacidade.",
-    hi: "कृपया पुष्टि करें कि आपकी आयु 18+ है और आप सेवा की शर्तों व गोपनीयता नीति से सहमत हैं।",
-    tr: "Lütfen 18 yaşında veya daha büyük olduğunuzu ve Hizmet Şartları ile Gizlilik Politikası’nı kabul ettiğinizi onaylayın.",
-    de: "Bitte bestätigen Sie, dass Sie mindestens 18 Jahre alt sind und den Nutzungsbedingungen sowie der Datenschutzrichtlinie zustimmen.",
-    fr: "Veuillez confirmer que vous avez 18 ans ou plus et que vous acceptez les Conditions d’utilisation et la Politique de confidentialité.",
-    zh: "请确认您已年满 18 岁，并同意服务条款和隐私政策。",
-    ko: "만 18세 이상이며 서비스 약관 및 개인정보 처리방침에 동의하는지 확인해 주세요.",
-  });
-
-  const ensureLegalAccepted = () => {
-    if (acceptedLegal) return true;
-    setError(legalRequiredMessage());
-    return false;
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const cleanIdentity = identity.trim();
-
-    if (!ensureLegalAccepted()) return;
 
     if (!cleanIdentity || !password) {
       setError(tx(lang, {
@@ -661,8 +687,110 @@ export function Login() {
     window.dispatchEvent(new Event("storage"));
   };
 
+  const exchangeNativeAppleToken = async (appleResult: NativeAppleResponse, state: string, nonce: string) => {
+    const response = appleResult?.response || appleResult || {};
+    const identityToken = response.identityToken || "";
+    const authorizationCode = response.authorizationCode || "";
+    const email = response.email || "";
+    const firstName = response.givenName || "";
+    const lastName = response.familyName || "";
+    const appleUserId = response.user || "";
+
+    if (!identityToken && !authorizationCode) {
+      throw new Error("APPLE_CALLBACK_MISSING_CODE");
+    }
+
+    const res = await fetch(`${AUTH_BASE}/auth/apple/native`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        identity_token: identityToken,
+        id_token: identityToken,
+        authorization_code: authorizationCode,
+        code: authorizationCode,
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        givenName: firstName,
+        familyName: lastName,
+        apple_user_id: appleUserId,
+        appleUserId,
+        user: appleUserId,
+        state,
+        nonce,
+        platform: "ios",
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || data?.ok === false) {
+      throw new Error(data?.code || data?.message || "APPLE_TOKEN_EXCHANGE_FAILED");
+    }
+
+    if (data?.refresh_token) {
+      localStorage.setItem("bex_refresh_token", data.refresh_token);
+      localStorage.setItem("refresh_token", data.refresh_token);
+    }
+
+    const user = data?.user || {
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      plan: data?.plan || "free",
+    };
+
+    saveUserToLocalStorage(user, user?.email || email || "Trader");
+    await hydrateAccountProfile(user?.email || email || appleUserId);
+    window.dispatchEvent(new Event("storage"));
+    navigate("/app", { replace: true });
+  };
+
+  const handleNativeAppleSignIn = async () => {
+    setError("");
+    setSocialLoading("apple");
+    clearStoredAuthUser();
+
+    const state = makeOAuthValue("apple_state");
+    const nonce = makeOAuthValue("apple_nonce");
+
+    try {
+      const appleResult = await SignInWithApple.authorize({
+        clientId: "com.bextrader.app",
+        redirectURI: `${AUTH_BASE}/auth/apple/callback`,
+        scopes: "email name",
+        state,
+        nonce,
+      });
+
+      await exchangeNativeAppleToken(appleResult, state, nonce);
+    } catch (err: any) {
+      console.error("Apple native sign-in failed", err);
+      const code = String(err?.message || err?.code || "APPLE_TOKEN_EXCHANGE_FAILED");
+      setError(tx(lang, {
+        en: code.includes("cancel") || code.includes("CANCEL") ? "Apple sign-in was cancelled." : "Apple sign-in failed. Please try again.",
+        fa: code.includes("cancel") || code.includes("CANCEL") ? "ورود با اپل لغو شد." : "ورود با اپل ناموفق بود. دوباره تلاش کنید.",
+        ar: code.includes("cancel") || code.includes("CANCEL") ? "تم إلغاء تسجيل الدخول عبر Apple." : "فشل تسجيل الدخول عبر Apple. حاول مرة أخرى.",
+        es: code.includes("cancel") || code.includes("CANCEL") ? "El inicio con Apple fue cancelado." : "Falló el inicio de sesión con Apple. Inténtalo de nuevo.",
+        "pt-BR": code.includes("cancel") || code.includes("CANCEL") ? "O login com Apple foi cancelado." : "Falha no login com Apple. Tente novamente.",
+        hi: code.includes("cancel") || code.includes("CANCEL") ? "Apple साइन-इन रद्द हो गया।" : "Apple लॉगिन विफल रहा। कृपया फिर कोशिश करें।",
+        tr: code.includes("cancel") || code.includes("CANCEL") ? "Apple ile giriş iptal edildi." : "Apple ile giriş başarısız oldu. Lütfen tekrar deneyin.",
+        de: code.includes("cancel") || code.includes("CANCEL") ? "Apple-Anmeldung wurde abgebrochen." : "Apple-Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
+        fr: code.includes("cancel") || code.includes("CANCEL") ? "La connexion Apple a été annulée." : "La connexion avec Apple a échoué. Veuillez réessayer.",
+        zh: code.includes("cancel") || code.includes("CANCEL") ? "Apple 登录已取消。" : "Apple 登录失败，请重试。",
+        ko: code.includes("cancel") || code.includes("CANCEL") ? "Apple 로그인이 취소되었습니다." : "Apple 로그인이 실패했습니다. 다시 시도하세요.",
+      }));
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
   const openSocialAuth = async (provider: "google" | "apple") => {
-    if (!ensureLegalAccepted()) return;
+    if (provider === "apple" && Capacitor.getPlatform() === "ios") {
+      await handleNativeAppleSignIn();
+      return;
+    }
 
     setError("");
     setSocialLoading(provider);
@@ -930,88 +1058,77 @@ export function Login() {
             </div>
           </div>
 
-          <label className={`flex gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-gray-300 ${rtl ? "text-right" : "text-left"}`}>
-            <input
-              type="checkbox"
-              checked={acceptedLegal}
-              onChange={(e) => {
-                setAcceptedLegal(e.target.checked);
-                if (e.target.checked && error === legalRequiredMessage()) setError("");
-              }}
-              className="mt-1 h-5 w-5 shrink-0 rounded border-gray-600 bg-[#111827] accent-yellow-500"
-            />
-            <span className="leading-relaxed">
+          <p className={`text-center text-xs leading-relaxed text-gray-400 ${rtl ? "text-right" : "text-center"}`}>
+            {tx(lang, {
+              en: "By continuing, you confirm you are 18+ and agree to our ",
+              fa: "با ادامه دادن، تأیید می‌کنید که ۱۸ سال یا بیشتر دارید و با ",
+              ar: "بالمتابعة، تؤكد أن عمرك 18 عامًا أو أكثر وتوافق على ",
+              es: "Al continuar, confirmas que tienes 18 años o más y aceptas nuestros ",
+              "pt-BR": "Ao continuar, você confirma que tem 18 anos ou mais e concorda com nossos ",
+              hi: "जारी रखकर, आप पुष्टि करते हैं कि आपकी आयु 18+ है और आप हमारी ",
+              tr: "Devam ederek 18 yaşında veya daha büyük olduğunuzu ve ",
+              de: "Wenn Sie fortfahren, bestätigen Sie, dass Sie mindestens 18 Jahre alt sind und unseren ",
+              fr: "En continuant, vous confirmez avoir 18 ans ou plus et accepter nos ",
+              zh: "继续即表示您确认已年满 18 岁，并同意我们的",
+              ko: "계속하면 만 18세 이상이며 다음에 동의하는 것으로 간주됩니다: ",
+            })}
+            <Link to="/terms" className="font-semibold text-yellow-400 hover:text-yellow-300 underline underline-offset-4">
               {tx(lang, {
-                en: "I confirm that I am 18+ and I agree to BEX Trader’s ",
-                fa: "تأیید می‌کنم که ۱۸ سال یا بیشتر دارم و با ",
-                ar: "أؤكد أن عمري 18 عامًا أو أكثر وأوافق على ",
-                es: "Confirmo que tengo 18 años o más y acepto los ",
-                "pt-BR": "Confirmo que tenho 18 anos ou mais e concordo com os ",
-                hi: "मैं पुष्टि करता/करती हूँ कि मेरी आयु 18+ है और मैं BEX Trader की ",
-                tr: "18 yaşında veya daha büyük olduğumu ve BEX Trader’ın ",
-                de: "Ich bestätige, dass ich mindestens 18 Jahre alt bin und den ",
-                fr: "Je confirme avoir 18 ans ou plus et accepter les ",
-                zh: "我确认我已年满 18 岁，并同意 BEX Trader 的",
-                ko: "저는 만 18세 이상이며 BEX Trader의 ",
+                en: "Terms of Service",
+                fa: "قوانین استفاده",
+                ar: "شروط الخدمة",
+                es: "Términos de Servicio",
+                "pt-BR": "Termos de Serviço",
+                hi: "सेवा की शर्तों",
+                tr: "Hizmet Şartları",
+                de: "Nutzungsbedingungen",
+                fr: "Conditions d’utilisation",
+                zh: "服务条款",
+                ko: "서비스 약관",
               })}
-              <Link to="/terms" className="font-bold text-yellow-400 hover:text-yellow-300 underline underline-offset-4">
-                {tx(lang, {
-                  en: "Terms of Service",
-                  fa: "قوانین استفاده",
-                  ar: "شروط الخدمة",
-                  es: "Términos de Servicio",
-                  "pt-BR": "Termos de Serviço",
-                  hi: "सेवा की शर्तों",
-                  tr: "Hizmet Şartları’nı",
-                  de: "Nutzungsbedingungen",
-                  fr: "Conditions d’utilisation",
-                  zh: "服务条款",
-                  ko: "서비스 약관",
-                })}
-              </Link>
+            </Link>
+            {tx(lang, {
+              en: " and ",
+              fa: " و ",
+              ar: " و ",
+              es: " y ",
+              "pt-BR": " e ",
+              hi: " और ",
+              tr: " ve ",
+              de: " und ",
+              fr: " et notre ",
+              zh: "和",
+              ko: " 및 ",
+            })}
+            <Link to="/privacy" className="font-semibold text-yellow-400 hover:text-yellow-300 underline underline-offset-4">
               {tx(lang, {
-                en: " and ",
-                fa: " و ",
-                ar: " و ",
-                es: " y la ",
-                "pt-BR": " e a ",
-                hi: " और ",
-                tr: " ve ",
-                de: " und der ",
-                fr: " et la ",
-                zh: "和",
-                ko: " 및 ",
+                en: "Privacy Policy",
+                fa: "سیاست حریم خصوصی",
+                ar: "سياسة الخصوصية",
+                es: "Política de Privacidad",
+                "pt-BR": "Política de Privacidade",
+                hi: "गोपनीयता नीति",
+                tr: "Gizlilik Politikası",
+                de: "Datenschutzrichtlinie",
+                fr: "Politique de confidentialité",
+                zh: "隐私政策",
+                ko: "개인정보 처리방침",
               })}
-              <Link to="/privacy" className="font-bold text-yellow-400 hover:text-yellow-300 underline underline-offset-4">
-                {tx(lang, {
-                  en: "Privacy Policy",
-                  fa: "سیاست حریم خصوصی",
-                  ar: "سياسة الخصوصية",
-                  es: "Política de Privacidad",
-                  "pt-BR": "Política de Privacidade",
-                  hi: "गोपनीयता नीति",
-                  tr: "Gizlilik Politikası’nı",
-                  de: "Datenschutzrichtlinie",
-                  fr: "Politique de confidentialité",
-                  zh: "隐私政策",
-                  ko: "개인정보 처리방침",
-                })}
-              </Link>
-              {tx(lang, {
-                en: ". I understand trading involves risk.",
-                fa: " BEX Trader موافق هستم و می‌دانم معامله‌گری ریسک دارد.",
-                ar: " الخاصة بـ BEX Trader وأفهم أن التداول ينطوي على مخاطر.",
-                es: " de BEX Trader. Entiendo que operar implica riesgo.",
-                "pt-BR": " da BEX Trader. Entendo que trading envolve risco.",
-                hi: " से सहमत हूँ। मैं समझता/समझती हूँ कि ट्रेडिंग में जोखिम है।",
-                tr: " kabul ediyorum. İşlemlerin risk içerdiğini anlıyorum.",
-                de: " von BEX Trader zu. Ich verstehe, dass Trading Risiken beinhaltet.",
-                fr: " de BEX Trader. Je comprends que le trading comporte des risques.",
-                zh: "。我了解交易存在风险。",
-                ko: "에 동의합니다. 거래에는 위험이 있음을 이해합니다.",
-              })}
-            </span>
-          </label>
+            </Link>
+            {tx(lang, {
+              en: ". Trading involves risk.",
+              fa: " موافق هستید. معامله‌گری ریسک دارد.",
+              ar: ". التداول ينطوي على مخاطر.",
+              es: ". Operar implica riesgo.",
+              "pt-BR": ". Trading envolve risco.",
+              hi: " से सहमत हैं। ट्रेडिंग में जोखिम है।",
+              tr: " kabul etmiş olursunuz. İşlem yapmak risk içerir.",
+              de: " zustimmen. Trading ist mit Risiken verbunden.",
+              fr: ". Le trading comporte des risques.",
+              zh: "。交易存在风险。",
+              ko: "에 동의합니다. 거래에는 위험이 있습니다.",
+            })}
+          </p>
 
           {error ? (
             <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
@@ -1021,7 +1138,7 @@ export function Login() {
 
           <button
             type="submit"
-            disabled={loading || socialLoading !== null || !acceptedLegal}
+            disabled={loading || socialLoading !== null}
             className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-black py-4 rounded-xl font-bold text-lg shadow-lg shadow-yellow-500/30 hover:shadow-yellow-500/40 transition-all disabled:opacity-50"
           >
             {loading
@@ -1080,24 +1197,24 @@ export function Login() {
             <button
               type="button"
               onClick={handleGoogleSignIn}
-              disabled={loading || socialLoading !== null || !acceptedLegal}
+              disabled={loading || socialLoading !== null}
               className="w-full flex items-center justify-center gap-3 bg-white text-black py-3 rounded-xl font-semibold hover:opacity-95 transition-all disabled:opacity-50"
             >
               <GoogleIcon />
               <span>
                 {socialLoading === "google"
                   ? tx(lang, {
-                      en: "Redirecting to Google...",
-                      fa: "در حال انتقال به گوگل...",
-                      ar: "جارٍ التحويل إلى Google...",
-                      es: "Redirigiendo a Google...",
-                      "pt-BR": "Redirecionando para o Google...",
-                      hi: "Google पर भेजा जा रहा है...",
-                      tr: "Google’a yönlendiriliyor...",
-                      de: "Weiterleitung zu Google...",
-                      fr: "Redirection vers Google...",
-                      zh: "正在跳转到 Google...",
-                      ko: "Google로 이동 중...",
+                      en: "Opening secure Google sign-in...",
+                      fa: "در حال باز کردن ورود امن گوگل...",
+                      ar: "جارٍ فتح تسجيل الدخول الآمن عبر Google...",
+                      es: "Abriendo inicio seguro con Google...",
+                      "pt-BR": "Abrindo login seguro com Google...",
+                      hi: "सुरक्षित Google साइन-इन खुल रहा है...",
+                      tr: "Güvenli Google girişi açılıyor...",
+                      de: "Sichere Google-Anmeldung wird geöffnet...",
+                      fr: "Ouverture de la connexion Google sécurisée...",
+                      zh: "正在打开安全 Google 登录...",
+                      ko: "보안 Google 로그인을 여는 중...",
                     })
                   : tx(lang, {
                       en: "Continue with Google",
@@ -1118,24 +1235,24 @@ export function Login() {
             <button
               type="button"
               onClick={handleAppleSignIn}
-              disabled={loading || socialLoading === "google" || !acceptedLegal}
+              disabled={loading || socialLoading === "google"}
               className="w-full flex items-center justify-center gap-3 bg-black text-white border border-gray-700 py-3 rounded-xl font-semibold hover:border-gray-500 transition-all disabled:opacity-50"
             >
               <AppleIcon />
               <span>
                 {socialLoading === "apple"
                   ? tx(lang, {
-                      en: "Redirecting to Apple...",
-                      fa: "در حال انتقال به اپل...",
-                      ar: "جارٍ التحويل إلى Apple...",
-                      es: "Redirigiendo a Apple...",
-                      "pt-BR": "Redirecionando para a Apple...",
-                      hi: "Apple पर भेजा जा रहा है...",
-                      tr: "Apple’a yönlendiriliyor...",
-                      de: "Weiterleitung zu Apple...",
-                      fr: "Redirection vers Apple...",
-                      zh: "正在跳转到 Apple...",
-                      ko: "Apple로 이동 중...",
+                      en: "Opening Apple sign-in...",
+                      fa: "در حال باز کردن ورود با اپل...",
+                      ar: "جارٍ فتح تسجيل الدخول عبر Apple...",
+                      es: "Abriendo inicio con Apple...",
+                      "pt-BR": "Abrindo login com Apple...",
+                      hi: "Apple साइन-इन खुल रहा है...",
+                      tr: "Apple girişi açılıyor...",
+                      de: "Apple-Anmeldung wird geöffnet...",
+                      fr: "Ouverture de la connexion Apple...",
+                      zh: "正在打开 Apple 登录...",
+                      ko: "Apple 로그인을 여는 중...",
                     })
                   : tx(lang, {
                       en: "Continue with Apple",

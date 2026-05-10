@@ -183,7 +183,6 @@ export function Register() {
   const [timezone, setTimezone] = useState(getDetectedTimeZone());
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -263,23 +262,6 @@ export function Register() {
         fr: "Les mots de passe ne correspondent pas.",
         zh: "两次输入的密码不一致。",
         ko: "비밀번호가 일치하지 않습니다.",
-      }));
-      return;
-    }
-
-    if (!agreedToTerms) {
-      setError(tr(lang, {
-        en: "Please agree to the Terms of Service and Privacy Policy before creating your account.",
-        fa: "برای ساخت حساب، ابتدا قوانین استفاده و سیاست حریم خصوصی را بپذیرید.",
-        ar: "يرجى الموافقة على شروط الخدمة وسياسة الخصوصية قبل إنشاء الحساب.",
-        es: "Acepta los Términos de servicio y la Política de privacidad antes de crear tu cuenta.",
-        "pt-BR": "Aceite os Termos de Serviço e a Política de Privacidade antes de criar sua conta.",
-        hi: "खाता बनाने से पहले सेवा की शर्तें और गोपनीयता नीति स्वीकार करें।",
-        tr: "Hesap oluşturmadan önce Hizmet Şartları ve Gizlilik Politikasını kabul edin.",
-        de: "Bitte akzeptieren Sie vor der Kontoerstellung die Nutzungsbedingungen und die Datenschutzrichtlinie.",
-        fr: "Veuillez accepter les Conditions d’utilisation et la Politique de confidentialité avant de créer votre compte.",
-        zh: "创建账户前，请先同意服务条款和隐私政策。",
-        ko: "계정을 만들기 전에 서비스 약관 및 개인정보 처리방침에 동의해 주세요.",
       }));
       return;
     }
@@ -579,39 +561,29 @@ export function Register() {
             </div>
           </div>
 
-          <div className="flex items-start gap-3 bg-[#1a2332] border border-gray-700 rounded-xl p-4">
-            <input
-              type="checkbox"
-              id="terms"
-              checked={agreedToTerms}
-              onChange={(e) => setAgreedToTerms(e.target.checked)}
-              className="w-5 h-5 mt-0.5 rounded border-gray-600 bg-[#0f1623] checked:bg-yellow-500 checked:border-yellow-500 cursor-pointer"
-              required
-            />
-            <label htmlFor="terms" className="text-sm leading-6 text-gray-300 cursor-pointer">
-              {tr(lang, {
-                en: "By creating an account, I confirm that I am 18+ and I agree to BEX Trader's",
-                fa: "با ساخت حساب، تأیید می‌کنم ۱۸ سال یا بیشتر دارم و با",
-                ar: "بإنشاء حساب، أؤكد أن عمري 18 عامًا أو أكثر وأوافق على",
-                es: "Al crear una cuenta, confirmo que tengo 18 años o más y acepto los",
-                "pt-BR": "Ao criar uma conta, confirmo que tenho 18 anos ou mais e aceito os",
-                hi: "खाता बनाकर, मैं पुष्टि करता/करती हूँ कि मेरी आयु 18+ है और मैं BEX Trader की",
-                tr: "Hesap oluşturarak 18 yaşından büyük olduğumu ve BEX Trader'ın",
-                de: "Mit der Kontoerstellung bestätige ich, dass ich mindestens 18 Jahre alt bin und den",
-                fr: "En créant un compte, je confirme avoir 18 ans ou plus et j’accepte les",
-                zh: "创建账户即表示我确认已满 18 岁，并同意 BEX Trader 的",
-                ko: "계정을 만들면 만 18세 이상임을 확인하고 BEX Trader의",
-              })}{" "}
-              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="font-bold text-yellow-400 underline underline-offset-4 hover:text-yellow-300">
-                {tr(lang, { en: "Terms of Service", fa: "قوانین استفاده", ar: "شروط الخدمة", es: "Términos de servicio", "pt-BR": "Termos de Serviço", hi: "सेवा की शर्तें", tr: "Hizmet Şartları", de: "Nutzungsbedingungen", fr: "Conditions d’utilisation", zh: "服务条款", ko: "서비스 약관" })}
-              </Link>{" "}
-              {tr(lang, { en: "and", fa: "و", ar: "و", es: "y", "pt-BR": "e", hi: "और", tr: "ve", de: "und", fr: "et", zh: "和", ko: "및" })}{" "}
-              <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="font-bold text-yellow-400 underline underline-offset-4 hover:text-yellow-300">
-                {tr(lang, { en: "Privacy Policy", fa: "سیاست حریم خصوصی", ar: "سياسة الخصوصية", es: "Política de privacidad", "pt-BR": "Política de Privacidade", hi: "गोपनीयता नीति", tr: "Gizlilik Politikası", de: "Datenschutzrichtlinie", fr: "Politique de confidentialité", zh: "隐私政策", ko: "개인정보 처리방침" })}
-              </Link>
-              {tr(lang, { en: ".", fa: " موافقم.", ar: ".", es: ".", "pt-BR": ".", hi: " से सहमत हूँ।", tr: " kabul ediyorum.", de: " zu.", fr: ".", zh: "。", ko: "에 동의합니다." })}
-            </label>
-          </div>
+          <p className={`text-center text-xs leading-relaxed text-gray-400 ${rtl ? "text-right" : "text-center"}`}>
+            {tr(lang, {
+              en: "By creating an account, you confirm you are 18+ and agree to our ",
+              fa: "با ساخت حساب، تأیید می‌کنید که ۱۸ سال یا بیشتر دارید و با ",
+              ar: "بإنشاء حساب، تؤكد أن عمرك 18 عامًا أو أكثر وتوافق على ",
+              es: "Al crear una cuenta, confirmas que tienes 18 años o más y aceptas nuestros ",
+              "pt-BR": "Ao criar uma conta, você confirma que tem 18 anos ou mais e concorda com nossos ",
+              hi: "खाता बनाकर, आप पुष्टि करते हैं कि आपकी आयु 18+ है और आप हमारी ",
+              tr: "Hesap oluşturarak 18 yaşında veya daha büyük olduğunuzu ve ",
+              de: "Mit der Kontoerstellung bestätigen Sie, dass Sie mindestens 18 Jahre alt sind und unseren ",
+              fr: "En créant un compte, vous confirmez avoir 18 ans ou plus et accepter nos ",
+              zh: "创建账户即表示您确认已年满 18 岁，并同意我们的",
+              ko: "계정을 만들면 만 18세 이상이며 다음에 동의하는 것으로 간주됩니다: ",
+            })}
+            <Link to="/terms" className="font-semibold text-yellow-400 underline underline-offset-4 hover:text-yellow-300">
+              {tr(lang, { en: "Terms of Service", fa: "قوانین استفاده", ar: "شروط الخدمة", es: "Términos de servicio", "pt-BR": "Termos de Serviço", hi: "सेवा की शर्तें", tr: "Hizmet Şartları", de: "Nutzungsbedingungen", fr: "Conditions d’utilisation", zh: "服务条款", ko: "서비스 약관" })}
+            </Link>{" "}
+            {tr(lang, { en: "and", fa: "و", ar: "و", es: "y", "pt-BR": "e", hi: "और", tr: "ve", de: "und", fr: "et", zh: "和", ko: "및" })}{" "}
+            <Link to="/privacy" className="font-semibold text-yellow-400 underline underline-offset-4 hover:text-yellow-300">
+              {tr(lang, { en: "Privacy Policy", fa: "سیاست حریم خصوصی", ar: "سياسة الخصوصية", es: "Política de privacidad", "pt-BR": "Política de Privacidade", hi: "गोपनीयता नीति", tr: "Gizlilik Politikası", de: "Datenschutzrichtlinie", fr: "Politique de confidentialité", zh: "隐私政策", ko: "개인정보 처리방침" })}
+            </Link>
+            {tr(lang, { en: ". Trading involves risk.", fa: " موافق هستید. معامله‌گری ریسک دارد.", ar: ". التداول ينطوي على مخاطر.", es: ". Operar implica riesgo.", "pt-BR": ". Trading envolve risco.", hi: " से सहमत हैं। ट्रेडिंग में जोखिम है।", tr: " kabul etmiş olursunuz. İşlem yapmak risk içerir.", de: " zustimmen. Trading ist mit Risiken verbunden.", fr: ". Le trading comporte des risques.", zh: "。交易存在风险。", ko: "에 동의합니다. 거래에는 위험이 있습니다." })}
+          </p>
 
           {error ? (
             <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">

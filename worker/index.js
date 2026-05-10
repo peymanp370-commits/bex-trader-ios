@@ -669,11 +669,15 @@ export default {
         const email = normalizeEmail(claims.email || body.email);
         const firstName =
           clean(body.givenName) ||
+          clean(body.first_name) ||
+          clean(body.firstName) ||
           clean(submittedUser?.name?.firstName) ||
           clean(submittedUser?.givenName) ||
           "Apple";
         const lastName =
           clean(body.familyName) ||
+          clean(body.last_name) ||
+          clean(body.lastName) ||
           clean(submittedUser?.name?.lastName) ||
           clean(submittedUser?.familyName) ||
           "User";
