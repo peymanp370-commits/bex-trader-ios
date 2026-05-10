@@ -712,10 +712,7 @@ export function Login() {
         email,
         first_name: firstName,
         last_name: lastName,
-        givenName: firstName,
-        familyName: lastName,
         apple_user_id: appleUserId,
-        appleUserId,
         user: appleUserId,
         state,
         nonce,
@@ -768,18 +765,51 @@ export function Login() {
     } catch (err: any) {
       console.error("Apple native sign-in failed", err);
       const code = String(err?.message || err?.code || "APPLE_TOKEN_EXCHANGE_FAILED");
+
+      if (code.includes("cancel") || code.includes("CANCEL")) {
+        setError(tx(lang, {
+          en: "Apple sign-in was cancelled.",
+          fa: "ورود با اپل لغو شد.",
+          ar: "تم إلغاء تسجيل الدخول عبر Apple.",
+          es: "El inicio con Apple fue cancelado.",
+          "pt-BR": "O login com Apple foi cancelado.",
+          hi: "Apple साइन-इन रद्द हो गया।",
+          tr: "Apple ile giriş iptal edildi.",
+          de: "Apple-Anmeldung wurde abgebrochen.",
+          fr: "La connexion Apple a été annulée.",
+          zh: "Apple 登录已取消。",
+          ko: "Apple 로그인이 취소되었습니다.",
+        }));
+        return;
+      }
+
+      // Safety fallback: if native Apple is not available yet or the backend route is not deployed,
+      // keep the old working Apple web flow instead of leaving the reviewer/user blocked.
+      try {
+        const fallbackUrl = new URL(`${AUTH_BASE}/auth/apple/start`);
+        fallbackUrl.searchParams.set("platform", "ios");
+        fallbackUrl.searchParams.set("fallback", "native_failed");
+        await Browser.open({
+          url: fallbackUrl.toString(),
+          presentationStyle: "fullscreen",
+        });
+        return;
+      } catch (fallbackErr) {
+        console.error("Apple web fallback failed", fallbackErr);
+      }
+
       setError(tx(lang, {
-        en: code.includes("cancel") || code.includes("CANCEL") ? "Apple sign-in was cancelled." : "Apple sign-in failed. Please try again.",
-        fa: code.includes("cancel") || code.includes("CANCEL") ? "ورود با اپل لغو شد." : "ورود با اپل ناموفق بود. دوباره تلاش کنید.",
-        ar: code.includes("cancel") || code.includes("CANCEL") ? "تم إلغاء تسجيل الدخول عبر Apple." : "فشل تسجيل الدخول عبر Apple. حاول مرة أخرى.",
-        es: code.includes("cancel") || code.includes("CANCEL") ? "El inicio con Apple fue cancelado." : "Falló el inicio de sesión con Apple. Inténtalo de nuevo.",
-        "pt-BR": code.includes("cancel") || code.includes("CANCEL") ? "O login com Apple foi cancelado." : "Falha no login com Apple. Tente novamente.",
-        hi: code.includes("cancel") || code.includes("CANCEL") ? "Apple साइन-इन रद्द हो गया।" : "Apple लॉगिन विफल रहा। कृपया फिर कोशिश करें।",
-        tr: code.includes("cancel") || code.includes("CANCEL") ? "Apple ile giriş iptal edildi." : "Apple ile giriş başarısız oldu. Lütfen tekrar deneyin.",
-        de: code.includes("cancel") || code.includes("CANCEL") ? "Apple-Anmeldung wurde abgebrochen." : "Apple-Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
-        fr: code.includes("cancel") || code.includes("CANCEL") ? "La connexion Apple a été annulée." : "La connexion avec Apple a échoué. Veuillez réessayer.",
-        zh: code.includes("cancel") || code.includes("CANCEL") ? "Apple 登录已取消。" : "Apple 登录失败，请重试。",
-        ko: code.includes("cancel") || code.includes("CANCEL") ? "Apple 로그인이 취소되었습니다." : "Apple 로그인이 실패했습니다. 다시 시도하세요.",
+        en: "Apple sign-in failed. Please try again.",
+        fa: "ورود با اپل ناموفق بود. دوباره تلاش کنید.",
+        ar: "فشل تسجيل الدخول عبر Apple. حاول مرة أخرى.",
+        es: "Falló el inicio de sesión con Apple. Inténtalo de nuevo.",
+        "pt-BR": "Falha no login com Apple. Tente novamente.",
+        hi: "Apple लॉगिन विफल रहा। कृपया फिर कोशिश करें।",
+        tr: "Apple ile giriş başarısız oldu. Lütfen tekrar deneyin.",
+        de: "Apple-Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
+        fr: "La connexion avec Apple a échoué. Veuillez réessayer.",
+        zh: "Apple 登录失败，请重试。",
+        ko: "Apple 로그인이 실패했습니다. 다시 시도하세요.",
       }));
     } finally {
       setSocialLoading(null);
