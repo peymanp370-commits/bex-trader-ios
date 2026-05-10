@@ -32,10 +32,20 @@
 				<string>bextrader</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>Google Sign-In</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.50746359348-j196c7embvnelnj7rfm2s35vdgbthvv6</string>
+			</array>
+		</dict>
 	</array>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>bextrader</string>
+		<string>google</string>
+		<string>com.googleusercontent.apps.50746359348-j196c7embvnelnj7rfm2s35vdgbthvv6</string>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
@@ -62,5 +72,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>GIDClientID</key>
+	<string>50746359348-j196c7embvnelnj7rfm2s35vdgbthvv6.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>50746359348-l24lp3dj2m9plp7qc8godulthhdiaa6k.apps.googleusercontent.com</string>
 </dict>
 </plist>

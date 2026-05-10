@@ -88,7 +88,10 @@ export function AppHeader({
   };
 
   return (
-    <header className={`${darkMode ? "bg-[#0f1623] border-gray-800 text-white" : "bg-white border-gray-200 text-gray-950"} sticky top-0 z-40 border-b px-4 py-3`}>
+    <header
+      className={`${darkMode ? "bg-[#0f1623] border-gray-800 text-white" : "bg-white border-gray-200 text-gray-950"} sticky top-0 z-40 border-b px-4 pb-3`}
+      style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+    >
       <div className="mx-auto flex max-w-7xl items-center gap-3">
         {showBack || onBackClick || backTo ? (
           <button type="button" onClick={doBack} className={iconButton} aria-label="Back">

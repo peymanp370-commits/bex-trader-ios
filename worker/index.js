@@ -60,6 +60,7 @@ export default {
             "POST /api/billing/stripe-webhook",
             "GET /auth/google/start",
             "GET /auth/google/callback",
+            "POST /auth/google/native",
             "GET /auth/apple/start",
             "POST /auth/apple/callback",
             "POST /auth/apple/native"
@@ -289,9 +290,7 @@ export default {
       }
 
       if (url.pathname === "/auth/logout" && request.method === "POST") {
-        const authHeader = request.headers.get("authorization") || "";
-        const bearerToken = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
-        const refreshToken = getCookie(request, "refresh_token") || bearerToken;
+        const refreshToken = getCookie(request, "refresh_token");
 
         if (refreshToken) {
           const refreshHash = await sha256(refreshToken);
@@ -432,10 +431,7 @@ export default {
         }
 
         const state = crypto.randomUUID();
-        const platform = String(url.searchParams.get("platform") || "web").toLowerCase();
-        const isNativePlatform = platform === "ios" || platform === "android" || platform === "native";
         const stateCookie = buildTempCookie(request, env, "oauth_google_state", state, 600);
-        const platformCookie = buildTempCookie(request, env, "oauth_google_platform", isNativePlatform ? "native" : "web", 600);
 
         const googleUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
         googleUrl.searchParams.set("client_id", env.GOOGLE_CLIENT_ID);
@@ -446,7 +442,7 @@ export default {
         googleUrl.searchParams.set("prompt", "select_account");
         googleUrl.searchParams.set("state", state);
 
-        return redirectWithCookies(request, googleUrl.toString(), [stateCookie, platformCookie]);
+        return redirectWithCookies(request, googleUrl.toString(), [stateCookie]);
       }
 
       if (url.pathname === "/auth/google/callback" && request.method === "GET") {
@@ -457,7 +453,6 @@ export default {
         const code = url.searchParams.get("code");
         const state = url.searchParams.get("state");
         const storedState = getCookie(request, "oauth_google_state");
-        const isNativePlatform = getCookie(request, "oauth_google_platform") === "native";
 
         if (!code) {
           return redirectToAppError(env, "GOOGLE_CODE_MISSING");
@@ -513,20 +508,97 @@ export default {
         });
 
         const session = await createRefreshSession(env.DB, linked.userId, request);
-        const safeUser = await getSafeUser(env.DB, linked.userId);
-        const successUrl = isNativePlatform
-          ? buildNativeAuthSuccessUrl(env, session.refreshToken, safeUser)
-          : `${getAppRedirectUrl(env)}?auth=success`;
 
         return redirectWithCookies(
           request,
-          successUrl,
+          `${getAppRedirectUrl(env)}?auth=success`,
           [
             buildRefreshCookie(request, env, session.refreshToken),
-            clearTempCookie(request, env, "oauth_google_state"),
-            clearTempCookie(request, env, "oauth_google_platform")
+            clearTempCookie(request, env, "oauth_google_state")
           ]
         );
+      }
+
+      if (url.pathname === "/auth/google/native" && request.method === "POST") {
+        const body = await readJson(request);
+        const idToken = String(body.id_token || body.idToken || "").trim();
+        const accessToken = String(body.access_token || body.accessToken || "").trim();
+        const serverAuthCode = String(body.server_auth_code || body.serverAuthCode || "").trim();
+
+        if (!idToken && !accessToken && !serverAuthCode) {
+          return fail(request, 400, "GOOGLE_NATIVE_TOKEN_MISSING", "Missing Google native token");
+        }
+
+        let profile = null;
+
+        if (idToken) {
+          const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+          const tokenInfo = await tokenInfoRes.json().catch(() => ({}));
+
+          if (!tokenInfoRes.ok || !tokenInfo?.email || !tokenInfo?.sub) {
+            return fail(request, 401, "GOOGLE_NATIVE_ID_TOKEN_INVALID", "Invalid Google identity token", {
+              google_error: tokenInfo?.error_description || tokenInfo?.error || null
+            });
+          }
+
+          const allowedAudiences = new Set([
+            String(env.GOOGLE_IOS_CLIENT_ID || "").trim(),
+            String(env.GOOGLE_NATIVE_CLIENT_ID || "").trim(),
+            "50746359348-j196c7embvnelnj7rfm2s35vdgbthvv6.apps.googleusercontent.com",
+            String(env.GOOGLE_WEB_CLIENT_ID || "").trim(),
+            String(env.GOOGLE_CLIENT_ID || "").trim()
+          ].filter(Boolean));
+
+          if (allowedAudiences.size > 0 && tokenInfo.aud && !allowedAudiences.has(String(tokenInfo.aud))) {
+            return fail(request, 401, "GOOGLE_NATIVE_AUDIENCE_INVALID", "Google token audience does not match this app");
+          }
+
+          profile = {
+            id: String(tokenInfo.sub),
+            email: normalizeEmail(tokenInfo.email),
+            given_name: clean(tokenInfo.given_name || body.first_name || body.givenName) || "Google",
+            family_name: clean(tokenInfo.family_name || body.last_name || body.familyName) || "User",
+            name: clean(tokenInfo.name || body.name) || "Google User",
+            verified_email: String(tokenInfo.email_verified) === "true" || tokenInfo.email_verified === true
+          };
+        } else if (accessToken) {
+          const profileRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
+          const profileData = await profileRes.json().catch(() => ({}));
+
+          if (!profileRes.ok || !profileData?.email || !profileData?.id) {
+            return fail(request, 401, "GOOGLE_NATIVE_PROFILE_FAILED", "Could not read Google profile");
+          }
+
+          profile = profileData;
+        } else {
+          return fail(request, 400, "GOOGLE_NATIVE_ID_TOKEN_REQUIRED", "Google native sign-in requires an id token or access token");
+        }
+
+        const linked = await findOrCreateSocialUser(env.DB, {
+          provider: "google",
+          providerUserId: String(profile.id || profile.sub),
+          providerEmail: normalizeEmail(profile.email),
+          firstName: clean(profile.given_name || body.first_name || body.givenName) || "Google",
+          lastName: clean(profile.family_name || body.last_name || body.familyName) || "User",
+          emailVerified: profile.verified_email !== false,
+          usernameBase:
+            normalizeUsername(profile.email?.split("@")[0]) ||
+            normalizeUsername(profile.name) ||
+            "google_user",
+          country: request.cf?.country || clean(body.country) || "Unknown",
+          timezone: clean(body.timezone) || "UTC"
+        });
+
+        const session = await createRefreshSession(env.DB, linked.userId, request);
+
+        return okWithCookies(request, {
+          message: "Google native login successful",
+          code: "GOOGLE_NATIVE_LOGIN_SUCCESS",
+          refresh_token: session.refreshToken,
+          user: await getSafeUser(env.DB, linked.userId)
+        }, [buildRefreshCookie(request, env, session.refreshToken)]);
       }
 
       if (url.pathname === "/auth/apple/start" && request.method === "GET") {
@@ -538,13 +610,10 @@ export default {
 
         const state = crypto.randomUUID();
         const nonce = crypto.randomUUID();
-        const platform = String(url.searchParams.get("platform") || "web").toLowerCase();
-        const isNativePlatform = platform === "ios" || platform === "android" || platform === "native";
 
         const cookies = [
           buildTempCookie(request, env, "oauth_apple_state", state, 600, { sameSite: "None" }),
-          buildTempCookie(request, env, "oauth_apple_nonce", nonce, 600, { sameSite: "None" }),
-          buildTempCookie(request, env, "oauth_apple_platform", isNativePlatform ? "native" : "web", 600, { sameSite: "None" })
+          buildTempCookie(request, env, "oauth_apple_nonce", nonce, 600, { sameSite: "None" })
         ];
 
         const appleUrl = new URL("https://appleid.apple.com/auth/authorize");
@@ -572,7 +641,6 @@ export default {
 
         const storedState = getCookie(request, "oauth_apple_state");
         const storedNonce = getCookie(request, "oauth_apple_nonce");
-        const isNativePlatform = getCookie(request, "oauth_apple_platform") === "native";
 
         if (!code) {
           return redirectToAppError(env, "APPLE_CALLBACK_MISSING_CODE");
@@ -648,19 +716,14 @@ export default {
         });
 
         const session = await createRefreshSession(env.DB, linked.userId, request);
-        const safeUser = await getSafeUser(env.DB, linked.userId);
-        const successUrl = isNativePlatform
-          ? buildNativeAuthSuccessUrl(env, session.refreshToken, safeUser)
-          : `${getAppRedirectUrl(env)}?auth=success`;
 
         return redirectWithCookies(
           request,
-          successUrl,
+          `${getAppRedirectUrl(env)}?auth=success`,
           [
             buildRefreshCookie(request, env, session.refreshToken),
             clearTempCookie(request, env, "oauth_apple_state", { sameSite: "None" }),
-            clearTempCookie(request, env, "oauth_apple_nonce", { sameSite: "None" }),
-            clearTempCookie(request, env, "oauth_apple_platform", { sameSite: "None" })
+            clearTempCookie(request, env, "oauth_apple_nonce", { sameSite: "None" })
           ]
         );
       }
@@ -688,13 +751,11 @@ export default {
 
         const email = normalizeEmail(claims.email || body.email);
         const firstName =
-          clean(body.first_name) ||
           clean(body.givenName) ||
           clean(submittedUser?.name?.firstName) ||
           clean(submittedUser?.givenName) ||
           "Apple";
         const lastName =
-          clean(body.last_name) ||
           clean(body.familyName) ||
           clean(submittedUser?.name?.lastName) ||
           clean(submittedUser?.familyName) ||
@@ -721,7 +782,6 @@ export default {
         return okWithCookies(request, {
           message: "Apple native login successful",
           code: "APPLE_NATIVE_LOGIN_SUCCESS",
-          refresh_token: session.refreshToken,
           user: await getSafeUser(env.DB, linked.userId)
         }, [buildRefreshCookie(request, env, session.refreshToken)]);
       }
@@ -985,21 +1045,6 @@ function redirectToAppError(env, code) {
 
 function getAppRedirectUrl(env) {
   return env.APP_REDIRECT_URL || "https://bextrader.com/app";
-}
-
-function getNativeAppRedirectUrl(env) {
-  return String(env.NATIVE_APP_REDIRECT_URL || env.IOS_APP_REDIRECT_URL || "bextrader://auth").trim();
-}
-
-function buildNativeAuthSuccessUrl(env, refreshToken, user = {}) {
-  const callbackUrl = new URL(getNativeAppRedirectUrl(env));
-  callbackUrl.searchParams.set("auth", "success");
-  callbackUrl.searchParams.set("refresh_token", refreshToken || "");
-  if (user?.email) callbackUrl.searchParams.set("user_email", user.email);
-  if (user?.first_name) callbackUrl.searchParams.set("user_first_name", user.first_name);
-  if (user?.last_name) callbackUrl.searchParams.set("user_last_name", user.last_name);
-  if (user?.plan) callbackUrl.searchParams.set("user_plan", user.plan);
-  return callbackUrl.toString();
 }
 
 
@@ -1348,9 +1393,7 @@ async function createRefreshSession(db, userId, request, rotatedFromSessionId = 
 }
 
 async function requireUserByRefreshSession(db, request) {
-  const authHeader = request.headers.get("authorization") || "";
-  const bearerToken = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
-  const refreshToken = getCookie(request, "refresh_token") || bearerToken;
+  const refreshToken = getCookie(request, "refresh_token");
   if (!refreshToken) {
     return {
       ok: false,

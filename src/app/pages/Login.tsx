@@ -1,6 +1,7 @@
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Capacitor, registerPlugin } from "@capacitor/core";
+import { SocialLogin } from "@capgo/capacitor-social-login";
 import { Browser } from "@capacitor/browser";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Eye, EyeOff } from "lucide-react";
@@ -41,6 +42,39 @@ const SignInWithApple = registerPlugin<{
     nonce: string;
   }): Promise<NativeAppleResponse>;
 }>("SignInWithApple");
+
+
+type NativeGoogleResponse = {
+  authentication?: {
+    idToken?: string;
+    accessToken?: string;
+  };
+  idToken?: string;
+  accessToken?: string;
+  serverAuthCode?: string;
+  email?: string;
+  name?: string;
+  givenName?: string;
+  familyName?: string;
+  imageUrl?: string;
+  profile?: {
+    email?: string;
+    name?: string;
+    givenName?: string;
+    familyName?: string;
+    imageUrl?: string;
+  };
+};
+
+const GOOGLE_WEB_CLIENT_ID =
+  import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID ||
+  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  "50746359348-l24lp3dj2m9plp7qc8godulthhdiaa6k.apps.googleusercontent.com";
+
+const GOOGLE_IOS_CLIENT_ID =
+  import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID ||
+  import.meta.env.VITE_GOOGLE_NATIVE_CLIENT_ID ||
+  "50746359348-j196c7embvnelnj7rfm2s35vdgbthvv6.apps.googleusercontent.com";
 
 function makeOAuthValue(prefix: string) {
   try {
@@ -156,19 +190,6 @@ type AuthUser = {
   };
 };
 
-
-
-function saveAuthTokenToLocalStorage(token: string) {
-  const cleanToken = String(token || "").trim();
-  if (!cleanToken) return;
-  localStorage.setItem("bex_refresh_token", cleanToken);
-  localStorage.setItem("refresh_token", cleanToken);
-  localStorage.setItem("authToken", cleanToken);
-  localStorage.setItem("accessToken", cleanToken);
-  localStorage.setItem("token", cleanToken);
-  localStorage.setItem("bex_token", cleanToken);
-  localStorage.setItem("isAuthenticated", "true");
-}
 
 function saveAccountProfileToLocalStorage(profile: any) {
   const accountLogin = String(
@@ -332,13 +353,8 @@ export function Login() {
       setSocialLoading(null);
 
       if (url.includes("auth=success")) {
-        const saved = await handleNativeAuthCallback(url);
-        if (saved) {
-          navigate("/app", { replace: true });
-        } else {
-          setError("Login succeeded, but the app could not save the session. Please try again.");
-          navigate("/login?error=SESSION_SAVE_FAILED", { replace: true });
-        }
+        await handleNativeAuthCallback(url);
+        navigate("/app", { replace: true });
         return;
       }
 
@@ -364,9 +380,8 @@ export function Login() {
     const oauthSuccess = searchParams.get("auth");
     if (oauthSuccess === "success") {
       setSocialLoading(null);
-      void handleNativeAuthCallback(window.location.href).then((saved) => {
-        if (saved) navigate("/app", { replace: true });
-        else navigate("/login?error=SESSION_SAVE_FAILED", { replace: true });
+      void handleNativeAuthCallback(window.location.href).finally(() => {
+        navigate("/app", { replace: true });
       });
       return;
     }
@@ -588,12 +603,6 @@ export function Login() {
     localStorage.setItem("userName", displayName);
     localStorage.setItem("userPlan", resultUser?.plan || "PRO");
     saveAccountProfileToLocalStorage(resultUser || {});
-    try {
-      localStorage.setItem("user", JSON.stringify(resultUser || {}));
-      localStorage.setItem("bex_user", JSON.stringify(resultUser || {}));
-      localStorage.setItem("authUser", JSON.stringify(resultUser || {}));
-      localStorage.setItem("isAuthenticated", "true");
-    } catch {}
     window.dispatchEvent(new Event("storage"));
   };
 
@@ -613,7 +622,8 @@ export function Login() {
     const plan = parsed.searchParams.get("user_plan") || "free";
 
     if (refreshToken) {
-      saveAuthTokenToLocalStorage(refreshToken);
+      localStorage.setItem("bex_refresh_token", refreshToken);
+      localStorage.setItem("refresh_token", refreshToken);
     }
 
     if (email || firstName || lastName || refreshToken) {
@@ -751,7 +761,8 @@ export function Login() {
     }
 
     if (data?.refresh_token) {
-      saveAuthTokenToLocalStorage(data.refresh_token);
+      localStorage.setItem("bex_refresh_token", data.refresh_token);
+      localStorage.setItem("refresh_token", data.refresh_token);
     }
 
     const user = data?.user || {
@@ -788,51 +799,118 @@ export function Login() {
     } catch (err: any) {
       console.error("Apple native sign-in failed", err);
       const code = String(err?.message || err?.code || "APPLE_TOKEN_EXCHANGE_FAILED");
-
-      if (code.includes("cancel") || code.includes("CANCEL")) {
-        setError(tx(lang, {
-          en: "Apple sign-in was cancelled.",
-          fa: "ورود با اپل لغو شد.",
-          ar: "تم إلغاء تسجيل الدخول عبر Apple.",
-          es: "El inicio con Apple fue cancelado.",
-          "pt-BR": "O login com Apple foi cancelado.",
-          hi: "Apple साइन-इन रद्द हो गया।",
-          tr: "Apple ile giriş iptal edildi.",
-          de: "Apple-Anmeldung wurde abgebrochen.",
-          fr: "La connexion Apple a été annulée.",
-          zh: "Apple 登录已取消。",
-          ko: "Apple 로그인이 취소되었습니다.",
-        }));
-        return;
-      }
-
-      // Safety fallback: if native Apple is not available yet or the backend route is not deployed,
-      // keep the old working Apple web flow instead of leaving the reviewer/user blocked.
-      try {
-        const fallbackUrl = new URL(`${AUTH_BASE}/auth/apple/start`);
-        fallbackUrl.searchParams.set("platform", "ios");
-        fallbackUrl.searchParams.set("fallback", "native_failed");
-        await Browser.open({
-          url: fallbackUrl.toString(),
-          presentationStyle: "fullscreen",
-        });
-        return;
-      } catch (fallbackErr) {
-        console.error("Apple web fallback failed", fallbackErr);
-      }
-
       setError(tx(lang, {
-        en: "Apple sign-in failed. Please try again.",
-        fa: "ورود با اپل ناموفق بود. دوباره تلاش کنید.",
-        ar: "فشل تسجيل الدخول عبر Apple. حاول مرة أخرى.",
-        es: "Falló el inicio de sesión con Apple. Inténtalo de nuevo.",
-        "pt-BR": "Falha no login com Apple. Tente novamente.",
-        hi: "Apple लॉगिन विफल रहा। कृपया फिर कोशिश करें।",
-        tr: "Apple ile giriş başarısız oldu. Lütfen tekrar deneyin.",
-        de: "Apple-Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
-        fr: "La connexion avec Apple a échoué. Veuillez réessayer.",
-        zh: "Apple 登录失败，请重试。",
-        ko: "Apple 로그인이 실패했습니다. 다시 시도하세요.",
+        en: code.includes("cancel") || code.includes("CANCEL") ? "Apple sign-in was cancelled." : "Apple sign-in failed. Please try again.",
+        fa: code.includes("cancel") || code.includes("CANCEL") ? "ورود با اپل لغو شد." : "ورود با اپل ناموفق بود. دوباره تلاش کنید.",
+        ar: code.includes("cancel") || code.includes("CANCEL") ? "تم إلغاء تسجيل الدخول عبر Apple." : "فشل تسجيل الدخول عبر Apple. حاول مرة أخرى.",
+        es: code.includes("cancel") || code.includes("CANCEL") ? "El inicio con Apple fue cancelado." : "Falló el inicio de sesión con Apple. Inténtalo de nuevo.",
+        "pt-BR": code.includes("cancel") || code.includes("CANCEL") ? "O login com Apple foi cancelado." : "Falha no login com Apple. Tente novamente.",
+        hi: code.includes("cancel") || code.includes("CANCEL") ? "Apple साइन-इन रद्द हो गया।" : "Apple लॉगिन विफल रहा। कृपया फिर कोशिश करें।",
+        tr: code.includes("cancel") || code.includes("CANCEL") ? "Apple ile giriş iptal edildi." : "Apple ile giriş başarısız oldu. Lütfen tekrar deneyin.",
+        de: code.includes("cancel") || code.includes("CANCEL") ? "Apple-Anmeldung wurde abgebrochen." : "Apple-Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
+        fr: code.includes("cancel") || code.includes("CANCEL") ? "La connexion Apple a été annulée." : "La connexion avec Apple a échoué. Veuillez réessayer.",
+        zh: code.includes("cancel") || code.includes("CANCEL") ? "Apple 登录已取消。" : "Apple 登录失败，请重试。",
+        ko: code.includes("cancel") || code.includes("CANCEL") ? "Apple 로그인이 취소되었습니다." : "Apple 로그인이 실패했습니다. 다시 시도하세요.",
+      }));
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
+  const exchangeNativeGoogleToken = async (googleResult: NativeGoogleResponse) => {
+    const auth = googleResult?.authentication || {};
+    const profile = googleResult?.profile || {};
+    const idToken = googleResult?.idToken || auth.idToken || "";
+    const accessToken = googleResult?.accessToken || auth.accessToken || "";
+    const serverAuthCode = googleResult?.serverAuthCode || "";
+    const email = googleResult?.email || profile.email || "";
+    const firstName = googleResult?.givenName || profile.givenName || "";
+    const lastName = googleResult?.familyName || profile.familyName || "";
+    const name = googleResult?.name || profile.name || "";
+
+    if (!idToken && !accessToken && !serverAuthCode) {
+      throw new Error("GOOGLE_NATIVE_MISSING_TOKEN");
+    }
+
+    const res = await fetch(`${AUTH_BASE}/auth/google/native`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id_token: idToken,
+        access_token: accessToken,
+        server_auth_code: serverAuthCode,
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        name,
+        platform: Capacitor.getPlatform(),
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || data?.ok === false) {
+      throw new Error(data?.code || data?.message || "GOOGLE_NATIVE_EXCHANGE_FAILED");
+    }
+
+    if (data?.refresh_token) {
+      localStorage.setItem("bex_refresh_token", data.refresh_token);
+      localStorage.setItem("refresh_token", data.refresh_token);
+    }
+
+    const user = data?.user || {
+      email,
+      first_name: firstName || name?.split(" ")?.[0] || "Google",
+      last_name: lastName || name?.split(" ")?.slice(1).join(" ") || "User",
+      plan: data?.plan || "free",
+    };
+
+    saveUserToLocalStorage(user, user?.email || email || "Trader");
+    await hydrateAccountProfile(user?.email || email);
+    window.dispatchEvent(new Event("storage"));
+    navigate("/app", { replace: true });
+  };
+
+  const handleNativeGoogleSignIn = async () => {
+    setError("");
+    setSocialLoading("google");
+    clearStoredAuthUser();
+
+    try {
+      await SocialLogin.initialize({
+        google: {
+          webClientId: GOOGLE_WEB_CLIENT_ID,
+          iOSClientId: GOOGLE_IOS_CLIENT_ID,
+          iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
+          mode: "offline",
+        },
+      } as any);
+
+      const googleResult = await SocialLogin.login({
+        provider: "google",
+        options: {
+          scopes: ["email", "profile"],
+          forceRefreshToken: true,
+        },
+      } as any) as NativeGoogleResponse;
+
+      await exchangeNativeGoogleToken(googleResult);
+    } catch (err: any) {
+      console.error("Google native sign-in failed", err);
+      const code = String(err?.message || err?.code || "GOOGLE_NATIVE_SIGNIN_FAILED");
+      setError(tx(lang, {
+        en: code.includes("cancel") || code.includes("CANCEL") ? "Google sign-in was cancelled." : "Google native sign-in failed. Check the iOS Google Client ID and try again.",
+        fa: code.includes("cancel") || code.includes("CANCEL") ? "ورود با گوگل لغو شد." : "ورود native گوگل ناموفق بود. Google iOS Client ID را چک کنید و دوباره تلاش کنید.",
+        ar: code.includes("cancel") || code.includes("CANCEL") ? "تم إلغاء تسجيل الدخول عبر Google." : "فشل تسجيل الدخول الأصلي عبر Google. تحقق من Google iOS Client ID وحاول مرة أخرى.",
+        es: code.includes("cancel") || code.includes("CANCEL") ? "El inicio con Google fue cancelado." : "Falló el inicio nativo con Google. Revisa el Google iOS Client ID e inténtalo de nuevo.",
+        "pt-BR": code.includes("cancel") || code.includes("CANCEL") ? "O login com Google foi cancelado." : "Falha no login nativo com Google. Verifique o Google iOS Client ID e tente novamente.",
+        hi: code.includes("cancel") || code.includes("CANCEL") ? "Google साइन-इन रद्द हो गया।" : "Google native login विफल रहा। Google iOS Client ID चेक करें और फिर कोशिश करें।",
+        tr: code.includes("cancel") || code.includes("CANCEL") ? "Google ile giriş iptal edildi." : "Google native giriş başarısız oldu. Google iOS Client ID değerini kontrol edin ve tekrar deneyin.",
+        de: code.includes("cancel") || code.includes("CANCEL") ? "Google-Anmeldung wurde abgebrochen." : "Native Google-Anmeldung fehlgeschlagen. Prüfe die Google iOS Client ID und versuche es erneut.",
+        fr: code.includes("cancel") || code.includes("CANCEL") ? "La connexion Google a été annulée." : "La connexion native Google a échoué. Vérifiez le Google iOS Client ID puis réessayez.",
+        zh: code.includes("cancel") || code.includes("CANCEL") ? "Google 登录已取消。" : "Google 原生登录失败。请检查 Google iOS Client ID 后重试。",
+        ko: code.includes("cancel") || code.includes("CANCEL") ? "Google 로그인이 취소되었습니다." : "Google 네이티브 로그인이 실패했습니다. Google iOS Client ID를 확인하고 다시 시도하세요.",
       }));
     } finally {
       setSocialLoading(null);
@@ -842,6 +920,11 @@ export function Login() {
   const openSocialAuth = async (provider: "google" | "apple") => {
     if (provider === "apple" && Capacitor.getPlatform() === "ios") {
       await handleNativeAppleSignIn();
+      return;
+    }
+
+    if (provider === "google" && Capacitor.getPlatform() === "ios") {
+      await handleNativeGoogleSignIn();
       return;
     }
 
