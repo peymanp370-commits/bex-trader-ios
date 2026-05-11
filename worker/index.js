@@ -1339,11 +1339,22 @@ function clearTempCookie(request, env, name, options = {}) {
 
 function corsHeaders(request) {
   const origin = request?.headers?.get("Origin") || "";
+
+  // Native Capacitor/iOS WebView requests do NOT come from https://bextrader.com.
+  // They commonly come from capacitor://localhost, ionic://localhost, or the custom
+  // scheme configured in capacitor.config.json (bextrader://localhost).
+  // If these origins are not echoed back exactly, iOS reports fetch failures as
+  // "Load failed" after Apple/Google native sign-in succeeds.
   const allowed = [
     "https://bextrader.com",
     "https://www.bextrader.com",
     "https://auth.bextrader.com",
+    "capacitor://localhost",
+    "ionic://localhost",
+    "bextrader://localhost",
+    "http://localhost",
     "http://localhost:3000",
+    "http://127.0.0.1",
     "http://127.0.0.1:3000"
   ];
 
@@ -1352,7 +1363,7 @@ function corsHeaders(request) {
   return {
     "Access-Control-Allow-Origin": finalOrigin,
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
     "Access-Control-Allow-Credentials": "true",
     "Vary": "Origin"
   };
