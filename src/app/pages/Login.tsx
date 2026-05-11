@@ -19,14 +19,22 @@ const HISTORY_BASE =
 type NativeAppleResponse = {
   response?: {
     identityToken?: string;
+    identity_token?: string;
+    idToken?: string;
+    id_token?: string;
     authorizationCode?: string;
+    authorization_code?: string;
     email?: string;
     givenName?: string;
     familyName?: string;
     user?: string;
   };
   identityToken?: string;
+  identity_token?: string;
+  idToken?: string;
+  id_token?: string;
   authorizationCode?: string;
+  authorization_code?: string;
   email?: string;
   givenName?: string;
   familyName?: string;
@@ -819,11 +827,15 @@ export function Login() {
     const root: any = (appleResult as any)?.result || appleResult || {};
     const response: any = root?.response || (appleResult as any)?.response || root || {};
     const profile: any = root?.profile || response?.profile || (appleResult as any)?.profile || {};
+    const accessToken: any = root?.accessToken || response?.accessToken || (appleResult as any)?.accessToken || null;
 
-    // FINAL NATIVE APPLE POLICY:
-    // Use identityToken only. Do NOT send authorizationCode/accessToken.token.
-    // Apple authorization codes are one-time and were causing invalid_grant
-    // ("code expired or revoked") on repeated native attempts.
+    // IMPORTANT: with @capgo/capacitor-social-login Apple, accessToken.token is often
+    // the Apple authorization code, not a JWT. The previous extractor searched the whole
+    // object and could accidentally send that code as identity_token, causing backend
+    // jose jwtVerify to throw ERR_JWS_INVALID. Only accept explicit idToken/identityToken
+    // fields as the Apple identity JWT.
+    const accessTokenString = tokenString(accessToken?.token) || tokenString(accessToken) || "";
+
     const explicitIdentityToken =
       tokenString(response.identityToken) ||
       tokenString(response.idToken) ||
@@ -834,24 +846,43 @@ export function Login() {
       tokenString((appleResult as any)?.identityToken) ||
       tokenString((appleResult as any)?.idToken) ||
       tokenString((appleResult as any)?.id_token) ||
-      firstJwtDeep({
-        identityToken: response.identityToken || root.identityToken || (appleResult as any)?.identityToken,
-        idToken: response.idToken || root.idToken || (appleResult as any)?.idToken,
-        id_token: response.id_token || root.id_token || (appleResult as any)?.id_token,
-        response,
-      }) ||
+      (isLikelyJwt(accessTokenString) ? accessTokenString : "") ||
+      firstJwtDeep(appleResult) ||
       "";
 
     const identityToken = isLikelyJwt(explicitIdentityToken) ? explicitIdentityToken : "";
+
+    const explicitAuthorizationCode =
+      tokenString(response.authorizationCode) ||
+      tokenString(response.authorization_code) ||
+      tokenString(response.code) ||
+      tokenString(response.authCode) ||
+      tokenString(root.authorizationCode) ||
+      tokenString(root.authorization_code) ||
+      tokenString(root.code) ||
+      tokenString(root.authCode) ||
+      (!isLikelyJwt(accessTokenString) ? accessTokenString : "") ||
+      firstTokenByKeys(appleResult, [
+        "authorizationCode",
+        "authorization_code",
+        "code",
+        "authCode",
+        "serverAuthCode",
+      ]) || "";
+
+    const authorizationCode = isLikelyJwt(explicitAuthorizationCode) ? "" : explicitAuthorizationCode;
 
     const email = response.email || root.email || profile.email || "";
     const firstName = response.givenName || response.given_name || root.givenName || root.given_name || profile.givenName || profile.given_name || "";
     const lastName = response.familyName || response.family_name || root.familyName || root.family_name || profile.familyName || profile.family_name || "";
     const appleUserId = response.user || root.user || root.userId || root.user_id || profile.user || "";
 
-    if (!identityToken) {
-      console.warn("Apple native response did not include a compact JWT identityToken", appleResult);
-      throw new Error("APPLE_NATIVE_IDENTITY_TOKEN_MISSING");
+    // Do not fail on-device before the backend sees the full native payload.
+    // Some iOS/@capgo Apple responses nest the useful credential deeper than
+    // response/root/accessToken. The worker now receives raw_apple_result and
+    // can extract identity_token or authorization_code server-side.
+    if (!identityToken && !authorizationCode) {
+      console.warn("Apple native response had no top-level token; sending raw payload to backend", appleResult);
     }
 
     const res = await fetch(`${AUTH_BASE}/auth/apple/native`, {
@@ -861,6 +892,8 @@ export function Login() {
       body: JSON.stringify({
         identity_token: identityToken,
         id_token: identityToken,
+        authorization_code: authorizationCode,
+        code: authorizationCode,
         email,
         first_name: firstName,
         last_name: lastName,
@@ -868,6 +901,7 @@ export function Login() {
         user: appleUserId,
         state,
         nonce,
+        raw_apple_result: appleResult,
         platform: "ios",
       }),
     });
@@ -914,7 +948,9 @@ export function Login() {
       const appleResult = await SocialLogin.login({
         provider: "apple",
         options: {
-          scopes: ["name", "email"],
+          // @capgo/capacitor-social-login on iOS needs full_name/email here.
+          // Using ["name", "email"] can open the Apple sheet but return no identityToken.
+          scopes: ["full_name", "email"],
           state,
           nonce,
         },
