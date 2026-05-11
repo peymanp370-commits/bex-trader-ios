@@ -89,10 +89,10 @@ export function AppHeader({
 
   return (
     <header
-      className={`${darkMode ? "bg-[#0f1623] border-gray-800 text-white" : "bg-white border-gray-200 text-gray-950"} sticky top-0 z-40 border-b px-4 pb-3`}
+      className={`${darkMode ? "bg-[#0f1623] border-gray-900/60 text-white" : "bg-white border-gray-100 text-gray-950"} sticky top-0 z-40 border-b px-4 pb-3`}
       style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
     >
-      <div className="mx-auto flex max-w-7xl items-center gap-3">
+      <div className="mx-auto flex max-w-7xl items-center gap-2">
         {showBack || onBackClick || backTo ? (
           <button type="button" onClick={doBack} className={iconButton} aria-label="Back">
             <ArrowLeft className={`h-5 w-5 ${rtl ? "rotate-180" : ""}`} />
@@ -105,7 +105,7 @@ export function AppHeader({
           <div className="w-9 shrink-0" />
         )}
 
-        <img src={bexLogoTransparent} alt="BEX" className="h-14 w-20 shrink-0 object-contain" />
+        <img src={bexLogoTransparent} alt="BEX" className="h-[84px] w-[120px] shrink-0 object-contain" />
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">

@@ -1,5 +1,4 @@
 import {
-  ArrowLeft,
   ChevronRight,
   Globe,
   Clock,
@@ -16,7 +15,7 @@ import {
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
+import { AppHeader } from "../components/AppHeader";
 import { clearLocalAuthState, logout } from "../utils/api";
 import { getLanguage, setLanguage as saveAppLanguage } from "../utils/i18n";
 
@@ -253,25 +252,17 @@ export function Settings() {
 
   return (
     <div dir={rtl ? "rtl" : "ltr"} className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-8`}>
-      <header className={`${darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200"} p-4 border-b`}>
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => navigate("/app")}
-            className={`p-2 rounded-lg ${darkMode ? "hover:bg-[#1a2332]" : "hover:bg-gray-100"}`}
-          >
-            <ArrowLeft className={`w-5 h-5 ${rtl ? "rotate-180" : ""}`} />
-          </button>
-
-          <div className="flex items-center gap-3">
-            <img src={logoImage} alt="BEX AI" className="h-16 md:h-20" />
-            <div>
-              <h1 className="font-bold text-lg md:text-xl leading-tight">BEX AI</h1>
-              <p className={`text-xs md:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"} leading-tight`}>
-                {T(lang, TXT.goldTrader)}
-              </p>
-            </div>
-          </div>
-
+      <AppHeader
+        title="BEX AI"
+        subtitle={T(lang, TXT.goldTrader)}
+        darkMode={darkMode}
+        rtl={rtl}
+        showBack
+        backTo="/app"
+        showSettings={false}
+        showThemeToggle={false}
+        showUser={false}
+        badge={
           <div
             className={`px-2 py-1 rounded-lg text-xs font-bold ${
               (localStorage.getItem("userPlan") || "PRO") === "VIP"
@@ -283,8 +274,8 @@ export function Settings() {
           >
             {localStorage.getItem("userPlan") || "PRO"}
           </div>
-        </div>
-      </header>
+        }
+      />
 
       <div className="p-4 space-y-4">
         <Link to="/app/vip">

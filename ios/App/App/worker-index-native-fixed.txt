@@ -60,6 +60,7 @@ export default {
             "POST /api/billing/stripe-webhook",
             "GET /auth/google/start",
             "GET /auth/google/callback",
+            "POST /auth/google/native",
             "GET /auth/apple/start",
             "POST /auth/apple/callback",
             "POST /auth/apple/native"
@@ -518,6 +519,88 @@ export default {
         );
       }
 
+      if (url.pathname === "/auth/google/native" && request.method === "POST") {
+        const body = await readJson(request);
+        const idToken = String(body.id_token || body.idToken || "").trim();
+        const accessToken = String(body.access_token || body.accessToken || "").trim();
+        const serverAuthCode = String(body.server_auth_code || body.serverAuthCode || "").trim();
+
+        if (!idToken && !accessToken && !serverAuthCode) {
+          return fail(request, 400, "GOOGLE_NATIVE_TOKEN_MISSING", "Missing Google native token");
+        }
+
+        let profile = null;
+
+        if (idToken) {
+          const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+          const tokenInfo = await tokenInfoRes.json().catch(() => ({}));
+
+          if (!tokenInfoRes.ok || !tokenInfo?.email || !tokenInfo?.sub) {
+            return fail(request, 401, "GOOGLE_NATIVE_ID_TOKEN_INVALID", "Invalid Google identity token", {
+              google_error: tokenInfo?.error_description || tokenInfo?.error || null
+            });
+          }
+
+          const allowedAudiences = new Set([
+            String(env.GOOGLE_IOS_CLIENT_ID || "").trim(),
+            String(env.GOOGLE_NATIVE_CLIENT_ID || "").trim(),
+            "50746359348-j196c7embvnelnj7rfm2s35vdgbthvv6.apps.googleusercontent.com",
+            String(env.GOOGLE_WEB_CLIENT_ID || "").trim(),
+            String(env.GOOGLE_CLIENT_ID || "").trim()
+          ].filter(Boolean));
+
+          if (allowedAudiences.size > 0 && tokenInfo.aud && !allowedAudiences.has(String(tokenInfo.aud))) {
+            return fail(request, 401, "GOOGLE_NATIVE_AUDIENCE_INVALID", "Google token audience does not match this app");
+          }
+
+          profile = {
+            id: String(tokenInfo.sub),
+            email: normalizeEmail(tokenInfo.email),
+            given_name: clean(tokenInfo.given_name || body.first_name || body.givenName) || "Google",
+            family_name: clean(tokenInfo.family_name || body.last_name || body.familyName) || "User",
+            name: clean(tokenInfo.name || body.name) || "Google User",
+            verified_email: String(tokenInfo.email_verified) === "true" || tokenInfo.email_verified === true
+          };
+        } else if (accessToken) {
+          const profileRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
+          const profileData = await profileRes.json().catch(() => ({}));
+
+          if (!profileRes.ok || !profileData?.email || !profileData?.id) {
+            return fail(request, 401, "GOOGLE_NATIVE_PROFILE_FAILED", "Could not read Google profile");
+          }
+
+          profile = profileData;
+        } else {
+          return fail(request, 400, "GOOGLE_NATIVE_ID_TOKEN_REQUIRED", "Google native sign-in requires an id token or access token");
+        }
+
+        const linked = await findOrCreateSocialUser(env.DB, {
+          provider: "google",
+          providerUserId: String(profile.id || profile.sub),
+          providerEmail: normalizeEmail(profile.email),
+          firstName: clean(profile.given_name || body.first_name || body.givenName) || "Google",
+          lastName: clean(profile.family_name || body.last_name || body.familyName) || "User",
+          emailVerified: profile.verified_email !== false,
+          usernameBase:
+            normalizeUsername(profile.email?.split("@")[0]) ||
+            normalizeUsername(profile.name) ||
+            "google_user",
+          country: request.cf?.country || clean(body.country) || "Unknown",
+          timezone: clean(body.timezone) || "UTC"
+        });
+
+        const session = await createRefreshSession(env.DB, linked.userId, request);
+
+        return okWithCookies(request, {
+          message: "Google native login successful",
+          code: "GOOGLE_NATIVE_LOGIN_SUCCESS",
+          refresh_token: session.refreshToken,
+          user: await getSafeUser(env.DB, linked.userId)
+        }, [buildRefreshCookie(request, env, session.refreshToken)]);
+      }
+
       if (url.pathname === "/auth/apple/start" && request.method === "GET") {
         if (!env.APPLE_CLIENT_ID || !env.APPLE_REDIRECT_URI) {
           return fail(request, 500, "APPLE_NOT_CONFIGURED", "Apple Sign In is not configured", {
@@ -648,18 +731,44 @@ export default {
 
       if (url.pathname === "/auth/apple/native" && request.method === "POST") {
         const body = await readJson(request);
-        const identityToken = String(body.identityToken || body.identity_token || "").trim();
-        const authorizationCode = String(body.authorizationCode || body.authorization_code || "").trim();
+        let identityToken = String(body.identityToken || body.identity_token || body.idToken || body.id_token || "").trim();
+        const authorizationCode = String(body.authorizationCode || body.authorization_code || body.code || "").trim();
 
-        if (!identityToken) {
-          return fail(request, 400, "APPLE_ID_TOKEN_MISSING", "Apple identity token is missing");
+        if (!identityToken && !authorizationCode) {
+          return fail(request, 400, "APPLE_NATIVE_TOKEN_MISSING", "Apple native sign-in did not return an identity token or authorization code");
         }
 
-        let claims;
-        try {
-          claims = await verifyAppleNativeIdToken(identityToken, env);
-        } catch (err) {
-          return fail(request, 401, err.code || "APPLE_ID_TOKEN_INVALID", err?.message || "Apple identity token is invalid");
+        let claims = null;
+        let tokenData = null;
+        let verifyError = null;
+
+        if (identityToken) {
+          try {
+            claims = await verifyAppleNativeIdToken(identityToken, env);
+          } catch (err) {
+            verifyError = err;
+          }
+        }
+
+        // Some iOS/plugin builds return a non-JWT credential string but still return a valid
+        // authorizationCode. In that case, exchange the native code with Apple and verify the
+        // id_token returned by Apple instead of failing with ERR_JWS_INVALID.
+        if (!claims && authorizationCode) {
+          try {
+            const exchanged = await exchangeAppleNativeAuthorizationCode(env, authorizationCode);
+            tokenData = exchanged.tokenData;
+            identityToken = String(tokenData.id_token || "").trim();
+            claims = await verifyAppleNativeIdToken(identityToken, env);
+          } catch (err) {
+            return fail(request, 401, err.code || verifyError?.code || "APPLE_NATIVE_TOKEN_INVALID", err?.message || verifyError?.message || "Apple native token is invalid", {
+              verify_error: verifyError?.code || verifyError?.message || null,
+              exchange_error: err?.code || err?.message || null
+            });
+          }
+        }
+
+        if (!claims) {
+          return fail(request, 401, verifyError?.code || "APPLE_ID_TOKEN_INVALID", verifyError?.message || "Apple identity token is invalid");
         }
 
         const submittedUser = typeof body.user === "string"
@@ -668,16 +777,16 @@ export default {
 
         const email = normalizeEmail(claims.email || body.email);
         const firstName =
-          clean(body.givenName) ||
           clean(body.first_name) ||
-          clean(body.firstName) ||
+          clean(body.givenName) ||
+          clean(body.given_name) ||
           clean(submittedUser?.name?.firstName) ||
           clean(submittedUser?.givenName) ||
           "Apple";
         const lastName =
-          clean(body.familyName) ||
           clean(body.last_name) ||
-          clean(body.lastName) ||
+          clean(body.familyName) ||
+          clean(body.family_name) ||
           clean(submittedUser?.name?.lastName) ||
           clean(submittedUser?.familyName) ||
           "User";
@@ -694,8 +803,8 @@ export default {
             normalizeUsername(`${firstName}_${lastName}`) ||
             "apple_user",
           country: request.cf?.country || "Unknown",
-          timezone: "UTC",
-          providerRefreshToken: authorizationCode || null
+          timezone: clean(body.timezone) || "UTC",
+          providerRefreshToken: tokenData?.refresh_token || authorizationCode || null
         });
 
         const session = await createRefreshSession(env.DB, linked.userId, request);
@@ -703,6 +812,7 @@ export default {
         return okWithCookies(request, {
           message: "Apple native login successful",
           code: "APPLE_NATIVE_LOGIN_SUCCESS",
+          refresh_token: session.refreshToken,
           user: await getSafeUser(env.DB, linked.userId)
         }, [buildRefreshCookie(request, env, session.refreshToken)]);
       }
@@ -1260,11 +1370,22 @@ function clearTempCookie(request, env, name, options = {}) {
 
 function corsHeaders(request) {
   const origin = request?.headers?.get("Origin") || "";
+
+  // Native Capacitor/iOS WebView requests do NOT come from https://bextrader.com.
+  // They commonly come from capacitor://localhost, ionic://localhost, or the custom
+  // scheme configured in capacitor.config.json (bextrader://localhost).
+  // If these origins are not echoed back exactly, iOS reports fetch failures as
+  // "Load failed" after Apple/Google native sign-in succeeds.
   const allowed = [
     "https://bextrader.com",
     "https://www.bextrader.com",
     "https://auth.bextrader.com",
+    "capacitor://localhost",
+    "ionic://localhost",
+    "bextrader://localhost",
+    "http://localhost",
     "http://localhost:3000",
+    "http://127.0.0.1",
     "http://127.0.0.1:3000"
   ];
 
@@ -1273,7 +1394,7 @@ function corsHeaders(request) {
   return {
     "Access-Control-Allow-Origin": finalOrigin,
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
     "Access-Control-Allow-Credentials": "true",
     "Vary": "Origin"
   };
@@ -1605,9 +1726,10 @@ function diagnoseApplePrivateKey(raw) {
   return detail;
 }
 
-async function makeAppleClientSecret(env) {
+async function makeAppleClientSecret(env, subjectClientId = null) {
   const now = Math.floor(Date.now() / 1000);
   const pkcs8 = normalizePemKey(env.APPLE_PRIVATE_KEY);
+  const subject = String(subjectClientId || env.APPLE_CLIENT_ID || "").trim();
 
   const privateKey = await importPKCS8(pkcs8, "ES256");
 
@@ -1620,7 +1742,7 @@ async function makeAppleClientSecret(env) {
     .setIssuedAt(now)
     .setExpirationTime(now + 60 * 60)
     .setAudience("https://appleid.apple.com")
-    .setSubject(env.APPLE_CLIENT_ID)
+    .setSubject(subject)
     .sign(privateKey);
 }
 
@@ -1682,6 +1804,32 @@ async function verifyAppleNativeIdToken(idToken, env) {
   }
 
   return payload;
+}
+
+async function exchangeAppleNativeAuthorizationCode(env, authorizationCode) {
+  const nativeClientId = String(env.APPLE_IOS_CLIENT_ID || env.APPLE_BUNDLE_ID || "com.bextrader.app").trim();
+  const clientSecret = await makeAppleClientSecret(env, nativeClientId);
+
+  const tokenRes = await fetch("https://appleid.apple.com/auth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code: authorizationCode,
+      client_id: nativeClientId,
+      client_secret: clientSecret
+    }).toString()
+  });
+
+  const tokenData = await tokenRes.json().catch(() => ({}));
+  if (!tokenRes.ok || !tokenData?.id_token) {
+    const err = new Error("Apple native authorization code exchange failed");
+    err.code = "APPLE_NATIVE_CODE_EXCHANGE_FAILED";
+    err.detail = tokenData;
+    throw err;
+  }
+
+  return { tokenData, clientId: nativeClientId };
 }
 
 async function ensureTables(db) {

@@ -10,6 +10,11 @@
     "App": {
       "urlScheme": "bextrader"
     },
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "DARK",
+      "backgroundColor": "#05070D"
+    },
     "SocialLogin": {
       "google": {
         "webClientId": "50746359348-l24lp3dj2m9plp7qc8godulthhdiaa6k.apps.googleusercontent.com",

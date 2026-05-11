@@ -1927,6 +1927,7 @@ async function exchangeAppleNativeAuthorizationCode(env, authorizationCode) {
     const err = new Error("Apple native authorization code exchange failed");
     err.code = "APPLE_NATIVE_CODE_EXCHANGE_FAILED";
     err.detail = tokenData;
+console.log("APPLE_NATIVE_EXCHANGE_FAILED", JSON.stringify(tokenData));
     throw err;
   }
 
