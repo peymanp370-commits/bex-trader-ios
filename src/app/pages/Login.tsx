@@ -869,9 +869,12 @@ export function Login() {
     const lastName = response.familyName || response.family_name || root.familyName || root.family_name || profile.familyName || profile.family_name || "";
     const appleUserId = response.user || root.user || root.userId || root.user_id || profile.user || "";
 
+    // Do not fail on-device before the backend sees the full native payload.
+    // Some iOS/@capgo Apple responses nest the useful credential deeper than
+    // response/root/accessToken. The worker now receives raw_apple_result and
+    // can extract identity_token or authorization_code server-side.
     if (!identityToken && !authorizationCode) {
-      console.error("Apple native response missing usable token", appleResult);
-      throw new Error("APPLE_CALLBACK_MISSING_CODE");
+      console.warn("Apple native response had no top-level token; sending raw payload to backend", appleResult);
     }
 
     const res = await fetch(`${AUTH_BASE}/auth/apple/native`, {
@@ -890,6 +893,7 @@ export function Login() {
         user: appleUserId,
         state,
         nonce,
+        raw_apple_result: appleResult,
         platform: "ios",
       }),
     });
