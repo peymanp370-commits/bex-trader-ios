@@ -62,13 +62,22 @@ let nativeSocialLoginInitialized = false;
 const initializeNativeSocialLogin = async () => {
   if (nativeSocialLoginInitialized) return;
 
+  const isIOS = Capacitor.getPlatform() === "ios";
+
   await SocialLogin.initialize({
-    google: {
-      webClientId: GOOGLE_WEB_CLIENT_ID,
-      iOSClientId: GOOGLE_IOS_CLIENT_ID,
-      iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
-      mode: "online",
-    },
+    google: isIOS
+      ? {
+          // Keep iOS initialization minimal. Passing extra web/server IDs can make
+          // the native Google SDK choose the wrong flow and fail as "Load failed".
+          iOSClientId: GOOGLE_IOS_CLIENT_ID,
+          mode: "online",
+        }
+      : {
+          webClientId: GOOGLE_WEB_CLIENT_ID,
+          iOSClientId: GOOGLE_IOS_CLIENT_ID,
+          iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
+          mode: "online",
+        },
     apple: {},
   } as any);
 
@@ -80,8 +89,74 @@ function tokenString(value: any): string {
   if (typeof value === "string") return value.trim();
   if (typeof value?.token === "string") return value.token.trim();
   if (typeof value?.jwt === "string") return value.jwt.trim();
+  if (typeof value?.value === "string") return value.value.trim();
+  if (typeof value?.raw === "string") return value.raw.trim();
+  if (typeof value?.credential === "string") return value.credential.trim();
   if (typeof value?.accessToken === "string") return value.accessToken.trim();
   if (typeof value?.idToken === "string") return value.idToken.trim();
+  if (typeof value?.identityToken === "string") return value.identityToken.trim();
+  if (typeof value?.authorizationCode === "string") return value.authorizationCode.trim();
+  if (typeof value?.serverAuthCode === "string") return value.serverAuthCode.trim();
+  return "";
+}
+
+function isLikelyJwt(value: any): value is string {
+  const s = tokenString(value);
+  return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(s);
+}
+
+function firstJwtDeep(value: any, depth = 0): string {
+  if (!value || depth > 6) return "";
+  const direct = tokenString(value);
+  if (isLikelyJwt(direct)) return direct;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = firstJwtDeep(item, depth + 1);
+      if (found) return found;
+    }
+    return "";
+  }
+  if (typeof value === "object") {
+    const preferred = [
+      "identityToken",
+      "idToken",
+      "id_token",
+      "jwt",
+      "token",
+      "credential",
+      "raw",
+      "value",
+      "authentication",
+      "response",
+      "result",
+      "profile",
+    ];
+    for (const key of preferred) {
+      if (key in value) {
+        const found = firstJwtDeep(value[key], depth + 1);
+        if (found) return found;
+      }
+    }
+    for (const key of Object.keys(value)) {
+      const found = firstJwtDeep(value[key], depth + 1);
+      if (found) return found;
+    }
+  }
+  return "";
+}
+
+function firstTokenByKeys(value: any, keys: string[], depth = 0): string {
+  if (!value || depth > 6) return "";
+  if (typeof value !== "object") return "";
+  for (const key of keys) {
+    const v = tokenString(value?.[key]);
+    if (v) return v;
+  }
+  const children = Array.isArray(value) ? value : Object.values(value);
+  for (const child of children) {
+    const found = firstTokenByKeys(child, keys, depth + 1);
+    if (found) return found;
+  }
   return "";
 }
 
@@ -745,22 +820,22 @@ export function Login() {
     const response: any = root?.response || (appleResult as any)?.response || root || {};
 
     const identityToken =
-      tokenString(response.identityToken) ||
-      tokenString(response.idToken) ||
-      tokenString(response.id_token) ||
-      tokenString(root.identityToken) ||
-      tokenString(root.idToken) ||
-      tokenString(root.id_token) ||
+      firstJwtDeep(response.identityToken) ||
+      firstJwtDeep(response.idToken) ||
+      firstJwtDeep(response.id_token) ||
+      firstJwtDeep(root.identityToken) ||
+      firstJwtDeep(root.idToken) ||
+      firstJwtDeep(root.id_token) ||
+      firstJwtDeep(appleResult) ||
       "";
 
     const authorizationCode =
-      tokenString(response.authorizationCode) ||
-      tokenString(response.authorization_code) ||
-      tokenString(response.code) ||
-      tokenString(root.authorizationCode) ||
-      tokenString(root.authorization_code) ||
-      tokenString(root.code) ||
-      "";
+      firstTokenByKeys(appleResult, [
+        "authorizationCode",
+        "authorization_code",
+        "code",
+        "authCode",
+      ]) || "";
 
     const email = response.email || root.email || "";
     const firstName = response.givenName || response.given_name || root.givenName || root.given_name || "";
@@ -826,11 +901,13 @@ export function Login() {
     try {
       await initializeNativeSocialLogin();
 
+      try {
+        await SocialLogin.logout({ provider: "apple" } as any);
+      } catch {}
+
       const appleResult = await SocialLogin.login({
         provider: "apple",
-        options: {
-          scopes: ["email", "name"],
-        },
+        options: {},
       } as any) as NativeAppleResponse;
 
       await exchangeNativeAppleToken(appleResult, state, nonce);
@@ -863,25 +940,28 @@ export function Login() {
     // Capgo returns different shapes between versions/platforms.
     // Handle flat values, nested result values, and token objects like { token: "..." }.
     const idToken =
-      tokenString(root?.idToken) ||
-      tokenString(root?.id_token) ||
-      tokenString(auth?.idToken) ||
-      tokenString(auth?.id_token) ||
-      tokenString((googleResult as any)?.idToken);
+      firstJwtDeep(root?.idToken) ||
+      firstJwtDeep(root?.id_token) ||
+      firstJwtDeep(auth?.idToken) ||
+      firstJwtDeep(auth?.id_token) ||
+      firstJwtDeep((googleResult as any)?.idToken) ||
+      firstJwtDeep(googleResult);
 
     const accessToken =
       tokenString(root?.accessToken) ||
       tokenString(root?.access_token) ||
       tokenString(auth?.accessToken) ||
       tokenString(auth?.access_token) ||
-      tokenString((googleResult as any)?.accessToken);
+      tokenString((googleResult as any)?.accessToken) ||
+      firstTokenByKeys(googleResult, ["accessToken", "access_token"]);
 
     const serverAuthCode =
       tokenString(root?.serverAuthCode) ||
       tokenString(root?.authorizationCode) ||
       tokenString(root?.server_auth_code) ||
       tokenString((googleResult as any)?.serverAuthCode) ||
-      tokenString((googleResult as any)?.authorizationCode);
+      tokenString((googleResult as any)?.authorizationCode) ||
+      firstTokenByKeys(googleResult, ["serverAuthCode", "server_auth_code", "authorizationCode", "authorization_code", "code"]);
 
     const email = root?.email || profile.email || (googleResult as any)?.email || "";
     const firstName = root?.givenName || root?.given_name || profile.givenName || profile.given_name || (googleResult as any)?.givenName || "";
@@ -940,6 +1020,10 @@ export function Login() {
 
     try {
       await initializeNativeSocialLogin();
+
+      try {
+        await SocialLogin.logout({ provider: "google" } as any);
+      } catch {}
 
       const googleResult = await SocialLogin.login({
         provider: "google",
