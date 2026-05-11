@@ -180,10 +180,6 @@ function makeOAuthValue(prefix: string) {
   }
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
 type AppLanguage =
   | "en"
   | "fa"
@@ -823,11 +819,11 @@ export function Login() {
     const root: any = (appleResult as any)?.result || appleResult || {};
     const response: any = root?.response || (appleResult as any)?.response || root || {};
     const profile: any = root?.profile || response?.profile || (appleResult as any)?.profile || {};
-    // Do not use accessToken.token as an Apple authorization code.
-    // On iOS/@capgo it can be a cached/reused credential and Apple rejects reused codes
-    // as invalid_grant: “The code has expired or has been revoked.”
-    // Only send explicit identityToken/idToken or explicit authorizationCode/code fields.
 
+    // FINAL NATIVE APPLE POLICY:
+    // Use identityToken only. Do NOT send authorizationCode/accessToken.token.
+    // Apple authorization codes are one-time and were causing invalid_grant
+    // ("code expired or revoked") on repeated native attempts.
     const explicitIdentityToken =
       tokenString(response.identityToken) ||
       tokenString(response.idToken) ||
@@ -842,57 +838,20 @@ export function Login() {
         identityToken: response.identityToken || root.identityToken || (appleResult as any)?.identityToken,
         idToken: response.idToken || root.idToken || (appleResult as any)?.idToken,
         id_token: response.id_token || root.id_token || (appleResult as any)?.id_token,
+        response,
       }) ||
       "";
 
     const identityToken = isLikelyJwt(explicitIdentityToken) ? explicitIdentityToken : "";
-
-    const explicitAuthorizationCode =
-      tokenString(response.authorizationCode) ||
-      tokenString(response.authorization_code) ||
-      tokenString(response.code) ||
-      tokenString(response.authCode) ||
-      tokenString(root.authorizationCode) ||
-      tokenString(root.authorization_code) ||
-      tokenString(root.code) ||
-      tokenString(root.authCode) ||
-      tokenString((appleResult as any)?.authorizationCode) ||
-      tokenString((appleResult as any)?.authorization_code) ||
-      tokenString((appleResult as any)?.code) ||
-      tokenString((appleResult as any)?.authCode) ||
-      firstTokenByKeys({
-        response: {
-          authorizationCode: response.authorizationCode,
-          authorization_code: response.authorization_code,
-          code: response.code,
-          authCode: response.authCode,
-        },
-        root: {
-          authorizationCode: root.authorizationCode,
-          authorization_code: root.authorization_code,
-          code: root.code,
-          authCode: root.authCode,
-        },
-      }, [
-        "authorizationCode",
-        "authorization_code",
-        "code",
-        "authCode",
-      ]) || "";
-
-    const authorizationCode = isLikelyJwt(explicitAuthorizationCode) ? "" : explicitAuthorizationCode;
 
     const email = response.email || root.email || profile.email || "";
     const firstName = response.givenName || response.given_name || root.givenName || root.given_name || profile.givenName || profile.given_name || "";
     const lastName = response.familyName || response.family_name || root.familyName || root.family_name || profile.familyName || profile.family_name || "";
     const appleUserId = response.user || root.user || root.userId || root.user_id || profile.user || "";
 
-    // Do not fail on-device before the backend sees the full native payload.
-    // Some iOS/@capgo Apple responses nest the useful credential deeper than
-    // response/root/accessToken. The worker now receives raw_apple_result and
-    // can extract identity_token or authorization_code server-side.
-    if (!identityToken && !authorizationCode) {
-      console.warn("Apple native response had no top-level token; sending raw payload to backend", appleResult);
+    if (!identityToken) {
+      console.warn("Apple native response did not include a compact JWT identityToken", appleResult);
+      throw new Error("APPLE_NATIVE_IDENTITY_TOKEN_MISSING");
     }
 
     const res = await fetch(`${AUTH_BASE}/auth/apple/native`, {
@@ -902,8 +861,6 @@ export function Login() {
       body: JSON.stringify({
         identity_token: identityToken,
         id_token: identityToken,
-        authorization_code: authorizationCode,
-        code: authorizationCode,
         email,
         first_name: firstName,
         last_name: lastName,
@@ -911,7 +868,6 @@ export function Login() {
         user: appleUserId,
         state,
         nonce,
-        raw_apple_result: appleResult,
         platform: "ios",
       }),
     });
@@ -951,11 +907,9 @@ export function Login() {
     try {
       await initializeNativeSocialLogin();
 
-      // Force a fresh Apple credential. Apple authorization codes are single-use;
-      // reusing a cached code causes invalid_grant: code expired/revoked.
-      try { await SocialLogin.logout({ provider: "apple" } as any); } catch {}
-      try { await SocialLogin.logout({ provider: "google" } as any); } catch {}
-      await sleep(450);
+      try {
+        await SocialLogin.logout({ provider: "apple" } as any);
+      } catch {}
 
       const appleResult = await SocialLogin.login({
         provider: "apple",
@@ -969,7 +923,6 @@ export function Login() {
       await exchangeNativeAppleToken(appleResult, state, nonce);
     } catch (err: any) {
       console.error("Apple native sign-in failed", err);
-      try { await SocialLogin.logout({ provider: "apple" } as any); } catch {}
       const code = String(err?.message || err?.code || "APPLE_TOKEN_EXCHANGE_FAILED");
       setError(tx(lang, {
         en: code.includes("cancel") || code.includes("CANCEL") ? "Apple sign-in was cancelled." : `Apple sign-in failed: ${code}`,

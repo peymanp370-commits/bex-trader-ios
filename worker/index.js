@@ -732,76 +732,30 @@ export default {
       if (url.pathname === "/auth/apple/native" && request.method === "POST") {
         const body = await readJson(request);
 
-        // @capgo/capacitor-social-login has returned different Apple shapes across builds:
-        // response.identityToken, result.response.identityToken, accessToken.token,
-        // authorizationCode, or a nested raw object. Extract defensively on the server.
-        const rawAppleResult = body.raw_apple_result || body.rawAppleResult || body.appleResult || body.raw || null;
+        // FINAL NATIVE APPLE POLICY:
+        // Native iOS login must authenticate with Apple identity_token only.
+        // Do NOT exchange authorizationCode here. Apple codes are one-time and
+        // were causing invalid_grant / code expired or revoked on repeated native attempts.
         let identityToken = String(
           body.identityToken ||
           body.identity_token ||
           body.idToken ||
           body.id_token ||
           findAppleJwt(body) ||
-          findAppleJwt(rawAppleResult) ||
-          ""
-        ).trim();
-        let authorizationCode = String(
-          body.authorizationCode ||
-          body.authorization_code ||
-          body.code ||
-          findAppleAuthorizationCode(body) ||
-          findAppleAuthorizationCode(rawAppleResult) ||
           ""
         ).trim();
 
-        if (looksLikeCompactJwt(authorizationCode)) authorizationCode = "";
-        if (identityToken && !looksLikeCompactJwt(identityToken)) identityToken = "";
-
-        if (!identityToken && !authorizationCode) {
-          return fail(request, 400, "APPLE_NATIVE_TOKEN_MISSING", "Apple native sign-in did not return an identity token or authorization code", {
-            received_keys: Object.keys(body || {}),
-            raw_keys: rawAppleResult && typeof rawAppleResult === "object" ? Object.keys(rawAppleResult) : null
+        if (!looksLikeCompactJwt(identityToken)) {
+          return fail(request, 400, "APPLE_NATIVE_IDENTITY_TOKEN_MISSING", "Apple native sign-in did not return a valid identity token", {
+            received_keys: Object.keys(body || {})
           });
         }
 
-        let claims = null;
-        let tokenData = null;
-        let verifyError = null;
-
-        if (identityToken) {
-          const looksLikeJwt = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(identityToken);
-          if (looksLikeJwt) {
-            try {
-              claims = await verifyAppleNativeIdToken(identityToken, env);
-            } catch (err) {
-              verifyError = err;
-            }
-          } else {
-            verifyError = Object.assign(new Error("Apple identity token is not a compact JWT"), { code: "APPLE_ID_TOKEN_NOT_JWT" });
-            identityToken = "";
-          }
-        }
-
-        // Some iOS/plugin builds return a non-JWT credential string but still return a valid
-        // authorizationCode. In that case, exchange the native code with Apple and verify the
-        // id_token returned by Apple instead of failing with ERR_JWS_INVALID.
-        if (!claims && authorizationCode) {
-          try {
-            const exchanged = await exchangeAppleNativeAuthorizationCode(env, authorizationCode);
-            tokenData = exchanged.tokenData;
-            identityToken = String(tokenData.id_token || "").trim();
-            claims = await verifyAppleNativeIdToken(identityToken, env);
-          } catch (err) {
-            return fail(request, 401, err.code || verifyError?.code || "APPLE_NATIVE_TOKEN_INVALID", err?.message || verifyError?.message || "Apple native token is invalid", {
-              verify_error: verifyError?.code || verifyError?.message || null,
-              exchange_error: err?.code || err?.message || null,
-              apple_detail: err?.detail || null
-            });
-          }
-        }
-
-        if (!claims) {
-          return fail(request, 401, verifyError?.code || "APPLE_ID_TOKEN_INVALID", verifyError?.message || "Apple identity token is invalid");
+        let claims;
+        try {
+          claims = await verifyAppleNativeIdToken(identityToken, env);
+        } catch (err) {
+          return fail(request, 401, err?.code || "APPLE_ID_TOKEN_INVALID", err?.message || "Apple identity token is invalid");
         }
 
         const submittedUser = typeof body.user === "string"
@@ -837,7 +791,7 @@ export default {
             "apple_user",
           country: request.cf?.country || "Unknown",
           timezone: clean(body.timezone) || "UTC",
-          providerRefreshToken: tokenData?.refresh_token || authorizationCode || null
+          providerRefreshToken: null
         });
 
         const session = await createRefreshSession(env.DB, linked.userId, request);
@@ -1810,74 +1764,6 @@ async function verifyAppleIdToken(idToken, env, expectedNonce) {
 }
 
 
-
-function looksLikeCompactJwt(value) {
-  return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(String(value || "").trim());
-}
-
-function findAppleJwt(value, depth = 0, seen = new Set()) {
-  if (!value || depth > 7) return "";
-  if (typeof value === "string") {
-    const v = value.trim();
-    return looksLikeCompactJwt(v) ? v : "";
-  }
-  if (typeof value !== "object") return "";
-  if (seen.has(value)) return "";
-  seen.add(value);
-
-  const preferredKeys = [
-    "identityToken", "identity_token", "idToken", "id_token", "jwt", "token"
-  ];
-  for (const key of preferredKeys) {
-    if (Object.prototype.hasOwnProperty.call(value, key)) {
-      const found = findAppleJwt(value[key], depth + 1, seen);
-      if (found) return found;
-    }
-  }
-  for (const key of Object.keys(value)) {
-    const found = findAppleJwt(value[key], depth + 1, seen);
-    if (found) return found;
-  }
-  return "";
-}
-
-function findAppleAuthorizationCode(value, depth = 0, seen = new Set()) {
-  if (!value || depth > 7) return "";
-  if (typeof value === "string") {
-    const v = value.trim();
-    if (!v || looksLikeCompactJwt(v)) return "";
-    // Apple auth codes are usually long opaque URL-safe strings. Avoid treating
-    // ordinary user/email/name fields as a code.
-    if (v.length >= 20 && /^[A-Za-z0-9._~+\/-]+$/.test(v)) return v;
-    return "";
-  }
-  if (typeof value !== "object") return "";
-  if (seen.has(value)) return "";
-  seen.add(value);
-
-  const preferredKeys = [
-    "authorizationCode", "authorization_code", "authCode", "code", "serverAuthCode"
-  ];
-  for (const key of preferredKeys) {
-    if (Object.prototype.hasOwnProperty.call(value, key)) {
-      const found = findAppleAuthorizationCode(value[key], depth + 1, seen);
-      if (found) return found;
-    }
-  }
-
-  // accessToken.token is an authorization code in some @capgo Apple builds.
-  if (value.accessToken) {
-    const found = findAppleAuthorizationCode(value.accessToken, depth + 1, seen);
-    if (found) return found;
-  }
-
-  for (const key of Object.keys(value)) {
-    const found = findAppleAuthorizationCode(value[key], depth + 1, seen);
-    if (found) return found;
-  }
-  return "";
-}
-
 function getAppleNativeAudiences(env) {
   const out = [];
   for (const value of [
@@ -1927,7 +1813,6 @@ async function exchangeAppleNativeAuthorizationCode(env, authorizationCode) {
     const err = new Error("Apple native authorization code exchange failed");
     err.code = "APPLE_NATIVE_CODE_EXCHANGE_FAILED";
     err.detail = tokenData;
-console.log("APPLE_NATIVE_EXCHANGE_FAILED", JSON.stringify(tokenData));
     throw err;
   }
 
