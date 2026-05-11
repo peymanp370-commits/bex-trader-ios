@@ -2,7 +2,6 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { SocialLogin } from "@capgo/capacitor-social-login";
-import { SignInWithApple } from "@capacitor-community/apple-sign-in";
 import { Browser } from "@capacitor/browser";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Eye, EyeOff } from "lucide-react";
@@ -940,83 +939,43 @@ export function Login() {
     const nonce = makeOAuthValue("apple_nonce");
 
     try {
-      // IMPORTANT:
-      // Apple uses @capacitor-community/apple-sign-in.
-      // Google stays on @capgo/capacitor-social-login.
-      // Do NOT call SocialLogin.login({ provider: "apple" }) here.
-      const appleResult: any = await SignInWithApple.authorize({
-        clientId: "com.bextrader.web",
-        redirectURI: "https://auth.bextrader.com/auth/apple/callback",
-        scopes: "email name",
-        state,
-        nonce,
-      } as any);
+      // Use ONLY @capgo/capacitor-social-login for Apple on iOS.
+      // Do NOT use @capacitor-community/apple-sign-in in this project.
+      await initializeNativeSocialLogin();
 
-      const response: any = appleResult?.response || appleResult || {};
-
-      const identityToken =
-        tokenString(response.identityToken) ||
-        tokenString(response.identity_token) ||
-        tokenString(response.idToken) ||
-        tokenString(response.id_token) ||
-        tokenString(appleResult?.identityToken) ||
-        tokenString(appleResult?.identity_token) ||
-        tokenString(appleResult?.idToken) ||
-        tokenString(appleResult?.id_token) ||
-        firstJwtDeep(appleResult);
-
-      if (!identityToken || !isLikelyJwt(identityToken)) {
-        console.error("Apple community plugin response without identityToken JWT", appleResult);
-        throw new Error("APPLE_COMMUNITY_IDENTITY_TOKEN_MISSING");
-      }
-
-      const normalizedAppleResult: NativeAppleResponse = {
-        response: {
-          identityToken,
-          authorizationCode:
-            tokenString(response.authorizationCode) ||
-            tokenString(response.authorization_code) ||
-            tokenString(response.code) ||
-            tokenString(appleResult?.authorizationCode) ||
-            tokenString(appleResult?.authorization_code) ||
-            tokenString(appleResult?.code) ||
-            "",
-          email: response.email || appleResult?.email || "",
-          givenName: response.givenName || response.given_name || appleResult?.givenName || appleResult?.given_name || "",
-          familyName: response.familyName || response.family_name || appleResult?.familyName || appleResult?.family_name || "",
-          user: response.user || appleResult?.user || "",
+      const appleResult = await SocialLogin.login({
+        provider: "apple",
+        options: {
+          scopes: ["email", "name"],
+          state,
+          nonce,
         },
-        identityToken,
-        authorizationCode:
-          tokenString(response.authorizationCode) ||
-          tokenString(response.authorization_code) ||
-          tokenString(response.code) ||
-          tokenString(appleResult?.authorizationCode) ||
-          tokenString(appleResult?.authorization_code) ||
-          tokenString(appleResult?.code) ||
-          "",
-        email: response.email || appleResult?.email || "",
-        givenName: response.givenName || response.given_name || appleResult?.givenName || appleResult?.given_name || "",
-        familyName: response.familyName || response.family_name || appleResult?.familyName || appleResult?.family_name || "",
-        user: response.user || appleResult?.user || "",
-      };
+      } as any) as NativeAppleResponse;
 
-      await exchangeNativeAppleToken(normalizedAppleResult, state, nonce);
+      await exchangeNativeAppleToken(appleResult, state, nonce);
     } catch (err: any) {
       console.error("Apple native sign-in failed", err);
-      const code = String(err?.message || err?.code || "APPLE_TOKEN_EXCHANGE_FAILED");
+      const rawCode = String(
+        err?.message ||
+        err?.code ||
+        err?.errorMessage ||
+        err?.error ||
+        "APPLE_NATIVE_SIGN_IN_FAILED"
+      );
+      const code = rawCode.length > 160 ? rawCode.slice(0, 160) : rawCode;
+
       setError(tx(lang, {
         en: code.includes("cancel") || code.includes("CANCEL") ? "Apple sign-in was cancelled." : `Apple sign-in failed: ${code}`,
         fa: code.includes("cancel") || code.includes("CANCEL") ? "ورود با اپل لغو شد." : `ورود با اپل ناموفق بود: ${code}`,
-        ar: code.includes("cancel") || code.includes("CANCEL") ? "تم إلغاء تسجيل الدخول عبر Apple." : "فشل تسجيل الدخول عبر Apple. حاول مرة أخرى.",
-        es: code.includes("cancel") || code.includes("CANCEL") ? "El inicio con Apple fue cancelado." : "Falló el inicio de sesión con Apple. Inténtalo de nuevo.",
-        "pt-BR": code.includes("cancel") || code.includes("CANCEL") ? "O login com Apple foi cancelado." : "Falha no login com Apple. Tente novamente.",
-        hi: code.includes("cancel") || code.includes("CANCEL") ? "Apple साइन-इन रद्द हो गया।" : "Apple लॉगिन विफल रहा। कृपया फिर कोशिश करें।",
-        tr: code.includes("cancel") || code.includes("CANCEL") ? "Apple ile giriş iptal edildi." : "Apple ile giriş başarısız oldu. Lütfen tekrar deneyin.",
-        de: code.includes("cancel") || code.includes("CANCEL") ? "Apple-Anmeldung wurde abgebrochen." : "Apple-Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
-        fr: code.includes("cancel") || code.includes("CANCEL") ? "La connexion Apple a été annulée." : "La connexion avec Apple a échoué. Veuillez réessayer.",
-        zh: code.includes("cancel") || code.includes("CANCEL") ? "Apple 登录已取消。" : "Apple 登录失败，请重试。",
-        ko: code.includes("cancel") || code.includes("CANCEL") ? "Apple 로그인이 취소되었습니다." : "Apple 로그인이 실패했습니다. 다시 시도하세요.",
+        ar: code.includes("cancel") || code.includes("CANCEL") ? "تم إلغاء تسجيل الدخول عبر Apple." : `فشل تسجيل الدخول عبر Apple: ${code}`,
+        es: code.includes("cancel") || code.includes("CANCEL") ? "El inicio con Apple fue cancelado." : `Falló el inicio de sesión con Apple: ${code}`,
+        "pt-BR": code.includes("cancel") || code.includes("CANCEL") ? "O login com Apple foi cancelado." : `Falha no login com Apple: ${code}`,
+        hi: code.includes("cancel") || code.includes("CANCEL") ? "Apple साइन-इन रद्द हो गया।" : `Apple लॉगिन विफल रहा: ${code}`,
+        tr: code.includes("cancel") || code.includes("CANCEL") ? "Apple ile giriş iptal edildi." : `Apple ile giriş başarısız oldu: ${code}`,
+        de: code.includes("cancel") || code.includes("CANCEL") ? "Apple-Anmeldung wurde abgebrochen." : `Apple-Anmeldung fehlgeschlagen: ${code}`,
+        fr: code.includes("cancel") || code.includes("CANCEL") ? "La connexion Apple a été annulée." : `La connexion Apple a échoué: ${code}`,
+        zh: code.includes("cancel") || code.includes("CANCEL") ? "Apple 登录已取消。" : `Apple 登录失败: ${code}`,
+        ko: code.includes("cancel") || code.includes("CANCEL") ? "Apple 로그인이 취소되었습니다." : `Apple 로그인이 실패했습니다: ${code}`,
       }));
     } finally {
       setSocialLoading(null);
