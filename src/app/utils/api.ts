@@ -1,3 +1,5 @@
+import { Capacitor } from "@capacitor/core";
+import { SocialLogin } from "@capgo/capacitor-social-login";
 const AUTH_BASE =
   import.meta.env.VITE_API_URL || "https://auth.bextrader.com";
 
@@ -66,12 +68,76 @@ function authHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+const AUTH_COOKIE_NAMES = [
+  "bex_session",
+  "bex_auth",
+  "auth_session",
+  "session",
+  "token",
+  "refresh_token",
+  "bex_refresh_token",
+  "__Secure-bex_session",
+  "__Host-bex_session",
+];
+
+function expireCookie(name: string) {
+  try {
+    const expires = "Thu, 01 Jan 1970 00:00:00 GMT";
+    const paths = ["/", "/auth", "/api"];
+    const domains = [undefined, window.location.hostname, ".bextrader.com", "auth.bextrader.com"];
+
+    for (const path of paths) {
+      document.cookie = `${name}=; expires=${expires}; max-age=0; path=${path}; SameSite=None; Secure`;
+      for (const domain of domains) {
+        if (!domain) continue;
+        document.cookie = `${name}=; expires=${expires}; max-age=0; path=${path}; domain=${domain}; SameSite=None; Secure`;
+      }
+    }
+  } catch {}
+}
+
 export function clearLocalAuthState() {
   try {
     LOCAL_AUTH_KEYS.forEach((key) => localStorage.removeItem(key));
+
+    // Also clear common auth-related keys without touching app preferences like language/theme.
+    Object.keys(localStorage).forEach((key) => {
+      const k = key.toLowerCase();
+      if (
+        k.includes("auth") ||
+        k.includes("token") ||
+        k.includes("session") ||
+        k.includes("credential") ||
+        k.includes("login") ||
+        k.includes("oauth") ||
+        k.includes("google") ||
+        k.includes("apple") ||
+        k.includes("user") ||
+        k.startsWith("bex_")
+      ) {
+        // Keep non-auth user preferences.
+        if (["userlanguage", "usercountry", "usertimezone"].includes(k)) return;
+        localStorage.removeItem(key);
+      }
+    });
+
     sessionStorage.clear();
+    AUTH_COOKIE_NAMES.forEach(expireCookie);
     window.dispatchEvent(new Event("storage"));
   } catch {}
+}
+
+async function clearNativeSocialSessions() {
+  try {
+    if (!Capacitor.isNativePlatform()) return;
+
+    await Promise.allSettled([
+      SocialLogin.logout({ provider: "google" } as any),
+      SocialLogin.logout({ provider: "apple" } as any),
+    ]);
+  } catch {
+    // Never block logout because native provider cleanup failed.
+  }
 }
 
 export type VipMeResponse = {
@@ -769,26 +835,35 @@ export async function getCurrentUser(): Promise<AuthResponse> {
 }
 
 export async function logout(): Promise<AuthResponse> {
+  let lastData: AuthResponse | null = null;
+
   try {
+    const headers = authHeaders();
+
+    // Clear the current server cookie/session.
     const response = await fetch(`${AUTH_BASE}/auth/logout`, {
       method: "POST",
       credentials: "include",
-      headers: authHeaders(),
+      cache: "no-store",
+      headers,
     });
+    lastData = await safeJson<AuthResponse>(response);
 
-    const data = await safeJson<AuthResponse>(response);
-    clearLocalAuthState();
-
-    if (!response.ok) {
-      return data || { ok: false, message: `Logout failed (${response.status})` };
-    }
-
-    return data || { ok: true, message: "Logged out" };
+    // Clear all server-side sessions for this browser/app when available.
+    await fetch(`${AUTH_BASE}/auth/logout-all`, {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      headers,
+    }).catch(() => undefined);
   } catch (error) {
     console.error("Error logging out:", error);
+  } finally {
+    await clearNativeSocialSessions();
     clearLocalAuthState();
-    return { ok: true, message: "Logged out locally" };
   }
+
+  return lastData || { ok: true, message: "Logged out" };
 }
 
 
