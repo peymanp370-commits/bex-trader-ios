@@ -826,6 +826,8 @@ export function Login() {
     // object and could accidentally send that code as identity_token, causing backend
     // jose jwtVerify to throw ERR_JWS_INVALID. Only accept explicit idToken/identityToken
     // fields as the Apple identity JWT.
+    const accessTokenString = tokenString(accessToken?.token) || tokenString(accessToken) || "";
+
     const explicitIdentityToken =
       tokenString(response.identityToken) ||
       tokenString(response.idToken) ||
@@ -836,11 +838,13 @@ export function Login() {
       tokenString((appleResult as any)?.identityToken) ||
       tokenString((appleResult as any)?.idToken) ||
       tokenString((appleResult as any)?.id_token) ||
+      (isLikelyJwt(accessTokenString) ? accessTokenString : "") ||
+      firstJwtDeep(appleResult) ||
       "";
 
     const identityToken = isLikelyJwt(explicitIdentityToken) ? explicitIdentityToken : "";
 
-    const authorizationCode =
+    const explicitAuthorizationCode =
       tokenString(response.authorizationCode) ||
       tokenString(response.authorization_code) ||
       tokenString(response.code) ||
@@ -849,8 +853,7 @@ export function Login() {
       tokenString(root.authorization_code) ||
       tokenString(root.code) ||
       tokenString(root.authCode) ||
-      tokenString(accessToken?.token) ||
-      tokenString(accessToken) ||
+      (!isLikelyJwt(accessTokenString) ? accessTokenString : "") ||
       firstTokenByKeys(appleResult, [
         "authorizationCode",
         "authorization_code",
@@ -858,6 +861,8 @@ export function Login() {
         "authCode",
         "serverAuthCode",
       ]) || "";
+
+    const authorizationCode = isLikelyJwt(explicitAuthorizationCode) ? "" : explicitAuthorizationCode;
 
     const email = response.email || root.email || profile.email || "";
     const firstName = response.givenName || response.given_name || root.givenName || root.given_name || profile.givenName || profile.given_name || "";
