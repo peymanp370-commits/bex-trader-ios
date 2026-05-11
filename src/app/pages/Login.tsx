@@ -180,6 +180,10 @@ function makeOAuthValue(prefix: string) {
   }
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 type AppLanguage =
   | "en"
   | "fa"
@@ -819,14 +823,10 @@ export function Login() {
     const root: any = (appleResult as any)?.result || appleResult || {};
     const response: any = root?.response || (appleResult as any)?.response || root || {};
     const profile: any = root?.profile || response?.profile || (appleResult as any)?.profile || {};
-    const accessToken: any = root?.accessToken || response?.accessToken || (appleResult as any)?.accessToken || null;
-
-    // IMPORTANT: with @capgo/capacitor-social-login Apple, accessToken.token is often
-    // the Apple authorization code, not a JWT. The previous extractor searched the whole
-    // object and could accidentally send that code as identity_token, causing backend
-    // jose jwtVerify to throw ERR_JWS_INVALID. Only accept explicit idToken/identityToken
-    // fields as the Apple identity JWT.
-    const accessTokenString = tokenString(accessToken?.token) || tokenString(accessToken) || "";
+    // Do not use accessToken.token as an Apple authorization code.
+    // On iOS/@capgo it can be a cached/reused credential and Apple rejects reused codes
+    // as invalid_grant: “The code has expired or has been revoked.”
+    // Only send explicit identityToken/idToken or explicit authorizationCode/code fields.
 
     const explicitIdentityToken =
       tokenString(response.identityToken) ||
@@ -838,8 +838,11 @@ export function Login() {
       tokenString((appleResult as any)?.identityToken) ||
       tokenString((appleResult as any)?.idToken) ||
       tokenString((appleResult as any)?.id_token) ||
-      (isLikelyJwt(accessTokenString) ? accessTokenString : "") ||
-      firstJwtDeep(appleResult) ||
+      firstJwtDeep({
+        identityToken: response.identityToken || root.identityToken || (appleResult as any)?.identityToken,
+        idToken: response.idToken || root.idToken || (appleResult as any)?.idToken,
+        id_token: response.id_token || root.id_token || (appleResult as any)?.id_token,
+      }) ||
       "";
 
     const identityToken = isLikelyJwt(explicitIdentityToken) ? explicitIdentityToken : "";
@@ -853,13 +856,28 @@ export function Login() {
       tokenString(root.authorization_code) ||
       tokenString(root.code) ||
       tokenString(root.authCode) ||
-      (!isLikelyJwt(accessTokenString) ? accessTokenString : "") ||
-      firstTokenByKeys(appleResult, [
+      tokenString((appleResult as any)?.authorizationCode) ||
+      tokenString((appleResult as any)?.authorization_code) ||
+      tokenString((appleResult as any)?.code) ||
+      tokenString((appleResult as any)?.authCode) ||
+      firstTokenByKeys({
+        response: {
+          authorizationCode: response.authorizationCode,
+          authorization_code: response.authorization_code,
+          code: response.code,
+          authCode: response.authCode,
+        },
+        root: {
+          authorizationCode: root.authorizationCode,
+          authorization_code: root.authorization_code,
+          code: root.code,
+          authCode: root.authCode,
+        },
+      }, [
         "authorizationCode",
         "authorization_code",
         "code",
         "authCode",
-        "serverAuthCode",
       ]) || "";
 
     const authorizationCode = isLikelyJwt(explicitAuthorizationCode) ? "" : explicitAuthorizationCode;
@@ -933,9 +951,11 @@ export function Login() {
     try {
       await initializeNativeSocialLogin();
 
-      try {
-        await SocialLogin.logout({ provider: "apple" } as any);
-      } catch {}
+      // Force a fresh Apple credential. Apple authorization codes are single-use;
+      // reusing a cached code causes invalid_grant: code expired/revoked.
+      try { await SocialLogin.logout({ provider: "apple" } as any); } catch {}
+      try { await SocialLogin.logout({ provider: "google" } as any); } catch {}
+      await sleep(450);
 
       const appleResult = await SocialLogin.login({
         provider: "apple",
@@ -949,6 +969,7 @@ export function Login() {
       await exchangeNativeAppleToken(appleResult, state, nonce);
     } catch (err: any) {
       console.error("Apple native sign-in failed", err);
+      try { await SocialLogin.logout({ provider: "apple" } as any); } catch {}
       const code = String(err?.message || err?.code || "APPLE_TOKEN_EXCHANGE_FAILED");
       setError(tx(lang, {
         en: code.includes("cancel") || code.includes("CANCEL") ? "Apple sign-in was cancelled." : `Apple sign-in failed: ${code}`,
