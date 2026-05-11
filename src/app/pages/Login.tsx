@@ -86,7 +86,9 @@ const initializeNativeSocialLogin = async () => {
           iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
           mode: "online",
         },
-    apple: {},
+    apple: {
+      clientId: "com.bextrader.web",
+    },
   } as any);
 
   nativeSocialLoginInitialized = true;
