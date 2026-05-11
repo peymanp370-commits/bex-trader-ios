@@ -731,18 +731,50 @@ export default {
 
       if (url.pathname === "/auth/apple/native" && request.method === "POST") {
         const body = await readJson(request);
-        const identityToken = String(body.identityToken || body.identity_token || "").trim();
-        const authorizationCode = String(body.authorizationCode || body.authorization_code || "").trim();
+        let identityToken = String(body.identityToken || body.identity_token || body.idToken || body.id_token || "").trim();
+        const authorizationCode = String(body.authorizationCode || body.authorization_code || body.code || "").trim();
 
-        if (!identityToken) {
-          return fail(request, 400, "APPLE_ID_TOKEN_MISSING", "Apple identity token is missing");
+        if (!identityToken && !authorizationCode) {
+          return fail(request, 400, "APPLE_NATIVE_TOKEN_MISSING", "Apple native sign-in did not return an identity token or authorization code");
         }
 
-        let claims;
-        try {
-          claims = await verifyAppleNativeIdToken(identityToken, env);
-        } catch (err) {
-          return fail(request, 401, err.code || "APPLE_ID_TOKEN_INVALID", err?.message || "Apple identity token is invalid");
+        let claims = null;
+        let tokenData = null;
+        let verifyError = null;
+
+        if (identityToken) {
+          const looksLikeJwt = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(identityToken);
+          if (looksLikeJwt) {
+            try {
+              claims = await verifyAppleNativeIdToken(identityToken, env);
+            } catch (err) {
+              verifyError = err;
+            }
+          } else {
+            verifyError = Object.assign(new Error("Apple identity token is not a compact JWT"), { code: "APPLE_ID_TOKEN_NOT_JWT" });
+            identityToken = "";
+          }
+        }
+
+        // Some iOS/plugin builds return a non-JWT credential string but still return a valid
+        // authorizationCode. In that case, exchange the native code with Apple and verify the
+        // id_token returned by Apple instead of failing with ERR_JWS_INVALID.
+        if (!claims && authorizationCode) {
+          try {
+            const exchanged = await exchangeAppleNativeAuthorizationCode(env, authorizationCode);
+            tokenData = exchanged.tokenData;
+            identityToken = String(tokenData.id_token || "").trim();
+            claims = await verifyAppleNativeIdToken(identityToken, env);
+          } catch (err) {
+            return fail(request, 401, err.code || verifyError?.code || "APPLE_NATIVE_TOKEN_INVALID", err?.message || verifyError?.message || "Apple native token is invalid", {
+              verify_error: verifyError?.code || verifyError?.message || null,
+              exchange_error: err?.code || err?.message || null
+            });
+          }
+        }
+
+        if (!claims) {
+          return fail(request, 401, verifyError?.code || "APPLE_ID_TOKEN_INVALID", verifyError?.message || "Apple identity token is invalid");
         }
 
         const submittedUser = typeof body.user === "string"
@@ -751,12 +783,16 @@ export default {
 
         const email = normalizeEmail(claims.email || body.email);
         const firstName =
+          clean(body.first_name) ||
           clean(body.givenName) ||
+          clean(body.given_name) ||
           clean(submittedUser?.name?.firstName) ||
           clean(submittedUser?.givenName) ||
           "Apple";
         const lastName =
+          clean(body.last_name) ||
           clean(body.familyName) ||
+          clean(body.family_name) ||
           clean(submittedUser?.name?.lastName) ||
           clean(submittedUser?.familyName) ||
           "User";
@@ -773,8 +809,8 @@ export default {
             normalizeUsername(`${firstName}_${lastName}`) ||
             "apple_user",
           country: request.cf?.country || "Unknown",
-          timezone: "UTC",
-          providerRefreshToken: authorizationCode || null
+          timezone: clean(body.timezone) || "UTC",
+          providerRefreshToken: tokenData?.refresh_token || authorizationCode || null
         });
 
         const session = await createRefreshSession(env.DB, linked.userId, request);
@@ -782,6 +818,7 @@ export default {
         return okWithCookies(request, {
           message: "Apple native login successful",
           code: "APPLE_NATIVE_LOGIN_SUCCESS",
+          refresh_token: session.refreshToken,
           user: await getSafeUser(env.DB, linked.userId)
         }, [buildRefreshCookie(request, env, session.refreshToken)]);
       }
@@ -1695,9 +1732,10 @@ function diagnoseApplePrivateKey(raw) {
   return detail;
 }
 
-async function makeAppleClientSecret(env) {
+async function makeAppleClientSecret(env, subjectClientId = null) {
   const now = Math.floor(Date.now() / 1000);
   const pkcs8 = normalizePemKey(env.APPLE_PRIVATE_KEY);
+  const subject = String(subjectClientId || env.APPLE_CLIENT_ID || "").trim();
 
   const privateKey = await importPKCS8(pkcs8, "ES256");
 
@@ -1710,7 +1748,7 @@ async function makeAppleClientSecret(env) {
     .setIssuedAt(now)
     .setExpirationTime(now + 60 * 60)
     .setAudience("https://appleid.apple.com")
-    .setSubject(env.APPLE_CLIENT_ID)
+    .setSubject(subject)
     .sign(privateKey);
 }
 
@@ -1772,6 +1810,32 @@ async function verifyAppleNativeIdToken(idToken, env) {
   }
 
   return payload;
+}
+
+async function exchangeAppleNativeAuthorizationCode(env, authorizationCode) {
+  const nativeClientId = String(env.APPLE_IOS_CLIENT_ID || env.APPLE_BUNDLE_ID || "com.bextrader.app").trim();
+  const clientSecret = await makeAppleClientSecret(env, nativeClientId);
+
+  const tokenRes = await fetch("https://appleid.apple.com/auth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code: authorizationCode,
+      client_id: nativeClientId,
+      client_secret: clientSecret
+    }).toString()
+  });
+
+  const tokenData = await tokenRes.json().catch(() => ({}));
+  if (!tokenRes.ok || !tokenData?.id_token) {
+    const err = new Error("Apple native authorization code exchange failed");
+    err.code = "APPLE_NATIVE_CODE_EXCHANGE_FAILED";
+    err.detail = tokenData;
+    throw err;
+  }
+
+  return { tokenData, clientId: nativeClientId };
 }
 
 async function ensureTables(db) {

@@ -818,31 +818,54 @@ export function Login() {
   const exchangeNativeAppleToken = async (appleResult: NativeAppleResponse, state: string, nonce: string) => {
     const root: any = (appleResult as any)?.result || appleResult || {};
     const response: any = root?.response || (appleResult as any)?.response || root || {};
+    const profile: any = root?.profile || response?.profile || (appleResult as any)?.profile || {};
+    const accessToken: any = root?.accessToken || response?.accessToken || (appleResult as any)?.accessToken || null;
 
-    const identityToken =
-      firstJwtDeep(response.identityToken) ||
-      firstJwtDeep(response.idToken) ||
-      firstJwtDeep(response.id_token) ||
-      firstJwtDeep(root.identityToken) ||
-      firstJwtDeep(root.idToken) ||
-      firstJwtDeep(root.id_token) ||
-      firstJwtDeep(appleResult) ||
+    // IMPORTANT: with @capgo/capacitor-social-login Apple, accessToken.token is often
+    // the Apple authorization code, not a JWT. The previous extractor searched the whole
+    // object and could accidentally send that code as identity_token, causing backend
+    // jose jwtVerify to throw ERR_JWS_INVALID. Only accept explicit idToken/identityToken
+    // fields as the Apple identity JWT.
+    const explicitIdentityToken =
+      tokenString(response.identityToken) ||
+      tokenString(response.idToken) ||
+      tokenString(response.id_token) ||
+      tokenString(root.identityToken) ||
+      tokenString(root.idToken) ||
+      tokenString(root.id_token) ||
+      tokenString((appleResult as any)?.identityToken) ||
+      tokenString((appleResult as any)?.idToken) ||
+      tokenString((appleResult as any)?.id_token) ||
       "";
 
+    const identityToken = isLikelyJwt(explicitIdentityToken) ? explicitIdentityToken : "";
+
     const authorizationCode =
+      tokenString(response.authorizationCode) ||
+      tokenString(response.authorization_code) ||
+      tokenString(response.code) ||
+      tokenString(response.authCode) ||
+      tokenString(root.authorizationCode) ||
+      tokenString(root.authorization_code) ||
+      tokenString(root.code) ||
+      tokenString(root.authCode) ||
+      tokenString(accessToken?.token) ||
+      tokenString(accessToken) ||
       firstTokenByKeys(appleResult, [
         "authorizationCode",
         "authorization_code",
         "code",
         "authCode",
+        "serverAuthCode",
       ]) || "";
 
-    const email = response.email || root.email || "";
-    const firstName = response.givenName || response.given_name || root.givenName || root.given_name || "";
-    const lastName = response.familyName || response.family_name || root.familyName || root.family_name || "";
-    const appleUserId = response.user || root.user || root.userId || root.user_id || "";
+    const email = response.email || root.email || profile.email || "";
+    const firstName = response.givenName || response.given_name || root.givenName || root.given_name || profile.givenName || profile.given_name || "";
+    const lastName = response.familyName || response.family_name || root.familyName || root.family_name || profile.familyName || profile.family_name || "";
+    const appleUserId = response.user || root.user || root.userId || root.user_id || profile.user || "";
 
     if (!identityToken && !authorizationCode) {
+      console.error("Apple native response missing usable token", appleResult);
       throw new Error("APPLE_CALLBACK_MISSING_CODE");
     }
 
@@ -907,7 +930,11 @@ export function Login() {
 
       const appleResult = await SocialLogin.login({
         provider: "apple",
-        options: {},
+        options: {
+          scopes: ["name", "email"],
+          state,
+          nonce,
+        },
       } as any) as NativeAppleResponse;
 
       await exchangeNativeAppleToken(appleResult, state, nonce);
