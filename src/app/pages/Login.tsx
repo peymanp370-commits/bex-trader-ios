@@ -86,9 +86,15 @@ const initializeNativeSocialLogin = async () => {
           iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
           mode: "online",
         },
-    apple: {
-      clientId: "com.bextrader.web",
-    },
+    // IMPORTANT: iOS native Apple must NOT use the Service ID.
+    // Capgo iOS docs initialize Apple with an empty object and let
+    // AuthenticationServices use the signed app Bundle ID entitlement.
+    apple: isIOS
+      ? {}
+      : {
+          clientId: "com.bextrader.web",
+          redirectUrl: "https://auth.bextrader.com/auth/apple/callback",
+        },
   } as any);
 
   nativeSocialLoginInitialized = true;
@@ -947,11 +953,10 @@ export function Login() {
 
       const appleResult = await SocialLogin.login({
         provider: "apple",
-        options: {
-          scopes: ["email", "name"],
-          state,
-          nonce,
-        },
+        // Keep first iOS native test minimal. Capgo's iOS guide uses options: {}.
+        // The plugin already defaults to fullName/email scopes on iOS, and the
+        // backend does not require nonce validation for /auth/apple/native.
+        options: {},
       } as any) as NativeAppleResponse;
 
       await exchangeNativeAppleToken(appleResult, state, nonce);
