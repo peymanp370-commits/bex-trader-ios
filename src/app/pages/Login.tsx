@@ -86,9 +86,15 @@ const initializeNativeSocialLogin = async () => {
           iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
           mode: "online",
         },
-    apple: {
-      clientId: "com.bextrader.web",
-    },
+    // IMPORTANT: iOS native Apple must NOT use the Service ID.
+    // Capgo iOS docs initialize Apple with an empty object and let
+    // AuthenticationServices use the signed app Bundle ID entitlement.
+    apple: isIOS
+      ? {}
+      : {
+          clientId: "com.bextrader.web",
+          redirectUrl: "https://auth.bextrader.com/auth/apple/callback",
+        },
   } as any);
 
   nativeSocialLoginInitialized = true;
@@ -957,23 +963,29 @@ export function Login() {
     const state = makeOAuthValue("apple_state");
     const nonce = makeOAuthValue("apple_nonce");
 
+    let appleStage = "start";
+
     try {
       // Use ONLY @capgo/capacitor-social-login for Apple on iOS.
       // Do NOT use @capacitor-community/apple-sign-in in this project.
+      appleStage = "initialize";
       await initializeNativeSocialLogin();
 
+      appleStage = "plugin_login";
       const appleResult = await SocialLogin.login({
         provider: "apple",
+        // Request Apple user scopes explicitly. The useful credential may still be
+        // nested under result.accessToken.token / result.idToken, so exchangeNativeAppleToken
+        // always sends raw_apple_result to the Worker as a server-side fallback.
         options: {
           scopes: ["email", "name"],
-          state,
-          nonce,
         },
       } as any) as NativeAppleResponse;
 
+      appleStage = "backend_exchange";
       await exchangeNativeAppleToken(appleResult, state, nonce);
     } catch (err: any) {
-      console.error("Apple native sign-in failed", err);
+      console.error("Apple native sign-in failed at stage:", appleStage, err);
       const rawCode = String(
         err?.message ||
         err?.code ||
@@ -984,17 +996,17 @@ export function Login() {
       const code = rawCode.length > 160 ? rawCode.slice(0, 160) : rawCode;
 
       setError(tx(lang, {
-        en: code.includes("cancel") || code.includes("CANCEL") ? "Apple sign-in was cancelled." : `Apple sign-in failed: ${code}`,
-        fa: code.includes("cancel") || code.includes("CANCEL") ? "ورود با اپل لغو شد." : `ورود با اپل ناموفق بود: ${code}`,
-        ar: code.includes("cancel") || code.includes("CANCEL") ? "تم إلغاء تسجيل الدخول عبر Apple." : `فشل تسجيل الدخول عبر Apple: ${code}`,
-        es: code.includes("cancel") || code.includes("CANCEL") ? "El inicio con Apple fue cancelado." : `Falló el inicio de sesión con Apple: ${code}`,
-        "pt-BR": code.includes("cancel") || code.includes("CANCEL") ? "O login com Apple foi cancelado." : `Falha no login com Apple: ${code}`,
-        hi: code.includes("cancel") || code.includes("CANCEL") ? "Apple साइन-इन रद्द हो गया।" : `Apple लॉगिन विफल रहा: ${code}`,
-        tr: code.includes("cancel") || code.includes("CANCEL") ? "Apple ile giriş iptal edildi." : `Apple ile giriş başarısız oldu: ${code}`,
-        de: code.includes("cancel") || code.includes("CANCEL") ? "Apple-Anmeldung wurde abgebrochen." : `Apple-Anmeldung fehlgeschlagen: ${code}`,
-        fr: code.includes("cancel") || code.includes("CANCEL") ? "La connexion Apple a été annulée." : `La connexion Apple a échoué: ${code}`,
-        zh: code.includes("cancel") || code.includes("CANCEL") ? "Apple 登录已取消。" : `Apple 登录失败: ${code}`,
-        ko: code.includes("cancel") || code.includes("CANCEL") ? "Apple 로그인이 취소되었습니다." : `Apple 로그인이 실패했습니다: ${code}`,
+        en: code.includes("cancel") || code.includes("CANCEL") ? "Apple sign-in was cancelled." : `Apple sign-in failed at ${appleStage}: ${code}`,
+        fa: code.includes("cancel") || code.includes("CANCEL") ? "ورود با اپل لغو شد." : `ورود با اپل ناموفق بود در مرحله ${appleStage}: ${code}`,
+        ar: code.includes("cancel") || code.includes("CANCEL") ? "تم إلغاء تسجيل الدخول عبر Apple." : `فشل تسجيل الدخول عبر Apple في مرحلة ${appleStage}: ${code}`,
+        es: code.includes("cancel") || code.includes("CANCEL") ? "El inicio con Apple fue cancelado." : `Falló el inicio de sesión con Apple en ${appleStage}: ${code}`,
+        "pt-BR": code.includes("cancel") || code.includes("CANCEL") ? "O login com Apple foi cancelado." : `Falha no login com Apple em ${appleStage}: ${code}`,
+        hi: code.includes("cancel") || code.includes("CANCEL") ? "Apple साइन-इन रद्द हो गया।" : `Apple लॉगिन ${appleStage} चरण में विफल रहा: ${code}`,
+        tr: code.includes("cancel") || code.includes("CANCEL") ? "Apple ile giriş iptal edildi." : `Apple ile giriş ${appleStage} aşamasında başarısız oldu: ${code}`,
+        de: code.includes("cancel") || code.includes("CANCEL") ? "Apple-Anmeldung wurde abgebrochen." : `Apple-Anmeldung bei ${appleStage} fehlgeschlagen: ${code}`,
+        fr: code.includes("cancel") || code.includes("CANCEL") ? "La connexion Apple a été annulée." : `La connexion Apple a échoué à ${appleStage}: ${code}`,
+        zh: code.includes("cancel") || code.includes("CANCEL") ? "Apple 登录已取消。" : `Apple 登录在 ${appleStage} 阶段失败: ${code}`,
+        ko: code.includes("cancel") || code.includes("CANCEL") ? "Apple 로그인이 취소되었습니다." : `Apple 로그인이 ${appleStage} 단계에서 실패했습니다: ${code}`,
       }));
     } finally {
       setSocialLoading(null);

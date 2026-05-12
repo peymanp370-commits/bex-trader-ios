@@ -732,22 +732,118 @@ export default {
       if (url.pathname === "/auth/apple/native" && request.method === "POST") {
         const body = await readJson(request);
 
-        // FINAL NATIVE APPLE POLICY:
-        // Native iOS login must authenticate with Apple identity_token only.
-        // Do NOT exchange authorizationCode here. Apple codes are one-time and
-        // were causing invalid_grant / code expired or revoked on repeated native attempts.
-        let identityToken = String(
+        const debugShape = buildAppleNativeDebugShape(body);
+        console.log("[APPLE_NATIVE_BODY_DEBUG]", debugShape);
+
+        // Native iOS Apple can return either an identityToken JWT directly,
+        // or only an authorizationCode. Capgo may nest useful values under:
+        // raw_apple_result.result.idToken or raw_apple_result.result.accessToken.token.
+        // If accessToken.token is JWT, use it as identityToken; otherwise treat it as authorizationCode.
+        const rawApple = body.raw_apple_result || {};
+        const rawRoot = rawApple.result || rawApple || {};
+        const rawResponse = rawRoot.response || rawApple.response || {};
+
+        const explicitIdentityToken = tokenString(
           body.identityToken ||
           body.identity_token ||
           body.idToken ||
           body.id_token ||
-          findAppleJwt(body) ||
+          rawResponse.identityToken ||
+          rawResponse.identity_token ||
+          rawResponse.idToken ||
+          rawResponse.id_token ||
+          rawRoot.identityToken ||
+          rawRoot.identity_token ||
+          rawRoot.idToken ||
+          rawRoot.id_token ||
+          rawRoot.idToken?.token ||
+          rawRoot.accessToken?.idToken ||
+          rawRoot.accessToken?.identityToken ||
           ""
-        ).trim();
+        );
+
+        const rawAccessToken = tokenString(
+          body.accessToken ||
+          body.access_token ||
+          rawRoot.accessToken ||
+          rawRoot.accessToken?.token ||
+          rawResponse.accessToken ||
+          rawResponse.accessToken?.token ||
+          ""
+        );
+
+        let identityToken = looksLikeCompactJwt(explicitIdentityToken) ? explicitIdentityToken : "";
+
+        let authorizationCode = tokenString(
+          body.authorizationCode ||
+          body.authorization_code ||
+          body.code ||
+          body.authCode ||
+          rawResponse.authorizationCode ||
+          rawResponse.authorization_code ||
+          rawResponse.code ||
+          rawResponse.authCode ||
+          rawRoot.authorizationCode ||
+          rawRoot.authorization_code ||
+          rawRoot.code ||
+          rawRoot.authCode ||
+          ""
+        );
+
+        if (!identityToken && rawAccessToken && looksLikeCompactJwt(rawAccessToken)) {
+          identityToken = rawAccessToken;
+        }
+
+        if (!authorizationCode && rawAccessToken && !looksLikeCompactJwt(rawAccessToken)) {
+          authorizationCode = rawAccessToken;
+        }
+
+        if (!authorizationCode) {
+          authorizationCode = findAppleAuthorizationCode(rawApple || body);
+        }
+
+        console.log("[APPLE_NATIVE_TOKEN_PICK]", {
+          has_identity_token: !!identityToken,
+          identity_token_len: identityToken.length,
+          has_authorization_code: !!authorizationCode,
+          authorization_code_len: authorizationCode.length,
+          raw_access_token_len: rawAccessToken.length,
+          raw_access_token_is_jwt: looksLikeCompactJwt(rawAccessToken),
+          raw_root_keys: rawRoot && typeof rawRoot === "object" ? Object.keys(rawRoot) : []
+        });
+
+        if (!identityToken && authorizationCode) {
+          try {
+            const exchanged = await exchangeAppleNativeAuthorizationCode(env, authorizationCode);
+            identityToken = String(exchanged?.tokenData?.id_token || "").trim();
+          } catch (err) {
+            console.error("[APPLE_NATIVE_CODE_EXCHANGE_FAILED]", {
+              message: err?.message || String(err),
+              code: err?.code || null,
+              detail: err?.detail || null,
+              debugShape
+            });
+            return fail(
+              request,
+              401,
+              err?.code || "APPLE_NATIVE_CODE_EXCHANGE_FAILED",
+              err?.message || "Apple native authorization code exchange failed",
+              { detail: err?.detail || null, apple_debug: debugShape }
+            );
+          }
+        }
 
         if (!looksLikeCompactJwt(identityToken)) {
           return fail(request, 400, "APPLE_NATIVE_IDENTITY_TOKEN_MISSING", "Apple native sign-in did not return a valid identity token", {
-            received_keys: Object.keys(body || {})
+            received_keys: Object.keys(body || {}),
+            raw_root_keys: rawRoot && typeof rawRoot === "object" ? Object.keys(rawRoot) : [],
+            has_explicit_identity_token: !!explicitIdentityToken,
+            explicit_identity_token_len: explicitIdentityToken.length,
+            has_raw_access_token: !!rawAccessToken,
+            raw_access_token_len: rawAccessToken.length,
+            raw_access_token_is_jwt: looksLikeCompactJwt(rawAccessToken),
+            has_authorization_code: !!authorizationCode,
+            apple_debug: debugShape
           });
         }
 
@@ -755,7 +851,7 @@ export default {
         try {
           claims = await verifyAppleNativeIdToken(identityToken, env);
         } catch (err) {
-          return fail(request, 401, err?.code || "APPLE_ID_TOKEN_INVALID", err?.message || "Apple identity token is invalid");
+          return fail(request, 401, err?.code || "APPLE_ID_TOKEN_INVALID", err?.message || "Apple identity token is invalid", { apple_debug: debugShape });
         }
 
         const submittedUser = typeof body.user === "string"
@@ -1763,6 +1859,109 @@ async function verifyAppleIdToken(idToken, env, expectedNonce) {
   return payload;
 }
 
+
+
+function looksLikeCompactJwt(value) {
+  const s = String(value || "").trim();
+  return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(s);
+}
+
+function tokenString(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value?.token === "string") return value.token.trim();
+  if (typeof value?.value === "string") return value.value.trim();
+  if (typeof value?.raw === "string") return value.raw.trim();
+  if (typeof value?.jwt === "string") return value.jwt.trim();
+  if (typeof value?.idToken === "string") return value.idToken.trim();
+  if (typeof value?.id_token === "string") return value.id_token.trim();
+  if (typeof value?.identityToken === "string") return value.identityToken.trim();
+  if (typeof value?.identity_token === "string") return value.identity_token.trim();
+  if (typeof value?.authorizationCode === "string") return value.authorizationCode.trim();
+  if (typeof value?.authorization_code === "string") return value.authorization_code.trim();
+  if (typeof value?.code === "string") return value.code.trim();
+  if (typeof value?.authCode === "string") return value.authCode.trim();
+  return "";
+}
+
+function findAppleAuthorizationCode(value, depth = 0) {
+  if (!value || depth > 8) return "";
+
+  if (typeof value === "string") {
+    const s = value.trim();
+    return s && !looksLikeCompactJwt(s) ? s : "";
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findAppleAuthorizationCode(item, depth + 1);
+      if (found) return found;
+    }
+    return "";
+  }
+
+  if (typeof value === "object") {
+    const preferredKeys = [
+      "authorizationCode",
+      "authorization_code",
+      "code",
+      "authCode",
+      "serverAuthCode"
+    ];
+
+    for (const key of preferredKeys) {
+      const v = tokenString(value[key]);
+      if (v && !looksLikeCompactJwt(v)) return v;
+    }
+
+    // @capgo/capacitor-social-login may put Apple's authorization code in accessToken.token.
+    const accessTokenValue = tokenString(value.accessToken);
+    if (accessTokenValue && !looksLikeCompactJwt(accessTokenValue)) return accessTokenValue;
+    const nestedAccessTokenValue = tokenString(value?.result?.accessToken) || tokenString(value?.response?.accessToken);
+    if (nestedAccessTokenValue && !looksLikeCompactJwt(nestedAccessTokenValue)) return nestedAccessTokenValue;
+
+    const preferredContainers = ["response", "result", "credential", "profile", "raw", "raw_apple_result"];
+    for (const key of preferredContainers) {
+      if (key in value) {
+        const found = findAppleAuthorizationCode(value[key], depth + 1);
+        if (found) return found;
+      }
+    }
+  }
+
+  return "";
+}
+
+function buildAppleNativeDebugShape(body) {
+  const raw = body?.raw_apple_result || null;
+  const root = raw?.result || raw || {};
+  const response = root?.response || raw?.response || {};
+  const accessToken = root?.accessToken || response?.accessToken || raw?.accessToken || null;
+
+  const explicitIdentity = String(
+    body?.identityToken || body?.identity_token || body?.idToken || body?.id_token || ""
+  );
+  const explicitCode = String(
+    body?.authorizationCode || body?.authorization_code || body?.code || body?.authCode || ""
+  );
+  const discoveredCode = findAppleAuthorizationCode(raw || body || {});
+
+  return {
+    top_keys: Object.keys(body || {}),
+    has_explicit_identity_token: !!explicitIdentity,
+    explicit_identity_token_len: explicitIdentity.length,
+    has_explicit_authorization_code: !!explicitCode,
+    explicit_authorization_code_len: explicitCode.length,
+    has_discovered_authorization_code: !!discoveredCode,
+    discovered_authorization_code_len: discoveredCode.length,
+    raw_result_keys: raw && typeof raw === "object" ? Object.keys(raw) : [],
+    raw_root_keys: root && typeof root === "object" ? Object.keys(root) : [],
+    raw_response_keys: response && typeof response === "object" ? Object.keys(response) : [],
+    access_token_type: typeof accessToken,
+    access_token_keys: accessToken && typeof accessToken === "object" ? Object.keys(accessToken) : [],
+    access_token_string_len: tokenString(accessToken).length
+  };
+}
 
 function getAppleNativeAudiences(env) {
   const out = [];
