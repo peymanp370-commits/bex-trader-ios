@@ -79,7 +79,7 @@ export function Welcome() {
         </div>
 
         <div className="mb-8">
-          <img src={logoImage} alt="BEX" className="w-36 h-36 mx-auto rounded-3xl shadow-2xl" />
+          <img src={logoImage} alt="BEX" className="mx-auto h-28 w-52 object-contain drop-shadow-2xl" />
         </div>
 
         <h1 className="text-3xl font-bold mb-4">{tr(lang, "Stay Updated", "به‌روز بمان", "ابقَ على اطلاع")}</h1>

@@ -1359,7 +1359,7 @@ export function Stats() {
     >
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
 <AppHeader
-        title="BEX Public Stats"
+        title="Stats"
         subtitle="Public system performance"
         darkMode={darkMode}
         onMenuClick={() => setShowMenu(true)}

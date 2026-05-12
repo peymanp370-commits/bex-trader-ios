@@ -111,7 +111,7 @@ export function Tools() {
   return (
     <div className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}>
 <AppHeader
-        title={tr(lang, "Trading Tools", "ابزارهای معاملاتی", "أدوات التداول")}
+        title={tr(lang, "Tools", "ابزارها", "الأدوات")}
         subtitle={tr(lang, "Fast calculators for risk and position planning", "محاسبه سریع ریسک و حجم معامله", "حاسبات سريعة للمخاطر وحجم الصفقة")}
         darkMode={darkMode}
         onBackClick={() => navigate(-1)}

@@ -1222,7 +1222,7 @@ export function Login() {
           <img
             src={logoImage}
             alt="BEX"
-            className="w-24 h-24 mx-auto mb-4 rounded-2xl shadow-lg"
+            className="mx-auto mb-4 h-24 w-44 object-contain drop-shadow-xl"
           />
           <h1 className="text-3xl font-bold mb-2">
             {title === "welcome_back"

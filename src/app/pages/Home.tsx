@@ -745,14 +745,9 @@ export function Home() {
     <div className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-8`}>
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
 
-      {mobilePushHint && (
-        <div className="mx-4 mt-4 rounded-xl border border-yellow-500/40 bg-yellow-500/15 px-4 py-3 text-sm text-yellow-200">
-          {mobilePushHint}
-        </div>
-      )}
 <AppHeader
-        title="BEX AI"
-        subtitle={tr(lang, "GOLD TRADER", "معامله‌گر طلا", "متداول الذهب")}
+        title={tr(lang, "Home", "خانه", "الرئيسية")}
+        subtitle={tr(lang, "BEX Trader", "معامله‌گر BEX", "متداول BEX")}
         darkMode={darkMode}
         onMenuClick={() => setShowMenu(true)}
         onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem("darkMode", JSON.stringify(next)); window.dispatchEvent(new Event("themeChange")); }}
@@ -765,6 +760,12 @@ export function Home() {
           />
         }
       />
+
+      {mobilePushHint && (
+        <div className="mx-4 mt-3 rounded-xl border border-yellow-500/40 bg-yellow-500/15 px-4 py-3 text-sm text-yellow-200">
+          {mobilePushHint}
+        </div>
+      )}
 
       <div className="px-4 pt-3 space-y-3 max-w-7xl mx-auto">
         <div className={`${darkMode ? "bg-[#1a2332]" : "bg-gray-100"} rounded-lg p-2 flex items-center justify-between`}>
