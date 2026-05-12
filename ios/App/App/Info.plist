@@ -41,7 +41,10 @@
 			<array>
 				<string>bextrader</string>
 			</array>
-		</dict>
+		
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+</dict>
 		<dict>
 			<key>CFBundleURLName</key>
 			<string>Google Sign-In</string>
@@ -49,7 +52,10 @@
 			<array>
 				<string>com.googleusercontent.apps.50746359348-j196c7embvnelnj7rfm2s35vdgbthvv6</string>
 			</array>
-		</dict>
+		
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+</dict>
 	</array>
 
 	<key>LSApplicationQueriesSchemes</key>
@@ -99,8 +105,8 @@
 
 	<key>UIStatusBarHidden</key>
 	<false/>
+
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-
 </dict>
 </plist>

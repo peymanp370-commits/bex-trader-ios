@@ -37,11 +37,8 @@ export const router = createBrowserRouter([
       { path: "reset-password", element: <ResetPassword /> },
       { path: "welcome", element: <Welcome /> },
       { path: "age-verification", element: <AgeVerification /> },
-
-      // Public legal pages used from Login/Register.
       { path: "terms", element: <Terms /> },
       { path: "privacy", element: <Privacy /> },
-
       {
         path: "app",
         element: (
@@ -63,8 +60,6 @@ export const router = createBrowserRouter([
           { path: "settings-detail", element: <SettingsDetail /> },
           { path: "results", element: <Results /> },
           { path: "chart", element: <Chart /> },
-
-          // App-internal legal pages used from Settings/Menu.
           { path: "terms", element: <Terms /> },
           { path: "privacy", element: <Privacy /> },
         ],
