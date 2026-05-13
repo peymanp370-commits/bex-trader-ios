@@ -6,6 +6,7 @@ import { Browser } from "@capacitor/browser";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Eye, EyeOff } from "lucide-react";
 import logoImage from "../../assets/bex-brand-logo.png";
+import { clearLocalAuthState } from "../utils/api";
 
 const AUTH_BASE =
   import.meta.env.VITE_API_URL || "https://auth.bextrader.com";
@@ -14,6 +15,28 @@ const HISTORY_BASE =
   import.meta.env.VITE_MT5_HISTORY_API_URL ||
   import.meta.env.VITE_HISTORY_API_URL ||
   "https://bex-mt5-history-ingest.peymanp370.workers.dev";
+
+async function clearServerAuthSession() {
+  await Promise.allSettled([
+    fetch(`${AUTH_BASE}/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      headers: { accept: "application/json" },
+    }),
+    fetch(`${AUTH_BASE}/auth/logout-all`, {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      headers: { accept: "application/json" },
+    }),
+  ]);
+}
+
+async function resetAuthForFreshSignIn() {
+  clearLocalAuthState();
+  await clearServerAuthSession();
+}
 
 
 type NativeAppleResponse = {
@@ -778,6 +801,8 @@ export function Login() {
     setError("");
 
     try {
+      await resetAuthForFreshSignIn();
+
       const result = await loginUser({
         identity: cleanIdentity,
         password,
@@ -823,12 +848,7 @@ export function Login() {
   };
 
   const clearStoredAuthUser = () => {
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userFirstName");
-    localStorage.removeItem("userLastName");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userPlan");
-    window.dispatchEvent(new Event("storage"));
+    clearLocalAuthState();
   };
 
   const exchangeNativeAppleToken = async (appleResult: NativeAppleResponse, state: string, nonce: string) => {
@@ -958,7 +978,8 @@ export function Login() {
   const handleNativeAppleSignIn = async () => {
     setError("");
     setSocialLoading("apple");
-    clearStoredAuthUser();
+
+    await resetAuthForFreshSignIn();
 
     const state = makeOAuthValue("apple_state");
     const nonce = makeOAuthValue("apple_nonce");
@@ -1097,9 +1118,9 @@ export function Login() {
   const handleNativeGoogleSignIn = async () => {
     setError("");
     setSocialLoading("google");
-    clearStoredAuthUser();
 
     try {
+      await resetAuthForFreshSignIn();
       await initializeNativeSocialLogin();
 
       try {
@@ -1146,11 +1167,17 @@ export function Login() {
 
     setError("");
     setSocialLoading(provider);
-    clearStoredAuthUser();
+    await resetAuthForFreshSignIn();
 
     const authUrl = new URL(`${AUTH_BASE}/auth/${provider}/start`);
     const platform = Capacitor.isNativePlatform() ? Capacitor.getPlatform() : "web";
-    authUrl.searchParams.set("platform", platform === "ios" ? "ios" : platform === "android" ? "android" : "web");
+    const normalizedPlatform = platform === "ios" ? "ios" : platform === "android" ? "android" : "web";
+    authUrl.searchParams.set("platform", normalizedPlatform);
+    authUrl.searchParams.set("fresh", "1");
+    authUrl.searchParams.set("ts", String(Date.now()));
+    if (provider === "google") {
+      authUrl.searchParams.set("prompt", "select_account");
+    }
     const url = authUrl.toString();
 
     try {

@@ -4,21 +4,11 @@ import logoImage from "../../assets/bex-brand-logo.png";
 import { LANGUAGE_OPTIONS, tr } from "../utils/i18n";
 import { useLangState } from "../store/useLang";
 import { enableBexPushNotifications, registerBexServiceWorker } from "../utils/push";
-
-const AUTH_BASE = import.meta.env.VITE_API_URL || "https://auth.bextrader.com";
+import { getCurrentUser } from "../utils/api";
 
 async function hasActiveBexSession() {
-  try {
-    const res = await fetch(`${AUTH_BASE}/auth/me`, {
-      method: "GET",
-      credentials: "include",
-      headers: { accept: "application/json" },
-    });
-    const data = await res.json().catch(() => ({}));
-    return !!res.ok && !!data?.user;
-  } catch {
-    return false;
-  }
+  const result = await getCurrentUser();
+  return !!result?.ok && !!result?.user;
 }
 
 export function Welcome() {

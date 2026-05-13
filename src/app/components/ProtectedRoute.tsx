@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getCurrentUser, getStoredRefreshToken } from "../utils/api";
+import { clearLocalAuthState, getCurrentUser } from "../utils/api";
 
 type ProtectedRouteProps = {
   children: React.ReactNode;
@@ -8,27 +8,6 @@ type ProtectedRouteProps = {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-
-function getCachedBexUser() {
-  try {
-    const raw = localStorage.getItem("bex_user") || localStorage.getItem("authUser") || localStorage.getItem("user");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") return parsed;
-    }
-  } catch {}
-
-  const email = localStorage.getItem("userEmail") || "";
-  if (!email) return null;
-  return {
-    email,
-    first_name: localStorage.getItem("userFirstName") || "",
-    last_name: localStorage.getItem("userLastName") || "",
-    plan: localStorage.getItem("userPlan") || "free",
-    timezone: localStorage.getItem("userTimezone") || "America/Toronto",
-    country: localStorage.getItem("userCountry") || "Unknown",
-  };
-}
 
 function saveBexUser(user: any) {
   const displayName =
@@ -85,26 +64,17 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           if (i < attempts - 1) await delay(350 + i * 250);
         }
 
-        const cachedUser = getCachedBexUser();
-        if (mounted && getStoredRefreshToken() && cachedUser) {
-          saveBexUser(cachedUser);
-          setAuthorized(true);
-          setLoading(false);
-          return;
-        }
+        // Do not authorize from localStorage-only cache. The server/session check
+        // must be valid, otherwise Android/Web can get stuck with an old user.
+        clearLocalAuthState();
 
         if (mounted) {
           setAuthorized(false);
           setLoading(false);
         }
       } catch {
-        const cachedUser = getCachedBexUser();
-        if (mounted && getStoredRefreshToken() && cachedUser) {
-          saveBexUser(cachedUser);
-          setAuthorized(true);
-          setLoading(false);
-          return;
-        }
+        // Network/auth failure must not fall back to a stale cached user.
+        clearLocalAuthState();
 
         if (mounted) {
           setAuthorized(false);
