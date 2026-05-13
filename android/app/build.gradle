@@ -1,0 +1,127 @@
+/*
+ * BEX Trader - app/build.gradle
+ * FIXED: Signed Google Play AAB + TWA Google Play Billing / Digital Goods support.
+ * Keep this file private because it contains keystore passwords.
+ */
+
+plugins {
+    id 'com.android.application'
+}
+
+def twaManifest = [
+    applicationId: 'com.bextrader.app',
+    providerAuthority: 'com.bextrader.app.fileprovider',
+    hostName: 'bextrader.com',
+    launchUrl: '/app',
+    name: 'BEX Trader',
+    launcherName: 'BEX Trader',
+    themeColor: '#05070D',
+    themeColorDark: '#05070D',
+    navigationColor: '#05070D',
+    navigationColorDark: '#05070D',
+    navigationDividerColor: '#05070D',
+    navigationDividerColorDark: '#05070D',
+    backgroundColor: '#05070D',
+    enableNotifications: true,
+    shortcuts: [],
+    splashScreenFadeOutDuration: 300,
+    generatorApp: 'bubblewrap-cli',
+    fallbackType: 'customtabs',
+    enableSiteSettingsShortcut: true,
+    orientation: 'portrait',
+    webManifestUrl: 'https://bextrader.com/manifest.json',
+    fullScopeUrl: 'https://bextrader.com/'
+]
+
+android {
+    namespace "com.bextrader.app"
+    compileSdkVersion 35
+
+    defaultConfig {
+        applicationId "com.bextrader.app"
+        minSdkVersion 21
+        targetSdkVersion 35
+
+        // Increase this every time you upload a new AAB to Google Play.
+        versionCode 7
+        versionName "1.0.6"
+
+        // Main TWA values
+        resValue "string", "appName", twaManifest.name
+        resValue "string", "launcherName", twaManifest.launcherName
+        resValue "string", "launchUrl", "https://${twaManifest.hostName}${twaManifest.launchUrl}"
+        resValue "string", "hostName", twaManifest.hostName
+        resValue "string", "providerAuthority", twaManifest.providerAuthority
+        resValue "string", "webManifestUrl", twaManifest.webManifestUrl
+        resValue "string", "fullScopeUrl", twaManifest.fullScopeUrl
+
+        // Colors
+        resValue "color", "colorPrimary", twaManifest.themeColor
+        resValue "color", "colorPrimaryDark", twaManifest.themeColorDark
+        resValue "color", "navigationColor", twaManifest.navigationColor
+        resValue "color", "navigationColorDark", twaManifest.navigationColorDark
+        resValue "color", "navigationDividerColor", twaManifest.navigationDividerColor
+        resValue "color", "navigationDividerColorDark", twaManifest.navigationDividerColorDark
+        resValue "color", "backgroundColor", twaManifest.backgroundColor
+
+        // Bubblewrap / Android Browser Helper options
+        resValue "integer", "splashScreenFadeOutDuration", "${twaManifest.splashScreenFadeOutDuration}"
+        resValue "string", "generatorApp", twaManifest.generatorApp
+        resValue "string", "fallbackType", twaManifest.fallbackType
+        resValue "string", "orientation", twaManifest.orientation
+
+        // Some Bubblewrap templates reference @bool/enableNotification (singular),
+        // while newer configs may use enableNotifications (plural). Keep BOTH.
+        resValue "bool", "enableNotification", "${twaManifest.enableNotifications}"
+        resValue "bool", "enableNotifications", "${twaManifest.enableNotifications}"
+
+        resValue "bool", "enableSiteSettingsShortcut", "${twaManifest.enableSiteSettingsShortcut}"
+
+        // Manifest placeholders used by Bubblewrap-generated AndroidManifest.xml
+        manifestPlaceholders = [
+            hostName: twaManifest.hostName,
+            providerAuthority: twaManifest.providerAuthority,
+            defaultUrl: "https://${twaManifest.hostName}${twaManifest.launchUrl}",
+            launcherName: twaManifest.launcherName,
+            assetStatements: "[]",
+            webManifestUrl: twaManifest.webManifestUrl,
+            fullScopeUrl: twaManifest.fullScopeUrl,
+            splashScreenFadeOutDuration: "${twaManifest.splashScreenFadeOutDuration}",
+            enableNotification: "${twaManifest.enableNotifications}",
+            enableNotifications: "${twaManifest.enableNotifications}",
+            fallbackType: twaManifest.fallbackType,
+            orientation: twaManifest.orientation
+        ]
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("C:\\Users\\peyma\\Desktop\\BEX-Android\\android.keystore")
+            storePassword "BexTrader@2026#KeepSafe"
+            keyAlias "bextrader"
+            keyPassword "BexTrader@2026#KeepSafe"
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+
+            // Keep false for now to avoid ProGuard/R8 deobfuscation issues during Play testing.
+            minifyEnabled false
+            shrinkResources false
+        }
+
+        debug {
+            minifyEnabled false
+        }
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+
+    // Required for TWA Digital Goods API + Google Play Billing popup.
+    // This is the Android Browser Helper billing module updated for modern Play Billing.
+    implementation 'com.google.androidbrowserhelper:billing:1.1.0'
+}
