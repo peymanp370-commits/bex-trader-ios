@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router";
 import { useState, useEffect } from "react";
 import { SideMenu } from "../components/SideMenu";
 import { BottomNav } from "../components/BottomNav";
-import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
+import logoImage from "../../assets/bex-brand-logo.png";
 import { fetchSignal, fetchChart, SignalResponse, ChartResponse, Candle } from "../utils/api";
 import { CandlestickChart } from "../components/CandlestickChart";
 
@@ -167,7 +167,7 @@ export function Signal() {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-3">
-            <img src={logoImage} alt="BEX AI" className="h-16 md:h-20" />
+            <img src={logoImage} alt="BEX AI" className="h-[58px] w-[130px] object-contain object-center md:h-[72px] md:w-[160px]" />
             <div>
               <h1 className="font-bold text-lg md:text-xl leading-tight">BEX AI</h1>
               <p className={`text-xs md:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"} leading-tight`}>GOLD TRADER</p>

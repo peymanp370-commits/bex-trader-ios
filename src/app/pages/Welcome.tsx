@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
+import logoImage from "../../assets/bex-brand-logo.png";
 import { LANGUAGE_OPTIONS, tr } from "../utils/i18n";
 import { useLangState } from "../store/useLang";
 import { enableBexPushNotifications, registerBexServiceWorker } from "../utils/push";
@@ -79,7 +79,7 @@ export function Welcome() {
         </div>
 
         <div className="mb-8">
-          <img src={logoImage} alt="BEX" className="mx-auto h-28 w-52 object-contain drop-shadow-2xl" />
+          <img src={logoImage} alt="BEX" className="mx-auto h-[116px] w-[210px] object-contain object-center" />
         </div>
 
         <h1 className="text-3xl font-bold mb-4">{tr(lang, "Stay Updated", "به‌روز بمان", "ابقَ على اطلاع")}</h1>

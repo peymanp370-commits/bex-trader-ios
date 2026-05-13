@@ -1,7 +1,7 @@
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Eye, EyeOff, Globe2 } from "lucide-react";
-import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
+import logoImage from "../../assets/bex-brand-logo.png";
 import { getLanguage, markRTL } from "../utils/i18n";
 
 const AUTH_BASE =
@@ -440,7 +440,7 @@ export function ResetPassword() {
           <img
             src={logoImage}
             alt="BEX"
-            className="w-24 h-24 mx-auto mb-4 rounded-2xl shadow-lg"
+            className="mx-auto mb-4 h-[96px] w-[180px] object-contain object-center"
           />
           <h1 className="text-3xl font-bold mb-2">{tt(lang, TEXT.title)}</h1>
           <p className="text-gray-400">{tt(lang, TEXT.subtitle)}</p>

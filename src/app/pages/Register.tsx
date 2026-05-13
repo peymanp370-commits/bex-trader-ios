@@ -1,7 +1,7 @@
 import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
+import logoImage from "../../assets/bex-brand-logo.png";
 import { getLanguage, setLanguage, tr } from "../utils/i18n";
 
 const AUTH_BASE =
@@ -366,7 +366,7 @@ export function Register() {
           <img
             src={logoImage}
             alt="BEX"
-            className="mx-auto mb-4 h-24 w-44 object-contain drop-shadow-xl"
+            className="mx-auto mb-4 h-[96px] w-[180px] object-contain object-center"
           />
           <h1 className="text-3xl font-bold mb-2">
             {tr(lang, {

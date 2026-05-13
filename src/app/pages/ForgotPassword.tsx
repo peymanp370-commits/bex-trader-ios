@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { getLanguage, tr, markRTL } from "../utils/i18n";
-import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
+import logoImage from "../../assets/bex-brand-logo.png";
 
 
  const AUTH_BASE = "https://auth.bextrader.com";
@@ -61,7 +61,7 @@ export function ForgotPassword() {
           <img
             src={logoImage}
             alt="BEX"
-            className="w-24 h-24 mx-auto mb-4 rounded-2xl shadow-lg"
+            className="mx-auto mb-4 h-[96px] w-[180px] object-contain object-center"
           />
           <h1 className="text-3xl font-bold mb-2">{tr(lang, "Forgot Password", "فراموشی رمز عبور", "نسيت كلمة المرور")}</h1>
           <p className="text-gray-400">

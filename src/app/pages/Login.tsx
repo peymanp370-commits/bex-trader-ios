@@ -5,7 +5,7 @@ import { SocialLogin } from "@capgo/capacitor-social-login";
 import { Browser } from "@capacitor/browser";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Eye, EyeOff } from "lucide-react";
-import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
+import logoImage from "../../assets/bex-brand-logo.png";
 
 const AUTH_BASE =
   import.meta.env.VITE_API_URL || "https://auth.bextrader.com";
@@ -1222,7 +1222,7 @@ export function Login() {
           <img
             src={logoImage}
             alt="BEX"
-            className="mx-auto mb-4 h-24 w-44 object-contain drop-shadow-xl"
+            className="mx-auto mb-4 h-[96px] w-[180px] object-contain object-center"
           />
           <h1 className="text-3xl font-bold mb-2">
             {title === "welcome_back"

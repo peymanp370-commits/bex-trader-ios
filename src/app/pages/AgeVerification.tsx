@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
+import logoImage from "../../assets/bex-brand-logo.png";
 import { getLanguage, tr, type Lang } from "../utils/i18n";
 
 export function AgeVerification() {
@@ -59,7 +59,7 @@ export function AgeVerification() {
           <img
             src={logoImage}
             alt="BEX"
-            className="w-32 h-32 mx-auto mb-4 rounded-3xl shadow-2xl"
+            className="mx-auto mb-4 h-[110px] w-[190px] object-contain object-center"
           />
         </div>
 

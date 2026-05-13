@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { ArrowLeft, Menu, Moon, Settings, Sun, UserCircle } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import bexLogoTransparent from "../../assets/bex-logo-transparent.png";
+import bexLogoTransparent from "../../assets/bex-brand-logo.png";
 
 type AppHeaderProps = {
   title: string;
@@ -53,27 +53,6 @@ function toggleStoredDarkMode(current: boolean) {
   return next;
 }
 
-function normalizeTitle(title: string) {
-  const t = String(title || "").trim();
-  if (!t) return "BEX";
-  if (/^bex\s+public\s+stats$/i.test(t)) return "Stats";
-  if (/^vip\s+plans$/i.test(t)) return "VIP";
-  if (/^trading\s+tools$/i.test(t)) return "Tools";
-  if (/^bex\s+ai$/i.test(t)) return "Settings";
-  return t;
-}
-
-function compactSubtitle(value?: string) {
-  const s = String(value || "").trim();
-  if (!s) return "";
-  if (/public system performance/i.test(s)) return "Public performance";
-  if (/fast calculators/i.test(s)) return "Risk calculators";
-  if (/live market data/i.test(s)) return "Live market";
-  if (/gold trader|bex ai gold trader/i.test(s)) return "BEX Trader";
-  if (/personal/i.test(s) && /trading/i.test(s)) return "My MT5 stats";
-  return s;
-}
-
 export function AppHeader({
   title,
   subtitle,
@@ -95,9 +74,7 @@ export function AppHeader({
   const isSettingsPage = location.pathname.includes("/settings");
   const darkMode = typeof darkModeProp === "boolean" ? darkModeProp : readDarkMode(true);
   const savedName = userName || readStoredName();
-  const displayTitle = normalizeTitle(title);
-  const displaySubtitle = compactSubtitle(subtitle);
-  const iconButton = `${darkMode ? "hover:bg-[#1a2332] text-white" : "hover:bg-gray-100 text-gray-900"} flex h-9 w-9 items-center justify-center rounded-xl transition-colors`;
+  const iconButton = `${darkMode ? "hover:bg-[#1a2332] text-white" : "hover:bg-gray-100 text-gray-900"} p-2 rounded-xl transition-colors`;
 
   const doBack = () => {
     if (onBackClick) return onBackClick();
@@ -112,10 +89,10 @@ export function AppHeader({
 
   return (
     <header
-      className={`${darkMode ? "bg-[#0f1623] border-gray-900/60 text-white" : "bg-white border-gray-100 text-gray-950"} sticky top-0 z-40 w-full max-w-[100vw] overflow-hidden border-b px-4 pb-3`}
-      style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
+      className={`${darkMode ? "bg-[#0f1623] border-gray-900/60 text-white" : "bg-white border-gray-100 text-gray-950"} sticky top-0 z-40 border-b px-4 pb-3 overflow-hidden`}
+      style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 1.65rem)" }}
     >
-      <div className="mx-auto grid min-h-[76px] w-full max-w-7xl grid-cols-[38px_102px_minmax(0,1fr)_76px] items-center gap-x-2 sm:grid-cols-[42px_128px_minmax(0,1fr)_84px] sm:gap-x-3">
+      <div className="mx-auto grid min-h-[90px] max-w-7xl grid-cols-[38px_134px_minmax(0,1fr)_86px] items-center gap-2 overflow-hidden sm:grid-cols-[44px_150px_minmax(0,1fr)_96px]">
         <div className="flex h-full items-center justify-center">
           {showBack || onBackClick || backTo ? (
             <button type="button" onClick={doBack} className={iconButton} aria-label="Back">
@@ -126,38 +103,32 @@ export function AppHeader({
               <Menu className="h-5 w-5" />
             </button>
           ) : (
-            <div className="h-9 w-9 shrink-0" />
+            <div className="w-9 shrink-0" />
           )}
         </div>
 
-        <div className="flex min-w-0 items-center justify-start overflow-visible">
-          <img
-            src={bexLogoTransparent}
-            alt="BEX Trader"
-            className="h-[68px] w-[102px] shrink-0 object-contain object-left sm:h-[78px] sm:w-[128px]"
-            draggable={false}
-          />
-        </div>
+        <img
+          src={bexLogoTransparent}
+          alt="BEX Trader"
+          className="h-[74px] w-[134px] shrink-0 object-contain object-center sm:h-[82px] sm:w-[150px]"
+        />
 
-        <div className="min-w-0 overflow-hidden px-1">
+        <div className="min-w-0 overflow-hidden">
           <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-            <h1 className="min-w-0 truncate text-[28px] font-extrabold leading-none tracking-[-0.02em] sm:text-[32px]">
-              {displayTitle}
-            </h1>
-            {badge ? <div className="hidden shrink-0 min-[430px]:block">{badge}</div> : null}
+            <h1 className="min-w-0 truncate text-[30px] font-extrabold leading-none tracking-[-0.02em] sm:text-4xl">{title}</h1>
+            {badge ? <div className="hidden shrink-0 sm:block">{badge}</div> : null}
           </div>
-          <div className={`mt-2 flex min-w-0 items-center gap-2 overflow-hidden text-[13px] font-semibold sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-            {displaySubtitle ? <span className="hidden min-w-0 truncate min-[430px]:inline">{displaySubtitle}</span> : null}
+          <div className={`mt-2 flex min-w-0 items-center gap-x-2 overflow-hidden text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+            {subtitle ? <span className="hidden max-w-[110px] truncate sm:inline">{subtitle}</span> : null}
             {showUser && savedName ? (
-              <Link to="/app/account" className="inline-flex min-w-0 items-center gap-1 overflow-hidden hover:underline">
-                <UserCircle className="h-3.5 w-3.5 shrink-0" />
-                <span className="min-w-0 truncate">{savedName}</span>
+              <Link to="/app/account" className="inline-flex min-w-0 items-center gap-1 truncate font-semibold hover:underline">
+                <UserCircle className="h-4 w-4 shrink-0" /> <span className="truncate">{savedName}</span>
               </Link>
             ) : null}
           </div>
         </div>
 
-        <div className="flex min-w-0 shrink-0 items-center justify-end gap-1">
+        <div className="flex shrink-0 items-center justify-end gap-1.5 overflow-hidden">
           {showThemeToggle && !isSettingsPage ? (
             <button type="button" onClick={doTheme} className={iconButton} aria-label="Toggle theme">
               {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}

@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import logoImage from "../../assets/67578b6bc0297a415f1729364a3db485950c0551.png";
+import logoImage from "../../assets/bex-brand-logo.png";
 
 export function VerifyEmail() {
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ export function VerifyEmail() {
         <img
           src={logoImage}
           alt="BEX"
-          className="w-24 h-24 mx-auto mb-4 rounded-2xl shadow-lg"
+          className="mx-auto mb-4 h-[96px] w-[180px] object-contain object-center"
         />
 
         <h1 className="text-3xl font-bold mb-3">Verification Not Required</h1>
