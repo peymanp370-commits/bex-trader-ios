@@ -742,12 +742,12 @@ export function Home() {
   };
 
   return (
-    <div className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-8`}>
+    <div className={`min-h-screen w-full max-w-full overflow-x-hidden ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-8`}>
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
 
 <AppHeader
         title={tr(lang, "Home", "خانه", "الرئيسية")}
-        subtitle="BEX Trader"
+        subtitle={tr(lang, "BEX Trader", "معامله‌گر BEX", "متداول BEX")}
         darkMode={darkMode}
         onMenuClick={() => setShowMenu(true)}
         onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem("darkMode", JSON.stringify(next)); window.dispatchEvent(new Event("themeChange")); }}
@@ -767,7 +767,7 @@ export function Home() {
         </div>
       )}
 
-      <div className="px-4 pt-3 space-y-3 max-w-7xl mx-auto">
+      <div className="mx-auto w-full max-w-7xl space-y-3 overflow-x-hidden px-4 pt-3">
         <div className={`${darkMode ? "bg-[#1a2332]" : "bg-gray-100"} rounded-lg p-2 flex items-center justify-between`}>
           <div className="flex items-center gap-2">
             <span className="text-yellow-400 text-sm font-bold">⏰</span>
@@ -799,8 +799,8 @@ export function Home() {
         </div>
       </div>
 
-      <div className="px-4 space-y-5 md:space-y-3 max-w-7xl md:mx-auto mt-5">
-        <div className="flex gap-3">
+      <div className="mx-auto mt-5 w-full max-w-7xl space-y-5 overflow-x-hidden px-4 md:space-y-3">
+        <div className="grid grid-cols-2 gap-3">
           <button onClick={() => setSelectedSymbol("XAUUSD")} className={`flex-1 py-3 rounded-xl font-bold transition-all ${selectedSymbol === "XAUUSD" ? "bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg shadow-yellow-500/20" : darkMode ? "bg-[#1a2332] text-gray-400 border border-gray-800" : "bg-white text-gray-600 border border-gray-300"}`}>
             XAUUSD
           </button>
@@ -815,11 +815,11 @@ export function Home() {
             <h3 className="text-xs font-bold text-yellow-400 tracking-widest">{tr(lang, "CURRENCY CONVERTER", "تبدیل ارز", "محول العملات")}</h3>
           </div>
 
-          <div className="flex gap-3 items-center">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(74px,0.42fr)_minmax(74px,0.42fr)] gap-2 items-stretch">
             <select
               value={selectedCurrency}
               onChange={(e) => setSelectedCurrency(e.target.value as CurrencyCode)}
-              className={`flex-1 ${darkMode ? "bg-[#1a2332] border-gray-700 text-white" : "bg-gray-100 border-gray-300 text-gray-900"} border rounded-xl px-3 py-2.5 text-sm font-medium`}
+              className={`min-w-0 w-full ${darkMode ? "bg-[#1a2332] border-gray-700 text-white" : "bg-gray-100 border-gray-300 text-gray-900"} border rounded-xl px-3 py-2.5 text-sm font-medium`}
             >
               {ALL_CURRENCIES.map((currency) => (
                 <option key={currency} value={currency}>
@@ -829,7 +829,7 @@ export function Home() {
             </select>
 
             <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800" : "bg-gray-50 border-gray-200"} rounded-xl p-2.5 border`}>
-              <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{tr(lang, "Entry Price", "قیمت ورود", "سعر الدخول")}</p>
+              <p className={`truncate text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{tr(lang, "Entry Price", "قیمت ورود", "سعر الدخول")}</p>
               <p className="font-bold">{convertPrice(signal?.entry || null)}</p>
             </div>
 
@@ -847,15 +847,15 @@ export function Home() {
         <button
           type="button"
           onClick={() => navigate("/app/tools")}
-          className={`w-full ${darkMode ? "bg-[#0f1623] border-gray-800/50 hover:bg-[#131c2b]" : "bg-white border-gray-200 hover:bg-gray-50"} rounded-2xl p-4 border transition-all flex items-center justify-between text-left`}
+          className={`w-full max-w-full overflow-hidden ${darkMode ? "bg-[#0f1623] border-gray-800/50 hover:bg-[#131c2b]" : "bg-white border-gray-200 hover:bg-gray-50"} rounded-2xl p-4 border transition-all flex items-center justify-between gap-3 text-left`}
           aria-label={tr(lang, "Open trading tools", "باز کردن ابزارهای معاملاتی", "فتح أدوات التداول")}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-r from-yellow-500 to-yellow-600 text-black flex items-center justify-center shadow-lg shadow-yellow-500/20">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="w-11 h-11 shrink-0 rounded-2xl bg-gradient-to-r from-yellow-500 to-yellow-600 text-black flex items-center justify-center shadow-lg shadow-yellow-500/20">
               <Calculator className="w-5 h-5" />
             </div>
-            <div>
-              <p className="font-bold text-base">{tr(lang, "Trading Tools", "ابزارهای معاملاتی", "أدوات التداول")}</p>
+            <div className="min-w-0">
+              <p className="truncate font-bold text-base">{tr(lang, "Trading Tools", "ابزارهای معاملاتی", "أدوات التداول")}</p>
               <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                 {tr(lang, "Lot size, pip value and risk calculators", "محاسبه لات، ارزش پیپ و ریسک", "حاسبات حجم اللوت وقيمة النقطة والمخاطر")}
               </p>
@@ -864,16 +864,16 @@ export function Home() {
           <ChevronRight className={`w-5 h-5 ${darkMode ? "text-gray-500" : "text-gray-400"}`} />
         </button>
 
-        <div className={`${darkMode ? "bg-gradient-to-br from-[#0f1623] to-[#0a0e1a] border-yellow-500/20" : "bg-white border-yellow-500/30"} rounded-3xl p-6 border shadow-2xl relative`}>
-          <div className="flex items-start justify-between mb-4">
-            <h2 className="text-3xl font-bold pt-1">{selectedSymbol}</h2>
+        <div className={`${darkMode ? "bg-gradient-to-br from-[#0f1623] to-[#0a0e1a] border-yellow-500/20" : "bg-white border-yellow-500/30"} w-full max-w-full overflow-hidden rounded-3xl p-5 border shadow-2xl relative`}>
+          <div className="mb-4 flex min-w-0 items-start justify-between gap-3">
+            <h2 className="min-w-0 truncate pt-1 text-3xl font-bold">{selectedSymbol}</h2>
 
-            <div className="flex flex-col gap-2 items-end">
-              <div className={`px-3 py-1 rounded-full text-xs font-bold ${signal ? "bg-yellow-500 text-black" : "bg-gray-500 text-white"}`}>
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              <div className={`max-w-[8.5rem] truncate px-3 py-1 rounded-full text-xs font-bold ${signal ? "bg-yellow-500 text-black" : "bg-gray-500 text-white"}`}>
                 {signal ? translateMarketPhase(signal.status || tr(lang, "LIVE", "زنده", "زنده"), lang) : tr(lang, tr(lang, "NO TRADE", "بدون معامله", "بدون معامله"), "بدون معامله", "لا صفقة")}
               </div>
 
-              <div className={`px-4 py-2 rounded-xl font-bold ${signal?.side === "BUY" ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30" : signal?.side === "SELL" ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/30" : "bg-gradient-to-r from-gray-500 to-gray-600 text-white"}`}>
+              <div className={`max-w-[8.5rem] truncate px-4 py-2 rounded-xl font-bold ${signal?.side === "BUY" ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30" : signal?.side === "SELL" ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/30" : "bg-gradient-to-r from-gray-500 to-gray-600 text-white"}`}>
                 {translateSide(signal?.side || "WAIT", lang)}
               </div>
             </div>
@@ -901,31 +901,31 @@ export function Home() {
                 )}
               </p>
 
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl p-3 border`}>
+              <div className="mb-4 grid min-w-0 grid-cols-3 gap-2 sm:gap-3">
+                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl border p-3 min-w-0`}>
                   <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"} mb-1`}>{tr(lang, "Entry", "ورود", "الدخول")}</p>
                   <p className="text-lg font-bold">{signal.entry ? formatNumber(Number(signal.entry), lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</p>
                 </div>
-                <div className={`${darkMode ? "bg-[#1a2332]/50 border-red-900/30" : "bg-red-50 border-red-200"} rounded-xl p-3 border`}>
+                <div className={`${darkMode ? "bg-[#1a2332]/50 border-red-900/30" : "bg-red-50 border-red-200"} rounded-xl border p-3 min-w-0`}>
                   <p className={`text-xs ${darkMode ? "text-red-400" : "text-red-600"} mb-1`}>SL</p>
                   <p className="text-lg font-bold">{signal.sl ? formatNumber(Number(signal.sl), lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</p>
                 </div>
-                <div className={`${darkMode ? "bg-[#1a2332]/50 border-green-900/30" : "bg-green-50 border-green-200"} rounded-xl p-3 border`}>
+                <div className={`${darkMode ? "bg-[#1a2332]/50 border-green-900/30" : "bg-green-50 border-green-200"} rounded-xl border p-3 min-w-0`}>
                   <p className={`text-xs ${darkMode ? "text-green-400" : "text-green-600"} mb-1`}>TP</p>
                   <p className="text-lg font-bold">{signal.tp ? formatNumber(Number(signal.tp), lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl p-3 border`}>
+              <div className="mb-4 grid min-w-0 grid-cols-3 gap-2 sm:gap-3">
+                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl border p-3 min-w-0`}>
                   <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"} mb-1`}>R:R</p>
                   <p className="text-lg font-bold text-teal-400">{signal.rr !== null && signal.rr !== undefined ? String(signal.rr) : "—"}</p>
                 </div>
-                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl p-3 border`}>
+                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl border p-3 min-w-0`}>
                   <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"} mb-1`}>{tr(lang, "Confidence", "اعتماد", "الثقة")}</p>
                   <p className="text-lg font-bold">{signal.confidence ? `${formatNumber(Number(signal.confidence), lang, { maximumFractionDigits: 0 })}%` : "—"}</p>
                 </div>
-                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl p-3 border`}>
+                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl border p-3 min-w-0`}>
                   <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"} mb-2`}>{tr(lang, "Status", "وضعیت", "الحالة")}</p>
                   <p className="text-sm font-bold text-yellow-400">{signal.status || tr(lang, "LIVE", "زنده", "زنده")}</p>
                 </div>
@@ -933,35 +933,35 @@ export function Home() {
             </>
           ) : (
             <>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"} mb-6 leading-relaxed`}>
+              <p className={`mb-6 max-w-full text-sm leading-relaxed ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
                 ⏸️ {tr(lang, "Waiting for the next executable signal. Entry, SL and TP stay empty until a full signal arrives.", "در انتظار سیگنال کامل بعدی. ورود، حد ضرر و حد سود تا آمدن سیگنال کامل خالی می‌مانند.", "بانتظار الإشارة الكاملة التالية. يبقى الدخول ووقف الخسارة والهدف فارغين حتى وصول إشارة كاملة.")}
               </p>
 
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl p-3 border`}>
+              <div className="mb-4 grid min-w-0 grid-cols-3 gap-2 sm:gap-3">
+                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl border p-3 min-w-0`}>
                   <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"} mb-1`}>{tr(lang, "Entry", "ورود", "الدخول")}</p>
                   <p className="text-lg font-bold text-gray-500">—</p>
                 </div>
-                <div className={`${darkMode ? "bg-[#1a2332]/50 border-red-900/30" : "bg-red-50 border-red-200"} rounded-xl p-3 border`}>
+                <div className={`${darkMode ? "bg-[#1a2332]/50 border-red-900/30" : "bg-red-50 border-red-200"} rounded-xl border p-3 min-w-0`}>
                   <p className={`text-xs ${darkMode ? "text-red-400" : "text-red-600"} mb-1`}>SL</p>
                   <p className="text-lg font-bold text-gray-500">—</p>
                 </div>
-                <div className={`${darkMode ? "bg-[#1a2332]/50 border-green-900/30" : "bg-green-50 border-green-200"} rounded-xl p-3 border`}>
+                <div className={`${darkMode ? "bg-[#1a2332]/50 border-green-900/30" : "bg-green-50 border-green-200"} rounded-xl border p-3 min-w-0`}>
                   <p className={`text-xs ${darkMode ? "text-green-400" : "text-green-600"} mb-1`}>TP</p>
                   <p className="text-lg font-bold text-gray-500">—</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl p-3 border`}>
+              <div className="mb-4 grid min-w-0 grid-cols-3 gap-2 sm:gap-3">
+                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl border p-3 min-w-0`}>
                   <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"} mb-1`}>R:R</p>
                   <p className="text-lg font-bold text-gray-500">—</p>
                 </div>
-                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl p-3 border`}>
+                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl border p-3 min-w-0`}>
                   <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"} mb-1`}>{tr(lang, "Confidence", "اعتماد", "الثقة")}</p>
                   <p className="text-lg font-bold text-gray-500">—</p>
                 </div>
-                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl p-3 border`}>
+                <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800/50" : "bg-gray-50 border-gray-200"} rounded-xl border p-3 min-w-0`}>
                   <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"} mb-2`}>{tr(lang, "Status", "وضعیت", "الحالة")}</p>
                   <p className="text-sm font-bold text-gray-500">WAIT</p>
                 </div>
@@ -969,7 +969,7 @@ export function Home() {
             </>
           )}
 
-          <div className="flex justify-end">
+          <div className="flex justify-end overflow-hidden">
             <button
               onClick={copySignal}
               className={`px-5 py-3.5 ${darkMode ? "bg-[#1a2332] border-gray-700" : "bg-gray-100 border-gray-300"} border rounded-xl flex items-center justify-center`}

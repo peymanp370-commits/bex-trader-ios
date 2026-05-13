@@ -17,7 +17,6 @@ type AppHeaderProps = {
   badge?: ReactNode;
   rtl?: boolean;
   mode?: string;
-  logoClassName?: string;
   showBack?: boolean;
   backTo?: string;
   showPlan?: boolean;
@@ -69,7 +68,6 @@ export function AppHeader({
   rtl = false,
   showBack = false,
   backTo,
-  logoClassName = "",
 }: AppHeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -91,11 +89,11 @@ export function AppHeader({
 
   return (
     <header
-      className={`${darkMode ? "bg-[#0f1623] border-gray-900/60 text-white" : "bg-white border-gray-100 text-gray-950"} sticky top-0 z-40 border-b px-4 pb-3`}
-      style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 2.25rem)" }}
+      className={`${darkMode ? "bg-[#0f1623] border-gray-900/60 text-white" : "bg-white border-gray-100 text-gray-950"} sticky top-0 z-40 w-full max-w-full overflow-hidden border-b px-3 pb-3`}
+      style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.72rem)" }}
     >
-      <div className="mx-auto grid min-h-[72px] max-w-7xl grid-cols-[36px_116px_minmax(0,1fr)_78px] items-center gap-2 sm:grid-cols-[44px_132px_minmax(0,1fr)_96px]">
-        <div className="flex items-center justify-center">
+      <div className="mx-auto grid min-h-[74px] w-full max-w-7xl grid-cols-[38px_112px_minmax(0,1fr)_76px] items-center gap-2 overflow-hidden sm:grid-cols-[44px_132px_minmax(0,1fr)_92px]">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center">
           {showBack || onBackClick || backTo ? (
             <button type="button" onClick={doBack} className={iconButton} aria-label="Back">
               <ArrowLeft className={`h-5 w-5 ${rtl ? "rotate-180" : ""}`} />
@@ -104,33 +102,28 @@ export function AppHeader({
             <button type="button" onClick={onMenuClick} className={iconButton} aria-label="Menu">
               <Menu className="h-5 w-5" />
             </button>
-          ) : (
-            <div className="h-9 w-9 shrink-0" />
-          )}
+          ) : null}
         </div>
 
-        <img
-          src={bexTraderLogo}
-          alt="BEX Trader"
-          className={`h-[64px] w-[116px] shrink-0 object-contain object-center sm:h-[72px] sm:w-[132px] ${logoClassName}`}
-        />
+        <img src={bexTraderLogo} alt="BEX Trader" className="h-[62px] w-[112px] shrink-0 object-contain object-center sm:h-[70px] sm:w-[132px]" />
 
-        <div className="min-w-0 flex-1 overflow-hidden">
+        <div className="min-w-0 overflow-hidden">
           <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-            <h1 className="min-w-0 truncate whitespace-nowrap text-[24px] font-extrabold leading-tight sm:text-[28px]">{title}</h1>
+            <h1 className="min-w-0 max-w-full truncate text-[24px] font-extrabold leading-none sm:text-[28px]">{title}</h1>
             {badge ? <div className="hidden shrink-0 min-[390px]:block">{badge}</div> : null}
           </div>
-          <div className={`mt-0.5 flex min-w-0 items-center gap-x-2 overflow-hidden text-[13px] sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-            {subtitle ? <span className="min-w-0 truncate whitespace-nowrap">{subtitle}</span> : null}
+          <div className={`mt-1 flex min-w-0 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[12px] sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+            {subtitle ? <span className="min-w-0 max-w-[7.5rem] truncate sm:max-w-[12rem]">{subtitle}</span> : null}
             {showUser && savedName ? (
-              <Link to="/app/account" className="inline-flex min-w-0 shrink-0 items-center gap-1 font-semibold hover:underline">
-                <UserCircle className="h-3.5 w-3.5 shrink-0" /> <span className="max-w-[96px] truncate">{savedName}</span>
+              <Link to="/app/account" className="inline-flex min-w-0 items-center gap-1 overflow-hidden font-semibold hover:underline">
+                <UserCircle className="h-3.5 w-3.5 shrink-0" />
+                <span className="min-w-0 max-w-[7rem] truncate sm:max-w-[12rem]">{savedName}</span>
               </Link>
             ) : null}
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center justify-end gap-1">
+        <div className="flex min-w-0 shrink-0 items-center justify-end gap-1">
           {showThemeToggle && !isSettingsPage ? (
             <button type="button" onClick={doTheme} className={iconButton} aria-label="Toggle theme">
               {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
