@@ -46,7 +46,9 @@ export default {
             "POST /auth/reset-password",
             "POST /auth/refresh",
             "POST /auth/logout",
+            "GET /auth/logout",
             "POST /auth/logout-all",
+            "GET /auth/clear-session",
             "GET /auth/me",
             "GET /api/me",
             "GET /api/me/vip",
@@ -289,7 +291,7 @@ export default {
         }, [buildRefreshCookie(request, env, rotated.refreshToken)]);
       }
 
-      if (url.pathname === "/auth/logout" && request.method === "POST") {
+      if ((url.pathname === "/auth/logout" || url.pathname === "/auth/clear-session") && (request.method === "POST" || request.method === "GET")) {
         const refreshToken = getCookie(request, "refresh_token");
 
         if (refreshToken) {
@@ -301,10 +303,28 @@ export default {
           `).bind(Date.now(), refreshHash).run();
         }
 
-        return okWithCookies(request, {
+        const payload = {
+          ok: true,
           message: "Logged out",
           code: "LOGOUT_SUCCESS"
-        }, [clearRefreshCookie(request, env)]);
+        };
+
+        // GET is intentionally supported so the owner can clear a stuck browser session
+        // by opening https://auth.bextrader.com/auth/logout directly.
+        const appUrl = getAppRedirectUrl(env);
+        if (request.method === "GET" && !url.searchParams.has("json")) {
+          const redirectTo = url.searchParams.get("return_to") || `${appUrl.replace(/\/+$/, "")}/login?logout=success`;
+          return new Response(null, {
+            status: 302,
+            headers: {
+              ...corsHeaders(request),
+              "Location": redirectTo,
+              "Set-Cookie": clearRefreshCookie(request, env)
+            }
+          });
+        }
+
+        return okWithCookies(request, payload, [clearRefreshCookie(request, env)]);
       }
 
       if (url.pathname === "/auth/logout-all" && request.method === "POST") {
