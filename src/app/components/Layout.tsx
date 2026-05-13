@@ -8,7 +8,7 @@ export function Layout() {
   const shouldHideNav = hideNavRoutes.includes(location.pathname);
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#0a0e1a] pb-20">
+    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-[#0a0e1a] pb-20">
       <Outlet />
       {!shouldHideNav && <BottomNav />}
     </div>

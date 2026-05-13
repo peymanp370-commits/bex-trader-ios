@@ -109,10 +109,10 @@ export function Tools() {
   };
 
   return (
-    <div className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}>
+    <div className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}>
 <AppHeader
-        title="Tools"
-        subtitle="Risk Calculators"
+        title={tr(lang, "Tools", "ابزارها", "الأدوات")}
+        subtitle={tr(lang, "Risk calculators", "محاسبه ریسک", "حاسبات المخاطر")}
         darkMode={darkMode}
         onBackClick={() => navigate(-1)}
         onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem("darkMode", JSON.stringify(next)); window.dispatchEvent(new Event("themeChange")); }}

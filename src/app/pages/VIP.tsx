@@ -315,7 +315,7 @@ export function VIP() {
     });
 
   return (
-    <div className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}>
+    <div className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}>
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
 <AppHeader
         title="VIP"

@@ -275,13 +275,13 @@ export function MyStats() {
 
   return (
     <div
-      className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}
+      className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}
       {...markRTL(lang)}
     >
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
       <AppHeader
-        title="Account"
-        subtitle="My MT5 Stats"
+        title={t("account_page", lang)}
+        subtitle={t("personal_trading_account", lang)}
         darkMode={darkMode}
         onMenuClick={() => setShowMenu(true)}
         onToggleDark={() => {

@@ -251,7 +251,7 @@ export function Settings() {
   const selectedTimezone = TIMEZONES.find((t) => t.value === userTimezone);
 
   return (
-    <div dir={rtl ? "rtl" : "ltr"} className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-8`}>
+    <div dir={rtl ? "rtl" : "ltr"} className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-8`}>
       <AppHeader
         title="Settings"
         subtitle="BEX Trader"
