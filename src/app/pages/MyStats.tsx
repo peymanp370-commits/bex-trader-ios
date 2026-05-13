@@ -280,8 +280,8 @@ export function MyStats() {
     >
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
       <AppHeader
-        title={t("account_page", lang)}
-        subtitle={t("personal_trading_account", lang)}
+        title="Account"
+        subtitle="My MT5 Stats"
         darkMode={darkMode}
         onMenuClick={() => setShowMenu(true)}
         onToggleDark={() => {

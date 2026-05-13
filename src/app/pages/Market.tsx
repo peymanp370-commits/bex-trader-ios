@@ -357,7 +357,7 @@ export function Market() {
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
 <AppHeader
         title={tr(lang, { en: "Market", fa: "بازار", ar: "السوق", es: "Mercado", "pt-BR": "Mercado", hi: "बाज़ार", tr: "Piyasa", de: "Markt", fr: "Marché", zh: "市场", ko: "시장" })}
-        subtitle={tr(lang, { en: "Live Market Data", fa: "داده‌های زنده بازار", ar: "بيانات السوق الحية", es: "Datos de mercado en vivo", "pt-BR": "Dados de mercado ao vivo", hi: "लाइव मार्केट डेटा", tr: "Canlı piyasa verileri", de: "Live-Marktdaten", fr: "Données de marché en direct", zh: "实时市场数据", ko: "실시간 시장 데이터" })}
+        subtitle="Live Market"
         darkMode={darkMode}
         onMenuClick={() => setShowMenu(true)}
         onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem("darkMode", JSON.stringify(next)); window.dispatchEvent(new Event("themeChange")); }}

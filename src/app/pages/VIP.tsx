@@ -318,8 +318,8 @@ export function VIP() {
     <div className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}>
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
 <AppHeader
-        title={t({ en: "VIP Plans", fa: "پلن‌های VIP", ar: "خطط VIP", es: "Planes VIP", "pt-BR": "Planos VIP", hi: "VIP प्लान", tr: "VIP Planlar", de: "VIP-Pläne", fr: "Plans VIP", zh: "VIP套餐", ko: "VIP 플랜" })}
-        subtitle="BEX AI Gold Trader"
+        title="VIP"
+        subtitle="Plans"
         darkMode={darkMode}
         onMenuClick={() => setShowMenu(true)}
         onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem("darkMode", JSON.stringify(next)); window.dispatchEvent(new Event("themeChange")); }}

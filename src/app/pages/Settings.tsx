@@ -94,7 +94,6 @@ const LANGUAGES: { code: LangCode; name: string; englishName: string; flag: stri
 ];
 
 const TXT = {
-  settingsTitle: { en: "Settings", fa: "تنظیمات", ar: "الإعدادات", es: "Ajustes", "pt-BR": "Configurações", hi: "सेटिंग्स", tr: "Ayarlar", de: "Einstellungen", fr: "Paramètres", zh: "设置", ko: "설정" },
   goldTrader: { en: "GOLD TRADER", fa: "معامله‌گر طلا", ar: "متداول الذهب", es: "TRADER DE ORO", "pt-BR": "TRADER DE OURO", hi: "गोल्ड ट्रेडर", tr: "ALTIN TRADER", de: "GOLD-TRADER", fr: "TRADER OR", zh: "黄金交易", ko: "골드 트레이더" },
   upgradeVip: { en: "Upgrade to VIP", fa: "ارتقا به VIP", ar: "الترقية إلى VIP", es: "Actualizar a VIP", "pt-BR": "Atualizar para VIP", hi: "VIP में अपग्रेड करें", tr: "VIP'e yükselt", de: "Auf VIP upgraden", fr: "Passer à VIP", zh: "升级到 VIP", ko: "VIP로 업그레이드" },
   premiumSignals: { en: "Get premium signals & AI analysis", fa: "دریافت سیگنال‌های ویژه و تحلیل هوش مصنوعی", ar: "احصل على إشارات مميزة وتحليل ذكي", es: "Obtén señales premium y análisis con IA", "pt-BR": "Receba sinais premium e análise com IA", hi: "प्रीमियम सिग्नल और AI विश्लेषण पाएं", tr: "Premium sinyaller ve AI analizi alın", de: "Premium-Signale und KI-Analyse erhalten", fr: "Obtenez des signaux premium et une analyse IA", zh: "获取高级信号和 AI 分析", ko: "프리미엄 신호와 AI 분석 받기" },
@@ -254,8 +253,8 @@ export function Settings() {
   return (
     <div dir={rtl ? "rtl" : "ltr"} className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-8`}>
       <AppHeader
-        title={T(lang, TXT.settingsTitle)}
-        subtitle={T(lang, TXT.goldTrader)}
+        title="Settings"
+        subtitle="BEX Trader"
         darkMode={darkMode}
         rtl={rtl}
         showBack

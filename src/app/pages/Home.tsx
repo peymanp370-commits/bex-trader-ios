@@ -747,7 +747,7 @@ export function Home() {
 
 <AppHeader
         title={tr(lang, "Home", "خانه", "الرئيسية")}
-        subtitle={tr(lang, "BEX Trader", "معامله‌گر BEX", "متداول BEX")}
+        subtitle="BEX Trader"
         darkMode={darkMode}
         onMenuClick={() => setShowMenu(true)}
         onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem("darkMode", JSON.stringify(next)); window.dispatchEvent(new Event("themeChange")); }}

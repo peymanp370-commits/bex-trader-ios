@@ -17,6 +17,7 @@ type AppHeaderProps = {
   badge?: ReactNode;
   rtl?: boolean;
   mode?: string;
+  logoClassName?: string;
   showBack?: boolean;
   backTo?: string;
   showPlan?: boolean;
@@ -68,13 +69,14 @@ export function AppHeader({
   rtl = false,
   showBack = false,
   backTo,
+  logoClassName = "",
 }: AppHeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isSettingsPage = location.pathname.includes("/settings");
   const darkMode = typeof darkModeProp === "boolean" ? darkModeProp : readDarkMode(true);
   const savedName = userName || readStoredName();
-  const iconButton = `${darkMode ? "hover:bg-[#1a2332] text-white" : "hover:bg-gray-100 text-gray-900"} flex h-10 w-10 items-center justify-center rounded-xl transition-colors`;
+  const iconButton = `${darkMode ? "hover:bg-[#1a2332] text-white" : "hover:bg-gray-100 text-gray-900"} p-2 rounded-xl transition-colors`;
 
   const doBack = () => {
     if (onBackClick) return onBackClick();
@@ -89,41 +91,40 @@ export function AppHeader({
 
   return (
     <header
-      className={`${darkMode ? "bg-[#0f1623] border-[#172132] text-white" : "bg-white border-gray-100 text-gray-950"} sticky top-0 z-40 border-b px-4`}
-      style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6px)", paddingBottom: "8px" }}
+      className={`${darkMode ? "bg-[#0f1623] border-gray-900/60 text-white" : "bg-white border-gray-100 text-gray-950"} sticky top-0 z-40 border-b px-4 pb-3`}
+      style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 2.25rem)" }}
     >
-      <div className="mx-auto grid h-[72px] max-w-7xl grid-cols-[40px_122px_minmax(0,1fr)_88px] items-center gap-2">
-        {showBack || onBackClick || backTo ? (
-          <button type="button" onClick={doBack} className={iconButton} aria-label="Back">
-            <ArrowLeft className={`h-5 w-5 ${rtl ? "rotate-180" : ""}`} />
-          </button>
-        ) : onMenuClick ? (
-          <button type="button" onClick={onMenuClick} className={iconButton} aria-label="Menu">
-            <Menu className="h-5 w-5" />
-          </button>
-        ) : (
-          <div className="h-10 w-10 shrink-0" />
-        )}
+      <div className="mx-auto grid min-h-[72px] max-w-7xl grid-cols-[36px_116px_minmax(0,1fr)_78px] items-center gap-2 sm:grid-cols-[44px_132px_minmax(0,1fr)_96px]">
+        <div className="flex items-center justify-center">
+          {showBack || onBackClick || backTo ? (
+            <button type="button" onClick={doBack} className={iconButton} aria-label="Back">
+              <ArrowLeft className={`h-5 w-5 ${rtl ? "rotate-180" : ""}`} />
+            </button>
+          ) : onMenuClick ? (
+            <button type="button" onClick={onMenuClick} className={iconButton} aria-label="Menu">
+              <Menu className="h-5 w-5" />
+            </button>
+          ) : (
+            <div className="h-9 w-9 shrink-0" />
+          )}
+        </div>
 
         <img
           src={bexTraderLogo}
           alt="BEX Trader"
-          className="h-[62px] w-[122px] shrink-0 object-contain object-center"
-          draggable={false}
+          className={`h-[64px] w-[116px] shrink-0 object-contain object-center sm:h-[72px] sm:w-[132px] ${logoClassName}`}
         />
 
-        <div className="min-w-0 self-center">
-          <div className="flex min-w-0 items-center gap-2">
-            <h1 className="min-w-0 truncate text-[24px] font-extrabold leading-[1.05] tracking-[-0.02em] sm:text-2xl">
-              {title}
-            </h1>
-            {badge ? <div className="shrink-0">{badge}</div> : null}
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+            <h1 className="min-w-0 truncate whitespace-nowrap text-[24px] font-extrabold leading-tight sm:text-[28px]">{title}</h1>
+            {badge ? <div className="hidden shrink-0 min-[390px]:block">{badge}</div> : null}
           </div>
-          <div className={`mt-1 flex min-w-0 items-center gap-2 text-[13px] leading-tight ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-            {subtitle ? <span className="min-w-0 truncate">{subtitle}</span> : null}
+          <div className={`mt-0.5 flex min-w-0 items-center gap-x-2 overflow-hidden text-[13px] sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+            {subtitle ? <span className="min-w-0 truncate whitespace-nowrap">{subtitle}</span> : null}
             {showUser && savedName ? (
               <Link to="/app/account" className="inline-flex min-w-0 shrink-0 items-center gap-1 font-semibold hover:underline">
-                <UserCircle className="h-3.5 w-3.5" /> <span className="max-w-[92px] truncate">{savedName}</span>
+                <UserCircle className="h-3.5 w-3.5 shrink-0" /> <span className="max-w-[96px] truncate">{savedName}</span>
               </Link>
             ) : null}
           </div>

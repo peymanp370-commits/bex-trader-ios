@@ -1360,7 +1360,7 @@ export function Stats() {
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
 <AppHeader
         title="Stats"
-        subtitle="Public system performance"
+        subtitle="Public Performance"
         darkMode={darkMode}
         onMenuClick={() => setShowMenu(true)}
         onToggleDark={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem("darkMode", JSON.stringify(next)); window.dispatchEvent(new Event("themeChange")); }}
