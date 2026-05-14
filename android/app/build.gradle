@@ -43,8 +43,8 @@ android {
         targetSdkVersion 35
 
         // Increase this every time you upload a new AAB to Google Play.
-        versionCode 7
-        versionName "1.0.6"
+        versionCode 11
+        versionName "1.1.0"
 
         // Main TWA values
         resValue "string", "appName", twaManifest.name

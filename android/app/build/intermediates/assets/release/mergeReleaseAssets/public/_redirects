@@ -1,0 +1,4 @@
+# BEX Trader - Cloudflare Pages
+# Static files like /support.html are served directly.
+# SPA fallback must stay last.
+/* /index.html 200
