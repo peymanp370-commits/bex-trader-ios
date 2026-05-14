@@ -1,7 +1,9 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { App } from "./App";
 import { Layout } from "./components/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { getCurrentUser } from "./utils/api";
 
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
@@ -12,6 +14,8 @@ import { Signal } from "./pages/Signal";
 import { Stats } from "./pages/Stats";
 import { MyStats } from "./pages/MyStats";
 import { VIP } from "./pages/VIP";
+import { Checkout } from "./pages/Checkout";
+import { VIPAutoTrading } from "./pages/VIPAutoTrading";
 import { Settings } from "./pages/Settings";
 import { Tools } from "./pages/Tools";
 import { SettingsDetail } from "./pages/SettingsDetail";
@@ -24,12 +28,46 @@ import { ResetPassword } from "./pages/ResetPassword";
 import { Terms } from "./pages/Terms";
 import { Privacy } from "./pages/Privacy";
 
+function RootRedirect() {
+  const [target, setTarget] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function check() {
+      try {
+        const res = await getCurrentUser();
+        if (!mounted) return;
+        setTarget(res?.ok && res?.user ? "/app" : "/welcome");
+      } catch {
+        if (!mounted) return;
+        setTarget("/welcome");
+      }
+    }
+
+    check();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (!target) {
+    return (
+      <div className="min-h-screen bg-[#0a0e1a] text-white flex items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
+
+  return <Navigate to={target} replace />;
+}
+
 export const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
     children: [
-      { index: true, element: <Navigate to="/welcome" replace /> },
+      { index: true, element: <RootRedirect /> },
       { path: "login", element: <Login /> },
       { path: "register", element: <Register /> },
       { path: "verify-email", element: <VerifyEmail /> },
@@ -55,6 +93,8 @@ export const router = createBrowserRouter([
           { path: "account", element: <MyStats /> },
           { path: "my-stats", element: <MyStats /> },
           { path: "vip", element: <VIP /> },
+          { path: "checkout", element: <Checkout /> },
+          { path: "vip-auto", element: <VIPAutoTrading /> },
           { path: "tools", element: <Tools /> },
           { path: "settings", element: <Settings /> },
           { path: "settings-detail", element: <SettingsDetail /> },
@@ -64,7 +104,7 @@ export const router = createBrowserRouter([
           { path: "privacy", element: <Privacy /> },
         ],
       },
-      { path: "*", element: <Navigate to="/welcome" replace /> },
+      { path: "*", element: <RootRedirect /> },
     ],
   },
 ]);

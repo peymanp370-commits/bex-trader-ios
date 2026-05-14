@@ -1333,6 +1333,16 @@ function getCookie(request, name) {
     if (k === name) return rest.join("=");
   }
 
+  // Native iOS / Android app can store the refresh token locally and send it as:
+  // Authorization: Bearer <refresh_token>.
+  // Keep cookie behavior for web exactly the same, but allow Bearer fallback only
+  // when the caller is asking for the refresh_token.
+  if (name === "refresh_token") {
+    const auth = request.headers.get("authorization") || request.headers.get("Authorization") || "";
+    const m = auth.match(/^Bearer\s+(.+)$/i);
+    if (m && m[1]) return m[1].trim();
+  }
+
   return null;
 }
 
@@ -1474,11 +1484,12 @@ function clearTempCookie(request, env, name, options = {}) {
 function corsHeaders(request) {
   const origin = request?.headers?.get("Origin") || "";
 
-  // Native Capacitor/iOS WebView requests do NOT come from https://bextrader.com.
-  // They commonly come from capacitor://localhost, ionic://localhost, or the custom
-  // scheme configured in capacitor.config.json (bextrader://localhost).
-  // If these origins are not echoed back exactly, iOS reports fetch failures as
-  // "Load failed" after Apple/Google native sign-in succeeds.
+  // BEX AUTH CORS FIX
+  // Web, Cloudflare Pages previews, and Capacitor WebViews must get their exact
+  // Origin echoed back when credentials/cookies are used. If we fallback to only
+  // https://bextrader.com, browser fetches from another valid BEX origin can fail
+  // and the frontend route guard sends the user back to Login even though
+  // /auth/me works when opened directly.
   const allowed = [
     "https://bextrader.com",
     "https://www.bextrader.com",
@@ -1488,11 +1499,18 @@ function corsHeaders(request) {
     "bextrader://localhost",
     "http://localhost",
     "http://localhost:3000",
+    "http://localhost:5173",
     "http://127.0.0.1",
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173"
   ];
 
-  const finalOrigin = allowed.includes(origin) ? origin : allowed[0];
+  const isAllowed =
+    allowed.includes(origin) ||
+    /^https:\/\/([a-z0-9-]+\.)*bextrader\.com$/i.test(origin) ||
+    /^https:\/\/[a-z0-9-]+\.pages\.dev$/i.test(origin);
+
+  const finalOrigin = isAllowed ? origin : "https://bextrader.com";
 
   return {
     "Access-Control-Allow-Origin": finalOrigin,
