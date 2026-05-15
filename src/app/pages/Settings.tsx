@@ -12,9 +12,11 @@ import {
   ExternalLink,
   MessageCircle,
   Lock,
+  Trash2,
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { AppHeader } from "../components/AppHeader";
 import { clearLocalAuthState, logout } from "../utils/api";
 import { getLanguage, setLanguage as saveAppLanguage } from "../utils/i18n";
@@ -125,6 +127,8 @@ const TXT = {
   telegramChannel: { en: "Telegram Channel", fa: "کانال تلگرام", ar: "قناة تليجرام", es: "Canal de Telegram", "pt-BR": "Canal do Telegram", hi: "टेलीग्राम चैनल", tr: "Telegram kanalı", de: "Telegram-Kanal", fr: "Canal Telegram", zh: "Telegram 频道", ko: "텔레그램 채널" },
   legal: { en: "⚖️ LEGAL", fa: "⚖️ قوانین", ar: "⚖️ قانوني", es: "⚖️ LEGAL", "pt-BR": "⚖️ LEGAL", hi: "⚖️ कानूनी", tr: "⚖️ YASAL", de: "⚖️ RECHTLICHES", fr: "⚖️ LÉGAL", zh: "⚖️ 法律", ko: "⚖️ 법률" },
   terms: { en: "Terms & Conditions", fa: "شرایط و قوانین", ar: "الشروط والأحكام", es: "Términos y condiciones", "pt-BR": "Termos e condições", hi: "नियम और शर्तें", tr: "Şartlar ve koşullar", de: "Allgemeine Geschäftsbedingungen", fr: "Conditions générales", zh: "条款和条件", ko: "이용약관" },
+  deleteAccount: { en: "Delete Account", fa: "حذف حساب کاربری", ar: "حذف الحساب", es: "Eliminar cuenta", "pt-BR": "Excluir conta", hi: "खाता हटाएँ", tr: "Hesabı Sil", de: "Konto löschen", fr: "Supprimer le compte", zh: "删除账户", ko: "계정 삭제" },
+  deleteAccountSub: { en: "Permanently delete your account", fa: "حذف دائمی حساب", ar: "حذف حسابك نهائيًا", es: "Eliminar tu cuenta permanentemente", "pt-BR": "Excluir sua conta permanentemente", hi: "अपना खाता स्थायी रूप से हटाएँ", tr: "Hesabınızı kalıcı olarak silin", de: "Ihr Konto dauerhaft löschen", fr: "Supprimer définitivement votre compte", zh: "永久删除您的账户", ko: "계정을 영구적으로 삭제" },
   privacy: { en: "Privacy Policy", fa: "حریم خصوصی", ar: "سياسة الخصوصية", es: "Política de privacidad", "pt-BR": "Política de privacidade", hi: "गोपनीयता नीति", tr: "Gizlilik politikası", de: "Datenschutzerklärung", fr: "Politique de confidentialité", zh: "隐私政策", ko: "개인정보 처리방침" },
   selectTimezone: { en: "Select Timezone", fa: "انتخاب منطقه زمانی", ar: "اختر المنطقة الزمنية", es: "Seleccionar zona horaria", "pt-BR": "Selecionar fuso horário", hi: "समय क्षेत्र चुनें", tr: "Saat dilimi seç", de: "Zeitzone auswählen", fr: "Sélectionner le fuseau horaire", zh: "选择时区", ko: "시간대 선택" },
   selectCountry: { en: "Select Country", fa: "انتخاب کشور", ar: "اختر الدولة", es: "Seleccionar país", "pt-BR": "Selecionar país", hi: "देश चुनें", tr: "Ülke seç", de: "Land auswählen", fr: "Sélectionner un pays", zh: "选择国家/地区", ko: "국가 선택" },
@@ -158,6 +162,7 @@ function countryLabel(country: { code: string; name: string; flag: string }, lan
 
 export function Settings() {
   const navigate = useNavigate();
+  const isIOSNativeApp = Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios";
 
   const initialLang = normalizeLang(
     localStorage.getItem("userLanguage") || localStorage.getItem("lang") || getLanguage()
@@ -395,6 +400,19 @@ export function Settings() {
             </div>
             <ChevronRight className={`w-5 h-5 text-gray-400 ${rtl ? "rotate-180" : ""}`} />
           </button>
+
+          {isIOSNativeApp && (
+            <button onClick={() => navigate("/app/delete-account")} className={`w-full flex items-center justify-between px-4 py-3.5 ${darkMode ? "hover:bg-red-900/20" : "hover:bg-red-50"} transition-colors border-t ${darkMode ? "border-gray-800" : "border-gray-200"}`}>
+              <div className="flex items-center gap-3">
+                <Trash2 className="w-5 h-5 text-red-400" />
+                <div className={rtl ? "text-right" : "text-left"}>
+                  <p className="font-medium text-red-400">{T(lang, TXT.deleteAccount)}</p>
+                  <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{T(lang, TXT.deleteAccountSub)}</p>
+                </div>
+              </div>
+              <ChevronRight className={`w-5 h-5 text-red-400 ${rtl ? "rotate-180" : ""}`} />
+            </button>
+          )}
 
           <button onClick={handleLogout} disabled={loggingOut} className={`w-full flex items-center justify-between px-4 py-3.5 ${darkMode ? "hover:bg-red-900/20" : "hover:bg-red-50"} transition-colors border-t ${darkMode ? "border-gray-800" : "border-gray-200"} disabled:opacity-50`}>
             <div className="flex items-center gap-3">

@@ -867,6 +867,29 @@ export async function logout(): Promise<AuthResponse> {
 }
 
 
+
+export async function deleteCurrentAccount(): Promise<AuthResponse> {
+  try {
+    const response = await fetch(`${AUTH_BASE}/auth/delete-account`, {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      headers: authHeaders(),
+    });
+
+    const data = await safeJson<AuthResponse>(response);
+    if (!response.ok) {
+      return data || { ok: false, message: `Delete account failed (${response.status})` };
+    }
+
+    clearLocalAuthState();
+    return data || { ok: true, message: "Account deleted" };
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    return { ok: false, message: "Failed to delete account" };
+  }
+}
+
 export async function fetchPrices(): Promise<PricesResponse | null> {
   const attempts = [
     `/api/prices`,

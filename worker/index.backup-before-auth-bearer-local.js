@@ -50,6 +50,7 @@ export default {
             "POST /auth/logout-all",
             "GET /auth/clear-session",
             "GET /auth/me",
+            "POST /auth/delete-account",
             "GET /api/me",
             "GET /api/me/vip",
             "POST /api/me/mt5-account",
@@ -340,6 +341,31 @@ export default {
         return okWithCookies(request, {
           message: "Logged out from all sessions",
           code: "LOGOUT_ALL_SUCCESS"
+        }, [clearRefreshCookie(request, env)]);
+      }
+
+
+      if (url.pathname === "/auth/delete-account" && request.method === "POST") {
+        const current = await requireUserByRefreshSession(env.DB, request);
+        if (!current.ok) return current.response;
+
+        const userId = current.user.id;
+        const email = current.user.email;
+        const now = Date.now();
+
+        await env.DB.batch([
+          env.DB.prepare(`UPDATE auth_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL`).bind(now, userId),
+          env.DB.prepare(`DELETE FROM auth_identities WHERE user_id = ?`).bind(userId),
+          env.DB.prepare(`UPDATE vip_tokens SET active = 0, last_seen_at = ? WHERE user_id = ?`).bind(now, userId),
+          env.DB.prepare(`DELETE FROM user_execution_settings WHERE user_id = ?`).bind(userId),
+          env.DB.prepare(`DELETE FROM user_trading_accounts WHERE user_id = ?`).bind(userId),
+          env.DB.prepare(`UPDATE users SET email = ?, username = NULL, first_name = NULL, last_name = NULL, phone = NULL, status = 'deleted', is_verified = 0, updated_at = ? WHERE id = ?`).bind(`deleted_${userId}@deleted.bextrader.local`, now, userId)
+        ]);
+
+        return okWithCookies(request, {
+          message: "Account deleted",
+          code: "ACCOUNT_DELETED",
+          deleted_email: email
         }, [clearRefreshCookie(request, env)]);
       }
 

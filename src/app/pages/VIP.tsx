@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { SideMenu } from "../components/SideMenu";
 import { AppHeader } from "../components/AppHeader";
 import { getLanguage, tr, formatNumber } from "../utils/i18n";
+import { appleProductIdForPlan, isNativeIOSApp, startAppleIapPurchase } from "../utils/appleIap";
 
 export function VIP() {
   const [showMenu, setShowMenu] = useState(false);
@@ -41,20 +42,12 @@ export function VIP() {
     return isAndroid && isStandalone;
   };
 
-  const isIOSInstalledApp = () => {
-    const ua = navigator.userAgent || "";
-    const isIOS = /iPhone|iPad|iPod/i.test(ua);
-    const isStandalone =
-      window.matchMedia?.("(display-mode: standalone)")?.matches ||
-      (navigator as any).standalone === true;
-
-    return isIOS && isStandalone;
-  };
+  const isIOSInstalledApp = () => isNativeIOSApp();
 
   const checkoutPlanId = (planId: string) => {
     // Stripe / web checkout IDs used by Checkout.tsx
     if (planId === "vip") return "vip_auto";
-    if (planId === "lifetime") return "vip_lifetime";
+    if (planId === "lifetime") return "lifetime";
     if (planId === "basic") return "basic";
     return "pro";
   };
@@ -67,93 +60,6 @@ export function VIP() {
     if (planId === "lifetime") return "vip_lifetime";
     return "";
   };
-
-  const appleProductId = (planId: string, cycle: "monthly" | "yearly") => {
-    // These IDs must match App Store Connect exactly.
-    if (planId === "basic") return cycle === "yearly" ? "basic_yearly" : "basic_monthly";
-    if (planId === "pro") return cycle === "yearly" ? "pro_yearly_v2" : "pro_monthly";
-    if (planId === "vip") return cycle === "yearly" ? "vip_yearly" : "vip_monthly";
-    if (planId === "lifetime") return "vip_lifetime";
-    return "";
-  };
-
-  const appleBillingDebug = (title: string, details: Record<string, unknown> = {}) => {
-    const lines = [
-      `APPLE IAP: ${title}`,
-      `url=${window.location.href}`,
-      `ua=${navigator.userAgent}`,
-      ...Object.entries(details).map(([key, value]) => `${key}=${String(value)}`),
-    ];
-
-    alert(lines.join("\n"));
-  };
-
-  const startAppleInAppPurchase = async (plan: (typeof plans)[0]) => {
-    const productId = appleProductId(plan.id, billingCycle);
-
-    if (!productId) {
-      appleBillingDebug("NO_PRODUCT_ID", { plan: plan.id, billingCycle });
-      return;
-    }
-
-    const w = window as any;
-    const plugins = w.Capacitor?.Plugins || {};
-
-    try {
-      // iOS must open a real StoreKit / Apple IAP sheet.
-      // Do NOT fake success, do NOT write userPlan, and do NOT navigate Home.
-      // If no native plugin is installed, stay on this page and show the exact reason.
-      let purchaseResult: any = null;
-
-      if (plugins.InAppPurchase?.purchaseProduct) {
-        purchaseResult = await plugins.InAppPurchase.purchaseProduct({ productId });
-      } else if (plugins.InAppPurchase?.buy) {
-        purchaseResult = await plugins.InAppPurchase.buy({ productId });
-      } else if (plugins.StoreKit2?.purchase) {
-        purchaseResult = await plugins.StoreKit2.purchase({ productId });
-      } else if (plugins.StoreKit?.purchase) {
-        purchaseResult = await plugins.StoreKit.purchase({ productId });
-      } else if (plugins.Purchases?.purchaseProduct) {
-        purchaseResult = await plugins.Purchases.purchaseProduct({ productIdentifier: productId });
-      } else if (plugins.Purchases?.purchaseStoreProduct) {
-        purchaseResult = await plugins.Purchases.purchaseStoreProduct({ productIdentifier: productId });
-      } else {
-        appleBillingDebug("APPLE_IAP_PLUGIN_NOT_FOUND", {
-          productId,
-          installedPlugins: Object.keys(plugins).join(",") || "none",
-          fix: "No iOS StoreKit/IAP plugin is installed. Install an Apple IAP plugin, run npx cap sync ios, then rebuild iOS.",
-        });
-        return;
-      }
-
-      localStorage.setItem("appleProductId", productId);
-      localStorage.setItem("applePurchaseLastResult", JSON.stringify(purchaseResult || {}));
-
-      appleBillingDebug("APPLE_PURCHASE_RETURNED", {
-        productId,
-        note: "Purchase call returned. App stayed on VIP page on purpose. Do not unlock until receipt/server verification is added.",
-      });
-    } catch (e: any) {
-      const errorName = e?.name || "";
-      const errorMessage = e?.message || String(e);
-
-      if (
-        errorName === "AbortError" ||
-        errorMessage.includes("SKErrorDomain error 2") ||
-        errorMessage.toLowerCase().includes("cancel") ||
-        errorMessage.toLowerCase().includes("user cancelled")
-      ) {
-        return;
-      }
-
-      appleBillingDebug("APPLE_PURCHASE_FAILED", {
-        productId,
-        errorName,
-        errorMessage,
-      });
-    }
-  };
-
 
   const googleBillingDebug = (title: string, details: Record<string, unknown> = {}) => {
     const lines = [
@@ -281,6 +187,35 @@ export function VIP() {
     navigate("/app");
   };
 
+  const startAppleInAppPurchase = async (plan: (typeof plans)[0]) => {
+    if (plan.id === "lifetime") {
+      alert("Lifetime purchase is not available on iOS yet. Please choose a monthly or yearly plan.");
+      return;
+    }
+
+    const productId = appleProductIdForPlan(plan.id, billingCycle);
+    if (!productId) {
+      alert("Apple product id is missing for this plan.");
+      return;
+    }
+
+    try {
+      const result = await startAppleIapPurchase(productId);
+      if (!result?.ok) {
+        if (result?.reason === "user_cancelled") return;
+        throw new Error(result?.message || result?.error || "Apple purchase failed");
+      }
+
+      localStorage.setItem("userPlan", plan.name);
+      localStorage.setItem("appleProductId", productId);
+      localStorage.setItem("appleTransactionId", result.transactionId || "");
+      alert(subscribedMessage(plan.name));
+      navigate("/app");
+    } catch (e: any) {
+      alert(e?.message || "Apple purchase failed. Please try again.");
+    }
+  };
+
   const startPlanCheckout = async (plan: (typeof plans)[0]) => {
     if (isAndroidInstalledApp()) {
       await startGooglePlayBilling(plan);
@@ -290,8 +225,6 @@ export function VIP() {
     const checkoutBilling = plan.id === "lifetime" ? "lifetime" : billingCycle;
 
     if (isIOSInstalledApp()) {
-      // iOS native path: Apple In-App Purchase / StoreKit only.
-      // Android keeps Google Play Billing and Web/Desktop keeps Stripe.
       await startAppleInAppPurchase(plan);
       return;
     }

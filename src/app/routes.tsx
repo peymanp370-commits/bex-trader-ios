@@ -27,6 +27,7 @@ import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
 import { Terms } from "./pages/Terms";
 import { Privacy } from "./pages/Privacy";
+import { DeleteAccount } from "./pages/DeleteAccount";
 
 function RootRedirect() {
   const [target, setTarget] = useState<string | null>(null);
@@ -102,6 +103,7 @@ export const router = createBrowserRouter([
           { path: "chart", element: <Chart /> },
           { path: "terms", element: <Terms /> },
           { path: "privacy", element: <Privacy /> },
+          { path: "delete-account", element: <DeleteAccount /> },
         ],
       },
       { path: "*", element: <RootRedirect /> },
