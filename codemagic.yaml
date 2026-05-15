@@ -15,7 +15,11 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
+          echo "=== CLEAN NODE MODULES TO FIX BIN PERMISSIONS ==="
+          rm -rf node_modules
           npm install --legacy-peer-deps
+          chmod -R u+x node_modules/.bin || true
+          ls -la node_modules/.bin/vite || true
 
       - name: Verify Capacitor config
         script: |
