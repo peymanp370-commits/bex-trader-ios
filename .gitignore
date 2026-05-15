@@ -1,0 +1,11 @@
+﻿node_modules/
+worker/node_modules/
+dist/
+.env
+.env.local
+.DS_Store
+*.log
+
+codemagic_cert_key
+
+codemagic_cert_key.pub

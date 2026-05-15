@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.use_as_origin"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.bextrader.app",
+      "sha256_cert_fingerprints": [
+        "0F:85:D3:8E:13:9F:E5:A6:FE:00:96:AE:F1:1C:C9:DE:BC:4F:E0:74:10:83:2F:C4:8C:AB:2A:61:D2:0D:7F:A7"
+      ]
+    }
+  }
+]

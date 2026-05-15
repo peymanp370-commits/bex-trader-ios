@@ -1,0 +1,13 @@
+name = "bex-push"
+main = "worker.js"
+compatibility_date = "2024-04-01"
+
+# 🔥 مهم: این باعث میشه env.DB کار کنه
+[[d1_databases]]
+binding = "DB"
+database_name = "bex_push_db"
+database_id = "803fd2a0-270c-4500-b743-5e0ac6481308"
+
+# (اختیاری ولی خوبه)
+[vars]
+ENV = "production"

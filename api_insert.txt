@@ -1,0 +1,62 @@
+export type AuthUser = {
+  id?: string;
+  email?: string;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  timezone?: string;
+  country?: string;
+  plan?: string;
+  role?: "admin" | "customer" | string;
+  status?: string;
+  is_verified?: number | boolean;
+};
+
+export type AuthResponse = {
+  ok: boolean;
+  message?: string;
+  user?: AuthUser | null;
+};
+
+export type VipMeResponse = {
+  ok: boolean;
+  user?: AuthUser | null;
+  vip?: {
+    active: boolean;
+    client_id?: string | null;
+    token?: string | null;
+    mt5_account_login?: string | null;
+    allowed_symbols?: string | null;
+    max_lot?: number | null;
+    max_trades?: number | null;
+    expires_at?: number | null;
+    last_seen_at?: number | null;
+    plan?: string | null;
+  } | null;
+  execution?: { auto_trading_enabled?: number; max_lot?: number; max_trades?: number; risk_mode?: string } | null;
+  trading_account?: { login_id?: string | null; server?: string | null; platform?: string | null; is_active?: number } | null;
+  message?: string;
+};
+
+export type MyStatsResponse = {
+  ok: boolean;
+  account_login?: string | null;
+  stats: {
+    total_trades: number;
+    wins: number;
+    losses: number;
+    flats: number;
+    win_rate: number;
+    total_pnl: number;
+    avg_pnl: number;
+    last_close_time?: number | null;
+  };
+};
+
+export type AdminCustomersResponse = {
+  ok: boolean;
+  count: number;
+  customers: Array<any>;
+};
+

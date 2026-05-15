@@ -1,0 +1,51 @@
+{
+  "packageId": "com.bextrader.app",
+  "host": "bextrader.com",
+  "name": "BEX Trader",
+  "launcherName": "BEX Trader",
+  "display": "standalone",
+  "themeColor": "#05070D",
+  "themeColorDark": "#05070D",
+  "navigationColor": "#05070D",
+  "navigationColorDark": "#05070D",
+  "navigationDividerColor": "#05070D",
+  "navigationDividerColorDark": "#05070D",
+  "backgroundColor": "#05070D",
+  "enableNotifications": true,
+  "startUrl": "/app",
+  "iconUrl": "https://bextrader.com/icon-512.png",
+  "maskableIconUrl": "https://bextrader.com/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "C:\\Users\\peyma\\Desktop\\BEX-Android\\android.keystore",
+    "alias": "bextrader"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://bextrader.com/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "playBilling": {
+      "enabled": true
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://bextrader.com/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1.0.0"
+}

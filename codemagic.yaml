@@ -1,30 +1,222 @@
 workflows:
-  ios-release:
+  ios-capacitor-release:
     name: BEX Trader iOS Release
-    max_build_duration: 120
+    max_build_duration: 60
     instance_type: mac_mini_m2
+
     environment:
       node: 22
       xcode: latest
-      cocoapods: default
       groups:
         - appstore
+      vars:
+        BUNDLE_ID: "com.bextrader.app"
+
     scripts:
       - name: Install dependencies
-        script: npm install
+        script: |
+          npm install --legacy-peer-deps
+
+      - name: Verify Capacitor config
+        script: |
+          echo "=== VERIFY CAPACITOR CONFIG ==="
+          node -e "JSON.parse(require('fs').readFileSync('capacitor.config.json','utf8')); console.log('capacitor.config.json OK')"
+          cat capacitor.config.json
+
       - name: Build web app
-        script: npm run build
-      - name: Sync Capacitor iOS
-        script: npx cap sync ios
+        script: |
+          npm run build
+
+      - name: Sync existing iOS project
+        script: |
+          echo "=== SYNC EXISTING IOS PROJECT ==="
+          npx cap sync ios
+
+          echo "=== VERIFY IOS FILES ==="
+          test -f ios/App/App/Info.plist
+          test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json
+          test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+          plutil -lint ios/App/App/Info.plist
+
+          echo "=== CHECK APP ICON FILES ==="
+          ls -la ios/App/App/Assets.xcassets/AppIcon.appiconset
+
+          echo "=== CHECK DEEP LINK / URL SCHEMES ==="
+          grep -n "bextrader" ios/App/App/Info.plist || true
+          grep -n "CFBundleURLSchemes" ios/App/App/Info.plist || true
+
+          echo "=== CLEAN BAD XCODE FILES ==="
+          find ios -name Package.resolved -delete || true
+          find ios -name "*.xcuserstate" -delete || true
+          find ios -path "*/xcuserdata/*" -delete || true
+          rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm || true
+          rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcuserdata || true
+          rm -rf ~/Library/Developer/Xcode/DerivedData/* || true
+
+          echo "=== FORCE IOS DEPLOYMENT TARGET 15 FOR STOREKIT2 ==="
+          perl -0pi -e 's/platform :ios, '''14\.0'''/platform :ios, '''15.0'''/g' ios/App/Podfile || true
+          perl -0pi -e 's/IPHONEOS_DEPLOYMENT_TARGET = 14\.0;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/g' ios/App/App.xcodeproj/project.pbxproj || true
+          perl -0pi -e 's/s\.ios\.deployment_target  = '''14\.0'''/s.ios.deployment_target  = '''15.0'''/g' ios/capacitor-cordova-ios-plugins/*.podspec || true
+
+          echo "=== POD INSTALL ==="
+          cd ios/App
+          pod install --repo-update
+          cd ../..
+
+          echo "=== CHECK PROJECT BEFORE BUILD NUMBER ==="
+          plutil -lint ios/App/App.xcodeproj/project.pbxproj
+          xcodebuild -project ios/App/App.xcodeproj -list
+          xcodebuild -workspace ios/App/App.xcworkspace -list
+
+      - name: Set safe iOS build number
+        script: |
+          echo "=== SET SAFE BUILD NUMBER ==="
+
+          BN="${BUILD_NUMBER:-${CM_BUILD_NUMBER:-1}}"
+          BN="$(echo "$BN" | tr -cd '0-9')"
+
+          if [ -z "$BN" ]; then
+            BN="$(date +%s)"
+          fi
+
+          export IOS_BUILD_NUMBER="$BN"
+
+          echo "Using IOS_BUILD_NUMBER=$IOS_BUILD_NUMBER"
+
+          perl -0pi -e 's/CURRENT_PROJECT_VERSION = [^;]*;/CURRENT_PROJECT_VERSION = $ENV{IOS_BUILD_NUMBER};/g' ios/App/App.xcodeproj/project.pbxproj
+
+          echo "=== CHECK CURRENT_PROJECT_VERSION ==="
+          grep -n "CURRENT_PROJECT_VERSION" ios/App/App.xcodeproj/project.pbxproj
+
+          echo "=== CHECK PROJECT AFTER BUILD NUMBER ==="
+          plutil -lint ios/App/App.xcodeproj/project.pbxproj
+          xcodebuild -project ios/App/App.xcodeproj -list
+          xcodebuild -workspace ios/App/App.xcworkspace -list
+
+      - name: Fetch iOS signing files
+        script: |
+          echo "=== FETCH IOS SIGNING FILES ==="
+
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --issuer-id @env:APP_STORE_CONNECT_ISSUER_ID \
+            --key-id @env:APP_STORE_CONNECT_KEY_IDENTIFIER \
+            --private-key @env:APP_STORE_CONNECT_PRIVATE_KEY \
+            --type IOS_APP_STORE \
+            --create \
+            --certificate-key @env:CERTIFICATE_PRIVATE_KEY
+
+          echo "=== SIGNING FILES AFTER FETCH ==="
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles" || true
+          ls -la "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" || true
+
+      - name: Set up keychain
+        script: |
+          echo "=== SET UP KEYCHAIN ==="
+          keychain initialize
+          keychain add-certificates
+
+          echo "=== CODE SIGNING IDENTITIES ==="
+          security find-identity -v -p codesigning || true
+
+      - name: Apply code signing profiles
+        script: |
+          echo "=== APPLY CODE SIGNING PROFILES ==="
+
+          xcode-project use-profiles \
+            --project ios/App/App.xcodeproj
+
+          echo "=== PROJECT SIGNING SETTINGS AFTER USE-PROFILES ==="
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -showBuildSettings | grep -E "PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM|PROVISIONING_PROFILE|PROVISIONING_PROFILE_SPECIFIER|CODE_SIGN_STYLE|CODE_SIGN_IDENTITY" || true
+
+      - name: Create export options plist
+        script: |
+          echo "=== FIND APP STORE PROVISIONING PROFILE ==="
+
+          echo "=== PROFILE DIRS ==="
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles" || true
+          ls -la "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" || true
+
+          PROFILE_PATH="$(
+            find "$HOME/Library/MobileDevice/Provisioning Profiles" \
+                 "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" \
+                 -type f \( -name "*.mobileprovision" -o -name "*.provisionprofile" \) 2>/dev/null | head -n 1
+          )"
+
+          if [ -z "$PROFILE_PATH" ]; then
+            echo "No provisioning profile found after fetch-signing-files and use-profiles"
+            exit 1
+          fi
+
+          echo "Using profile: $PROFILE_PATH"
+
+          security cms -D -i "$PROFILE_PATH" > /tmp/profile.plist
+
+          PROFILE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :Name' /tmp/profile.plist)"
+          TEAM_ID="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' /tmp/profile.plist)"
+
+          echo "PROFILE_NAME=$PROFILE_NAME"
+          echo "TEAM_ID=$TEAM_ID"
+          echo "BUNDLE_ID=$BUNDLE_ID"
+
+          cat > /Users/builder/export_options.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+
+            <key>signingStyle</key>
+            <string>manual</string>
+
+            <key>teamID</key>
+            <string>$TEAM_ID</string>
+
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>$BUNDLE_ID</key>
+              <string>$PROFILE_NAME</string>
+            </dict>
+
+            <key>destination</key>
+            <string>export</string>
+
+            <key>compileBitcode</key>
+            <false/>
+
+            <key>uploadBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          PLIST
+
+          echo "=== EXPORT OPTIONS ==="
+          plutil -lint /Users/builder/export_options.plist
+          cat /Users/builder/export_options.plist
+
       - name: Build signed IPA
         script: |
+          echo "=== FINAL SCHEME CHECK ==="
+          xcodebuild -workspace ios/App/App.xcworkspace -list
+
+          echo "=== FINAL SIGNING SETTINGS ==="
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -showBuildSettings | grep -E "PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM|PROVISIONING_PROFILE|PROVISIONING_PROFILE_SPECIFIER|CODE_SIGN_STYLE|CODE_SIGN_IDENTITY" || true
+
+          echo "=== BUILD SIGNED IPA ==="
           xcode-project build-ipa \
             --workspace ios/App/App.xcworkspace \
-            --scheme App
+            --scheme App \
+            --export-options-plist /Users/builder/export_options.plist \
+            --verbose
+
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+      - /Users/builder/export_options.plist
+
     publishing:
       app_store_connect:
-        auth: integration
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true

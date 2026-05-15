@@ -1,0 +1,17 @@
+name = "bex-app"
+main = "bex-app-api-worker.js"
+compatibility_date = "2025-12-01"
+
+[[d1_databases]]
+binding = "APP_DB"
+database_name = "bex_app_prod"
+database_id = "dc7e3ff4-3ee0-49d3-8359-d8526d9c16d6"
+
+[[d1_databases]]
+binding = "MT5_DB"
+database_name = "bex_mt5_history"
+database_id = "94e03980-2a50-48de-8eb6-cb12d7bd7c19"
+
+[vars]
+AUTH_BASE = "https://auth.bextrader.com"
+CORS_ORIGIN = "https://bextrader.com"

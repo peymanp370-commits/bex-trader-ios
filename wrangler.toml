@@ -1,0 +1,20 @@
+name = "bex-auth-worker"
+main = "worker/index.js"
+compatibility_date = "2025-12-01"
+workers_dev = true
+
+[vars]
+APPLE_BUNDLE_ID = "com.bextrader.app"
+APPLE_CLIENT_ID = "com.bextrader.web"
+APPLE_IOS_CLIENT_ID = "com.bextrader.app"
+APPLE_KEY_ID = "B8CJM8FAP4"
+APPLE_REDIRECT_URI = "https://auth.bextrader.com/auth/apple/callback"
+APPLE_TEAM_ID = "Y6GL588DQ7"
+APP_REDIRECT_URL = "https://bextrader.com/app"
+GOOGLE_CLIENT_ID = "50746359348-l24lp3dj2m9plp7qc8godulthhdiaa6k.apps.googleusercontent.com"
+GOOGLE_REDIRECT_URI = "https://auth.bextrader.com/auth/google/callback"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bex_app_prod"
+database_id = "dc7e3ff4-3ee0-49d3-8359-d8526d9c16d6"
