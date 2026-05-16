@@ -212,7 +212,20 @@ export function VIP() {
       alert(subscribedMessage(plan.name));
       navigate("/app");
     } catch (e: any) {
-      alert(e?.message || "Apple purchase failed. Please try again.");
+      const rawMessage = String(e?.message || e?.error || e || "");
+      const isProductConfigIssue =
+        rawMessage.toLowerCase().includes("product not found") ||
+        rawMessage.toLowerCase().includes("products not found") ||
+        rawMessage.toLowerCase().includes("not found");
+
+      if (isProductConfigIssue) {
+        alert(
+          "Apple subscriptions are not available yet for this build. Please try again shortly or contact support."
+        );
+        return;
+      }
+
+      alert("Apple purchase could not be completed. Please try again.");
     }
   };
 

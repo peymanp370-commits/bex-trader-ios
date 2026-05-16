@@ -478,21 +478,27 @@ export function Settings() {
         <div className={`${darkMode ? "bg-[#0f1623] border-gray-800/50" : "bg-white border-gray-200"} rounded-2xl p-5 border`}>
           <h2 className="text-yellow-400 text-xs font-bold tracking-widest mb-4">{T(lang, TXT.legal)}</h2>
 
-          <button className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}>
+          <Link
+            to="/app/terms"
+            className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}
+          >
             <div className="flex items-center gap-3">
               <FileText className="w-5 h-5 text-teal-400" />
               <span className="font-medium">{T(lang, TXT.terms)}</span>
             </div>
             <ChevronRight className={`w-5 h-5 ${darkMode ? "text-gray-400" : "text-gray-600"} ${rtl ? "rotate-180" : ""}`} />
-          </button>
+          </Link>
 
-          <button className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl transition-colors`}>
+          <Link
+            to="/app/privacy"
+            className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl transition-colors`}
+          >
             <div className="flex items-center gap-3">
               <Lock className="w-5 h-5 text-teal-400" />
               <span className="font-medium">{T(lang, TXT.privacy)}</span>
             </div>
             <ChevronRight className={`w-5 h-5 ${darkMode ? "text-gray-400" : "text-gray-600"} ${rtl ? "rotate-180" : ""}`} />
-          </button>
+          </Link>
         </div>
       </div>
 
