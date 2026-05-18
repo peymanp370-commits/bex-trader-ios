@@ -41,7 +41,47 @@ const BETTER_SIGNAL_MIN_CONFIDENCE_DELTA = 2;
 const HOME_PUSH_SENT_KEY = "bex_home_last_pushed_signal_id";
 const PUSH_MODE_KEY = "bex_notification_preference";
 
+const POSITION_ENGINE_BASE =
+  (import.meta as any).env?.VITE_POSITION_ENGINE_BASE ||
+  (import.meta as any).env?.VITE_POSITION_ENGINE_URL ||
+  "https://bex-position-engine.peymanp370.workers.dev";
+
+const MT5_STATUS_REFRESH_MS = 30 * 1000;
+
+
 type NotificationPreference = "off" | "instant" | "strong";
+
+type Mt5ExecutionItem = {
+  id?: number | string | null;
+  status?: string | null;
+  trade_state?: "PENDING" | "OPEN" | "CLOSED" | "UPDATE" | string | null;
+  symbol?: string | null;
+  broker_symbol?: string | null;
+  side?: string | null;
+  lot?: number | string | null;
+  entry?: number | string | null;
+  fill_price?: number | string | null;
+  sl?: number | string | null;
+  tp?: number | string | null;
+  profit?: number | string | null;
+  account_login?: string | null;
+  account_server?: string | null;
+  signal_id?: string | null;
+  created_at?: number | string | null;
+  message?: string | null;
+};
+
+type Mt5StatusResponse = {
+  ok?: boolean;
+  account_login?: string | null;
+  client_id?: string | null;
+  symbol?: string | null;
+  latest?: Mt5ExecutionItem | null;
+  open_position?: Mt5ExecutionItem | null;
+  pending_order?: Mt5ExecutionItem | null;
+  items?: Mt5ExecutionItem[];
+};
+
 
 function getSignalMinConfidence(symbol: "XAUUSD" | "XAGUSD"): number {
   return symbol === "XAGUSD" ? 60 : 55;
@@ -51,6 +91,80 @@ function toNum(value: unknown): number | null {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
+
+function firstLocalStorageValue(keys: string[]): string {
+  for (const key of keys) {
+    const value = localStorage.getItem(key);
+    if (value && String(value).trim()) return String(value).trim();
+  }
+  return "";
+}
+
+function getVipMt5ContextFromStorage() {
+  return {
+    token: firstLocalStorageValue(["bex_vip_token", "vipToken", "vip_token", "BEX_VIP_TOKEN"]),
+    clientId: firstLocalStorageValue(["bex_vip_client_id", "vipClientId", "client_id", "clientId"]),
+    accountLogin: firstLocalStorageValue(["bex_mt5_account_login", "mt5_account_login", "account_login", "mt5Login", "loginId"]),
+    accountServer: firstLocalStorageValue(["bex_mt5_account_server", "mt5_account_server", "account_server", "mt5Server"]),
+  };
+}
+
+function hasVipAutoContext(): boolean {
+  const ctx = getVipMt5ContextFromStorage();
+  return !!(ctx.token && (ctx.accountLogin || ctx.clientId));
+}
+
+function isPaidOrVipPlan(): boolean {
+  const plan = getUserPlan().replace(/[^A-Z0-9]+/g, "_");
+  const trialActive = String(localStorage.getItem("trialActive") || "").toLowerCase() === "true";
+  return trialActive || ["BASIC", "PRO", "VIP", "VIP_AUTO", "LIFETIME", "VIP_LIFETIME"].includes(plan);
+}
+
+async function fetchMt5StatusForSymbol(symbol: "XAUUSD" | "XAGUSD"): Promise<Mt5StatusResponse | null> {
+  const ctx = getVipMt5ContextFromStorage();
+  if (!ctx.token || (!ctx.accountLogin && !ctx.clientId)) return null;
+
+  const qs = new URLSearchParams({ symbol, token: ctx.token, limit: "20" });
+  if (ctx.clientId) qs.set("client_id", ctx.clientId);
+  if (ctx.accountLogin) qs.set("account_login", ctx.accountLogin);
+  if (ctx.accountServer) qs.set("account_server", ctx.accountServer);
+
+  const res = await fetch(`${POSITION_ENGINE_BASE}/mt5-status?${qs.toString()}`, {
+    headers: { accept: "application/json" },
+    cache: "no-store",
+  });
+
+  const data = await res.json().catch(() => null);
+  if (!res.ok || data?.ok === false) {
+    throw new Error(data?.error || data?.reason || `mt5_status_http_${res.status}`);
+  }
+  return data;
+}
+
+function normalizeTradeState(value?: string | null): string {
+  const raw = String(value || "").trim().toUpperCase();
+  if (raw === "PENDING") return "PENDING";
+  if (raw === "OPEN") return "OPEN";
+  if (raw === "CLOSED") return "CLOSED";
+  return raw || "UPDATE";
+}
+
+function pickPrimaryMt5Item(status: Mt5StatusResponse | null): Mt5ExecutionItem | null {
+  if (!status) return null;
+  return status.open_position || status.pending_order || status.latest || null;
+}
+
+function formatMt5Time(value?: number | string | null): string {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  try { return new Date(n).toLocaleString(); } catch { return "—"; }
+}
+
+function getTradeNumber(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 
 function normalizePricesShape(raw: any): DashboardPrices | null {
   if (!raw) return null;
@@ -460,6 +574,9 @@ export function Home() {
   const [signalTimestamp, setSignalTimestamp] = useState<Date | null>(null);
   const [fxRates, setFxRates] = useState<Partial<Record<CurrencyCode, number>>>({ USD: 1 });
   const [mobilePushHint, setMobilePushHint] = useState<string | null>(null);
+  const [mt5Status, setMt5Status] = useState<Mt5StatusResponse | null>(null);
+  const [mt5StatusLoading, setMt5StatusLoading] = useState(false);
+  const [mt5StatusError, setMt5StatusError] = useState<string | null>(null);
 
   // LOW-COST FIX: keep latest dashboard state in refs.
   // This stops the dashboard effect from reconnecting after each state update.
@@ -512,6 +629,47 @@ export function Home() {
       window.removeEventListener("bexPushPreferenceChanged", runAutoPush as EventListener);
     };
   }, [lang]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const loadMt5Status = async () => {
+      if (!hasVipAutoContext()) {
+        setMt5Status(null);
+        setMt5StatusError(null);
+        setMt5StatusLoading(false);
+        return;
+      }
+
+      setMt5StatusLoading(true);
+      try {
+        const status = await fetchMt5StatusForSymbol(selectedSymbol);
+        if (cancelled) return;
+        setMt5Status(status);
+        setMt5StatusError(null);
+      } catch (err: any) {
+        if (cancelled) return;
+        setMt5StatusError(err?.message || "mt5_status_failed");
+      } finally {
+        if (!cancelled) setMt5StatusLoading(false);
+      }
+    };
+
+    loadMt5Status();
+    timer = setInterval(loadMt5Status, MT5_STATUS_REFRESH_MS);
+
+    const onFocus = () => loadMt5Status();
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("bexVipContextChanged", onFocus as EventListener);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("bexVipContextChanged", onFocus as EventListener);
+    };
+  }, [selectedSymbol]);
 
   useEffect(() => {
     const cached = readHomeCache(selectedSymbol);
@@ -702,6 +860,15 @@ export function Home() {
     return formatNumber(usdPrice * Number(rate), lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  const activeMt5Item = pickPrimaryMt5Item(mt5Status);
+  const activeMt5State = normalizeTradeState(activeMt5Item?.trade_state || activeMt5Item?.status);
+  const activeMt5Entry = getTradeNumber(activeMt5Item?.entry ?? activeMt5Item?.fill_price);
+  const activeMt5Sl = getTradeNumber(activeMt5Item?.sl);
+  const activeMt5Tp = getTradeNumber(activeMt5Item?.tp);
+  const activeMt5Lot = getTradeNumber(activeMt5Item?.lot);
+  const activeMt5Profit = getTradeNumber(activeMt5Item?.profit);
+  const showMt5Card = !!activeMt5Item || hasVipAutoContext() || isPaidOrVipPlan();
+
   const currentPrice = selectedSymbol === "XAUUSD" ? prices?.XAUUSD : prices?.XAGUSD;
 
   const marketBoard = [
@@ -830,7 +997,7 @@ export function Home() {
 
             <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800" : "bg-gray-50 border-gray-200"} rounded-xl p-2.5 border`}>
               <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{tr(lang, "Entry Price", "قیمت ورود", "سعر الدخول")}</p>
-              <p className="font-bold">{convertPrice(signal?.entry || null)}</p>
+              <p className="font-bold">{convertPrice(Number(signal?.entry ?? activeMt5Entry ?? null))}</p>
             </div>
 
             <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800" : "bg-gray-50 border-gray-200"} rounded-xl p-2.5 border`}>
@@ -863,6 +1030,65 @@ export function Home() {
           </div>
           <ChevronRight className={`w-5 h-5 ${darkMode ? "text-gray-500" : "text-gray-400"}`} />
         </button>
+
+        {showMt5Card && (
+          <div className={`${darkMode ? "bg-[#0f1623] border-yellow-500/20" : "bg-white border-yellow-500/30"} rounded-2xl p-5 border shadow-xl`}> 
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-yellow-400 text-xs font-bold tracking-widest">{tr(lang, "🤖 VIP AUTO / MT5 STATUS", "🤖 وضعیت VIP Auto / MT5", "🤖 حالة VIP Auto / MT5")}</h3>
+                <p className={`mt-1 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                  {tr(lang, "Shows real EA orders and positions reported from MT5.", "سفارش‌ها و پوزیشن‌های واقعی EA که از MT5 گزارش شده‌اند را نشان می‌دهد.", "يعرض أوامر وصفقات EA الحقيقية المرسلة من MT5.")}
+                </p>
+              </div>
+              <div className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${
+                activeMt5State === "OPEN" ? "bg-green-500 text-white" :
+                activeMt5State === "PENDING" ? "bg-yellow-500 text-black" :
+                activeMt5State === "CLOSED" ? "bg-gray-600 text-white" :
+                "bg-gray-500 text-white"
+              }`}>
+                {mt5StatusLoading ? tr(lang, "SYNCING", "در حال همگام‌سازی", "مزامنة") : activeMt5State === "PENDING" ? tr(lang, "PENDING ORDER", "سفارش در انتظار", "أمر معلق") : activeMt5State === "OPEN" ? tr(lang, "LIVE POSITION", "پوزیشن باز", "صفقة مفتوحة") : activeMt5Item ? activeMt5State : tr(lang, "NO EA ORDER", "بدون سفارش EA", "لا أمر EA")}
+              </div>
+            </div>
+
+            {!hasVipAutoContext() ? (
+              <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800" : "bg-gray-50 border-gray-200"} rounded-xl border p-4`}> 
+                <p className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                  {tr(lang, "Connect your VIP Auto MT5 account to show pending orders, open positions and execution updates here.", "برای نمایش سفارش‌های در انتظار، پوزیشن‌های باز و گزارش اجرای MT5، حساب VIP Auto را وصل کن.", "اربط حساب VIP Auto MT5 لعرض الأوامر المعلقة والصفقات المفتوحة هنا.")}
+                </p>
+                <button type="button" onClick={() => navigate("/app/vip-auto")} className="mt-3 rounded-xl bg-yellow-500 px-4 py-2 text-sm font-bold text-black">
+                  {tr(lang, "Open VIP Auto", "باز کردن VIP Auto", "فتح VIP Auto")}
+                </button>
+              </div>
+            ) : mt5StatusError ? (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+                {tr(lang, "Could not load MT5 status", "وضعیت MT5 خوانده نشد", "تعذر تحميل حالة MT5")}: {mt5StatusError}
+              </div>
+            ) : activeMt5Item ? (
+              <>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <div className={`${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl p-3`}><p className="text-xs text-gray-400">Symbol</p><p className="font-bold">{activeMt5Item.symbol || selectedSymbol}</p></div>
+                  <div className={`${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl p-3`}><p className="text-xs text-gray-400">Side</p><p className={`font-bold ${String(activeMt5Item.side).toUpperCase() === "SELL" ? "text-red-400" : "text-green-400"}`}>{translateSide(activeMt5Item.side || "WAIT", lang)}</p></div>
+                  <div className={`${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl p-3`}><p className="text-xs text-gray-400">Lot</p><p className="font-bold">{activeMt5Lot !== null ? formatNumber(activeMt5Lot, lang, { maximumFractionDigits: 2 }) : "—"}</p></div>
+                  <div className={`${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl p-3`}><p className="text-xs text-gray-400">P/L</p><p className={`font-bold ${activeMt5Profit !== null && activeMt5Profit < 0 ? "text-red-400" : "text-green-400"}`}>{activeMt5Profit !== null ? formatNumber(activeMt5Profit, lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</p></div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
+                  <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800" : "bg-gray-50 border-gray-200"} rounded-xl border p-3`}><p className="text-xs text-gray-400">Entry</p><p className="text-lg font-bold">{activeMt5Entry !== null ? formatNumber(activeMt5Entry, lang, { minimumFractionDigits: selectedSymbol === "XAGUSD" ? 3 : 2, maximumFractionDigits: selectedSymbol === "XAGUSD" ? 3 : 2 }) : "—"}</p></div>
+                  <div className={`${darkMode ? "bg-[#1a2332]/50 border-red-900/30" : "bg-red-50 border-red-200"} rounded-xl border p-3`}><p className="text-xs text-red-400">SL</p><p className="text-lg font-bold">{activeMt5Sl !== null ? formatNumber(activeMt5Sl, lang, { minimumFractionDigits: selectedSymbol === "XAGUSD" ? 3 : 2, maximumFractionDigits: selectedSymbol === "XAGUSD" ? 3 : 2 }) : "—"}</p></div>
+                  <div className={`${darkMode ? "bg-[#1a2332]/50 border-green-900/30" : "bg-green-50 border-green-200"} rounded-xl border p-3`}><p className="text-xs text-green-400">TP</p><p className="text-lg font-bold">{activeMt5Tp !== null ? formatNumber(activeMt5Tp, lang, { minimumFractionDigits: selectedSymbol === "XAGUSD" ? 3 : 2, maximumFractionDigits: selectedSymbol === "XAGUSD" ? 3 : 2 }) : "—"}</p></div>
+                </div>
+
+                <p className={`mt-3 text-xs ${darkMode ? "text-gray-500" : "text-gray-500"}`}>
+                  {tr(lang, "Last EA report", "آخرین گزارش EA", "آخر تقرير EA")}: {formatMt5Time(activeMt5Item.created_at)}{activeMt5Item.signal_id ? ` • ${activeMt5Item.signal_id}` : ""}
+                </p>
+              </>
+            ) : (
+              <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800" : "bg-gray-50 border-gray-200"} rounded-xl border p-4 text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                {mt5StatusLoading ? tr(lang, "Loading MT5 status...", "در حال خواندن وضعیت MT5...", "جاري تحميل حالة MT5...") : tr(lang, "No pending order or open position has been reported yet.", "هنوز سفارش در انتظار یا پوزیشن باز گزارش نشده است.", "لم يتم الإبلاغ عن أمر معلق أو صفقة مفتوحة بعد.")}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className={`${darkMode ? "bg-gradient-to-br from-[#0f1623] to-[#0a0e1a] border-yellow-500/20" : "bg-white border-yellow-500/30"} rounded-3xl p-5 sm:p-6 border shadow-2xl relative overflow-hidden`}>
           <div className="flex min-w-0 items-start justify-between gap-3 mb-4">
