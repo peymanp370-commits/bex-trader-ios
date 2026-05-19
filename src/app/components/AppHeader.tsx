@@ -22,6 +22,22 @@ type AppHeaderProps = {
   showPlan?: boolean;
 };
 
+type PlanKey = "FREE" | "BASIC" | "PRO" | "VIP_AUTO" | "LIFETIME";
+
+type PlanInfo = {
+  key: PlanKey;
+  label: string;
+  rank: number;
+};
+
+const PLAN_RANK: Record<PlanKey, number> = {
+  FREE: 1,
+  BASIC: 2,
+  PRO: 3,
+  VIP_AUTO: 4,
+  LIFETIME: 5,
+};
+
 function cleanName(value: string | null | undefined) {
   const raw = String(value || "").trim();
   if (!raw) return "Apple User";
@@ -29,41 +45,171 @@ function cleanName(value: string | null | undefined) {
   return raw;
 }
 
+function readJsonNameCandidates(storageKey: string): string[] {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw) as Record<string, unknown> | null;
+    if (!parsed || typeof parsed !== "object") return [];
+
+    return [
+      parsed.userName,
+      parsed.name,
+      parsed.fullName,
+      parsed.displayName,
+      parsed.email,
+      parsed.username,
+      parsed?.profile && typeof parsed.profile === "object"
+        ? (parsed.profile as Record<string, unknown>).name
+        : null,
+      parsed?.profile && typeof parsed.profile === "object"
+        ? (parsed.profile as Record<string, unknown>).email
+        : null,
+    ]
+      .map((value) => String(value || "").trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 function readStoredName() {
   try {
-    return (
+    const direct =
       localStorage.getItem("userName") ||
       localStorage.getItem("name") ||
       localStorage.getItem("bex_user_name") ||
       localStorage.getItem("bex_user_email") ||
       localStorage.getItem("email") ||
-      ""
-    );
+      localStorage.getItem("user_email") ||
+      localStorage.getItem("bex_email") ||
+      "";
+
+    if (direct) return direct;
+
+    const jsonKeys = [
+      "user",
+      "bex_user",
+      "auth_user",
+      "profile",
+      "bex_profile",
+      "currentUser",
+      "bex_current_user",
+    ];
+
+    return jsonKeys.flatMap(readJsonNameCandidates)[0] || "";
   } catch {
     return "";
   }
 }
 
-function readStoredPlan() {
+function normalizePlan(value: unknown): PlanInfo | null {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const compact = raw
+    .replace(/['"]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toUpperCase();
+
+  let key: PlanKey | null = null;
+
+  if (/LIFETIME|LIFE_TIME|VIP_LIFETIME/.test(compact)) key = "LIFETIME";
+  else if (/VIP|VIP_AUTO|AUTO_TRADING|AUTO_TRADE/.test(compact)) key = "VIP_AUTO";
+  else if (/PRO/.test(compact)) key = "PRO";
+  else if (/BASIC/.test(compact)) key = "BASIC";
+  else if (/FREE|TRIAL|NONE/.test(compact)) key = "FREE";
+
+  if (!key) return null;
+
+  return {
+    key,
+    label: key === "VIP_AUTO" ? "VIP AUTO" : key,
+    rank: PLAN_RANK[key],
+  };
+}
+
+function readJsonPlanCandidates(storageKey: string): PlanInfo[] {
   try {
-    const raw =
-      localStorage.getItem("plan") ||
-      localStorage.getItem("bex_plan") ||
-      localStorage.getItem("subscription") ||
-      localStorage.getItem("bex_subscription") ||
-      "FREE";
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return [];
 
-    const normalized = String(raw || "FREE")
-      .replace(/^VIP_AUTO$/i, "VIP")
-      .replace(/^BASIC$/i, "BASIC")
-      .replace(/^PRO$/i, "PRO")
-      .replace(/^FREE$/i, "FREE")
-      .trim()
-      .toUpperCase();
+    const parsed = JSON.parse(raw) as Record<string, unknown> | null;
+    if (!parsed || typeof parsed !== "object") return [];
 
-    return normalized || "FREE";
+    const candidates = [
+      parsed.plan,
+      parsed.userPlan,
+      parsed.activePlan,
+      parsed.subscription,
+      parsed.subscriptionPlan,
+      parsed.tier,
+      parsed.role,
+      parsed.entitlement,
+      parsed?.billing && typeof parsed.billing === "object"
+        ? (parsed.billing as Record<string, unknown>).plan
+        : null,
+      parsed?.billing && typeof parsed.billing === "object"
+        ? (parsed.billing as Record<string, unknown>).tier
+        : null,
+    ];
+
+    return candidates.map(normalizePlan).filter(Boolean) as PlanInfo[];
   } catch {
-    return "FREE";
+    return [];
+  }
+}
+
+function readStoredPlan(): PlanInfo {
+  try {
+    const planKeys = [
+      "userPlan",
+      "bex_user_plan",
+      "activePlan",
+      "bex_active_plan",
+      "subscription_plan",
+      "bex_subscription_plan",
+      "entitlement",
+      "bex_entitlement",
+      "plan",
+      "bex_plan",
+      "subscription",
+      "bex_subscription",
+      "tier",
+      "bex_tier",
+    ];
+
+    const jsonKeys = ["user", "bex_user", "auth_user", "profile", "bex_profile", "currentUser", "bex_current_user", "session", "bex_session"];
+
+    const candidates = [
+      ...planKeys.map((key) => normalizePlan(localStorage.getItem(key))),
+      ...jsonKeys.flatMap(readJsonPlanCandidates),
+    ].filter(Boolean) as PlanInfo[];
+
+    const best = candidates.sort((a, b) => b.rank - a.rank)[0];
+    return best || { key: "FREE", label: "FREE", rank: PLAN_RANK.FREE };
+  } catch {
+    return { key: "FREE", label: "FREE", rank: PLAN_RANK.FREE };
+  }
+}
+
+function getPlanBadgeClass(planKey: PlanKey, darkMode: boolean) {
+  const base = "shrink-0 rounded-full px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide ring-1";
+
+  switch (planKey) {
+    case "VIP_AUTO":
+      return `${base} bg-[#f5b301] text-[#111827] ring-[#f5b301]/45 shadow-[0_0_12px_rgba(245,179,1,0.22)]`;
+    case "LIFETIME":
+      return `${base} bg-purple-500/90 text-white ring-purple-300/35`;
+    case "PRO":
+      return `${base} bg-blue-500/90 text-white ring-blue-300/35`;
+    case "BASIC":
+      return `${base} ${darkMode ? "bg-slate-500/80 text-white ring-white/15" : "bg-slate-200 text-slate-800 ring-slate-300"}`;
+    case "FREE":
+    default:
+      return `${base} ${darkMode ? "bg-white/10 text-gray-200 ring-white/10" : "bg-gray-100 text-gray-700 ring-gray-200"}`;
   }
 }
 
@@ -95,7 +241,7 @@ export function AppHeader({
   showThemeToggle = true,
   showUser = true,
   userName,
-  badge,
+  badge: _badge,
   rtl = false,
   showBack = false,
   backTo,
@@ -105,6 +251,10 @@ export function AppHeader({
   const darkMode = typeof darkModeProp === "boolean" ? darkModeProp : readDarkMode(true);
   const savedName = cleanName(userName || readStoredName());
   const plan = readStoredPlan();
+  // Force a consistent account identity line on every app header.
+  // Settings was passing showUser={false}, which hid the name and left only the plan badge.
+  // Keep the prop for compatibility, but never hide the identity line when this shared header is used.
+  const effectiveShowUser = true;
   const iconButton = `${darkMode ? "hover:bg-[#1a2332] text-white" : "hover:bg-gray-100 text-gray-900"} flex h-9 w-9 items-center justify-center rounded-xl transition-colors`;
 
   const doBack = () => {
@@ -120,10 +270,10 @@ export function AppHeader({
 
   return (
     <header
-      className={`${darkMode ? "bg-[#0f1623] border-gray-900/60 text-white" : "bg-white border-gray-100 text-gray-950"} sticky top-0 z-40 overflow-hidden border-b px-4 pb-3`}
+      className={`${darkMode ? "bg-[#0f1623] border-gray-900/60 text-white" : "bg-white border-gray-100 text-gray-950"} sticky top-0 z-40 overflow-visible border-b px-4 pb-3`}
       style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 1.75rem)" }}
     >
-      <div className="mx-auto grid min-h-[84px] max-w-7xl grid-cols-[34px_126px_minmax(0,1fr)_78px] items-center gap-2 overflow-hidden sm:grid-cols-[40px_142px_minmax(0,1fr)_88px]">
+      <div className="mx-auto grid min-h-[92px] max-w-7xl grid-cols-[34px_118px_minmax(145px,1fr)_78px] items-center gap-2 overflow-visible sm:grid-cols-[40px_142px_minmax(0,1fr)_88px]">
         <div className="flex h-full items-center justify-center">
           {showBack || onBackClick || backTo ? (
             <button type="button" onClick={doBack} className={iconButton} aria-label="Back">
@@ -141,33 +291,30 @@ export function AppHeader({
         <img
           src={bexLogoTransparent}
           alt="BEX Trader"
-          className="h-[76px] w-[126px] shrink-0 object-contain object-center sm:h-[84px] sm:w-[142px]"
+          className="h-[74px] w-[118px] shrink-0 object-contain object-center sm:h-[84px] sm:w-[142px]"
         />
 
         <div className="min-w-0 overflow-visible">
           <div className="flex min-w-0 items-center gap-1.5 overflow-visible">
             <h1
               className="min-w-0 whitespace-nowrap font-extrabold leading-none tracking-[-0.035em]"
-              style={{ fontSize: "clamp(1.55rem, 7vw, 2rem)" }}
+              style={{ fontSize: "clamp(1.45rem, 6.4vw, 2rem)" }}
             >
               {title}
             </h1>
-            {badge ? <div className="hidden shrink-0 sm:block">{badge}</div> : null}
+            {/* Page-level badge is intentionally hidden here to avoid duplicate plan badges.
+                Active plan is rendered once below from the normalized localStorage/account plan. */}
           </div>
 
-          {(showUser || showPlan) ? (
-            <div className={`mt-2 flex min-w-0 items-center gap-1.5 overflow-hidden text-[12px] font-semibold leading-none ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-              {showUser ? (
-                <Link to="/app/account" className="inline-flex min-w-0 max-w-[92px] items-center gap-1 truncate hover:underline sm:max-w-[130px]">
+          {effectiveShowUser || showPlan ? (
+            <div className={`mt-2 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 overflow-visible text-[12px] font-semibold leading-none ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+              {effectiveShowUser ? (
+                <Link to="/app/account" className="inline-flex min-w-0 max-w-[150px] items-center gap-1 truncate hover:underline sm:max-w-[180px]">
                   <UserCircle className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">{savedName}</span>
                 </Link>
               ) : null}
-              {showPlan ? (
-                <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-gray-200 ring-1 ring-white/10">
-                  {plan}
-                </span>
-              ) : null}
+              {showPlan ? <span className={getPlanBadgeClass(plan.key, darkMode)}>{plan.label}</span> : null}
             </div>
           ) : null}
         </div>
