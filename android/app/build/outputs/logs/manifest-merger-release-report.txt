@@ -1,507 +1,613 @@
 -- Merging decision tree log ---
 manifest
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:21:1-195:12
-INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:21:1-195:12
-INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:21:1-195:12
-INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:21:1-195:12
-MERGED from [com.google.androidbrowserhelper:billing:1.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\86daebdf1ac5a298358120b63e4f1cb9\transformed\billing-1.1.0\AndroidManifest.xml:2:1-7:12
-MERGED from [com.google.androidbrowserhelper:androidbrowserhelper:2.5.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\6071355b2723133aa2fcbafcfb6267b1\transformed\androidbrowserhelper-2.5.0\AndroidManifest.xml:17:1-36:12
-MERGED from [androidx.browser:browser:1.4.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\77d08ee97a7a0929b9f21dda428cd18a\transformed\browser-1.4.0\AndroidManifest.xml:17:1-24:12
-MERGED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:2:1-38:12
-MERGED from [com.google.android.gms:play-services-location:19.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\e7cbde54ad547b82b2f871a970f72558\transformed\play-services-location-19.0.0\AndroidManifest.xml:2:1-9:12
-MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\57bacb9ef58048c0e6f8321d8067096b\transformed\play-services-base-18.5.0\AndroidManifest.xml:2:1-7:12
-MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\f2a6b48e9a6cb6e056c7b13574ad3934\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:2:1-5:12
-MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\9c4047d309d98e979e204eb4954e87de\transformed\play-services-places-placereport-17.0.0\AndroidManifest.xml:17:1-24:12
-MERGED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\af1250092db6525f6762c9b32f91bede\transformed\play-services-basement-18.4.0\AndroidManifest.xml:2:1-9:12
-MERGED from [androidx.fragment:fragment:1.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\41781af1c6e09f4822948875803c83c7\transformed\fragment-1.1.0\AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.activity:activity:1.2.3] C:\Users\peyma\.gradle\caches\8.11.1\transforms\a49f5b7a6985eb5a5d66d83adc8fa9e0\transformed\activity-1.2.3\AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\7a17fcb820eb6f9d68b4346d0296d65d\transformed\viewpager-1.0.0\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.loader:loader:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\084a750bd95de8b03c30a62db7c865b0\transformed\loader-1.0.0\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.customview:customview:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\3c0b595a199549f3e428240151565589\transformed\customview-1.0.0\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.core:core:1.2.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ff508743d175973d09d76c1413220923\transformed\core-1.2.0\AndroidManifest.xml:17:1-26:12
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ede02a27188e30128c4e6e8452cf3ac9\transformed\versionedparcelable-1.1.0\AndroidManifest.xml:17:1-27:12
-MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\0cc7dfd2c0fcae0982c28937b18f49ab\transformed\interpolator-1.0.0\AndroidManifest.xml:17:1-22:12
-MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:15:1-37:12
-MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:15:1-41:12
-MERGED from [com.google.android.datatransport:transport-api:3.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\697bc74ea5c0de88d2e10b1368645f78\transformed\transport-api-3.0.0\AndroidManifest.xml:15:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-runtime:2.3.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\7bdd9e3391ad84bdccaad1e0d96d2738\transformed\lifecycle-runtime-2.3.1\AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.3.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\db7a554921d5f0bf72a9e3ff61c5c1c5\transformed\lifecycle-viewmodel-savedstate-2.3.1\AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.3.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ebab47f2f2d0f0abbd7bd9c77aa3b7a0\transformed\lifecycle-viewmodel-2.3.1\AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.savedstate:savedstate:1.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\c112e2907b8fb468f4b8ec308058a79b\transformed\savedstate-1.1.0\AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\474639784496fdcb1dff3c865820bc2e\transformed\tracing-1.0.0\AndroidManifest.xml:17:1-24:12
-MERGED from [com.google.firebase:firebase-encoders-json:18.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ff5ffd328ca3417fbb38a1e1582cc96d\transformed\firebase-encoders-json-18.0.0\AndroidManifest.xml:15:1-23:12
-MERGED from [androidx.lifecycle:lifecycle-livedata:2.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\0465b0c41e232f9758bbbe67283f8116\transformed\lifecycle-livedata-2.0.0\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.3.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\f432280746b68184cde2a7f9a313e4c6\transformed\lifecycle-livedata-core-2.3.1\AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.arch.core:core-runtime:2.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\017843d23ff14032b1831a1cd6fb2431\transformed\core-runtime-2.1.0\AndroidManifest.xml:17:1-24:12
+ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:2:1-47:12
+INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:2:1-47:12
+INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:2:1-47:12
+INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:2:1-47:12
+MERGED from [com.google.androidbrowserhelper:billing:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e9ef8c5ef81feb063ea999f7c57524d6\transformed\billing-1.1.0\AndroidManifest.xml:2:1-7:12
+MERGED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:2:1-26:12
+MERGED from [com.google.androidbrowserhelper:androidbrowserhelper:2.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bfd3d8197231ac030e244e61a0635dd3\transformed\androidbrowserhelper-2.5.0\AndroidManifest.xml:17:1-36:12
+MERGED from [com.google.android.libraries.identity.googleid:googleid:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\52ed94827d478dbaeda11754a5124f5d\transformed\googleid-1.1.1\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.credentials:credentials:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\c9d5bec25f1fc273c03f68ec7e2aa379\transformed\credentials-1.5.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:17:1-52:12
+MERGED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:17:1-40:12
+MERGED from [:capacitor-app] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\app\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:2:1-7:12
+MERGED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:2:1-21:12
+MERGED from [:capacitor-android] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\android\capacitor\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.appcompat:appcompat-resources:1.7.0] C:\Users\peyma\.gradle\caches\8.13\transforms\36ec878634e53fe21777bac23975c232\transformed\appcompat-resources-1.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.biometric:biometric:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\9d808e8c80c6b6346f2153982105b79b\transformed\biometric-1.1.0\AndroidManifest.xml:17:1-29:12
+MERGED from [androidx.appcompat:appcompat:1.7.0] C:\Users\peyma\.gradle\caches\8.13\transforms\615f85221447bddcc1f79f2629f60c40\transformed\appcompat-1.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:2:1-38:12
+MERGED from [com.google.android.gms:play-services-location:19.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a59635e39919e204e4bf797ee6374050\transformed\play-services-location-19.0.0\AndroidManifest.xml:2:1-9:12
+MERGED from [com.google.android.gms:play-services-auth-api-phone:18.0.2] C:\Users\peyma\.gradle\caches\8.13\transforms\80b9770111733c33c2c17280458d99d3\transformed\play-services-auth-api-phone-18.0.2\AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-auth-base:18.0.10] C:\Users\peyma\.gradle\caches\8.13\transforms\6ff89481b01883523efaa2f2b376f3c7\transformed\play-services-auth-base-18.0.10\AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-fido:21.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\68b29823e4df4ff37f55095332746ecd\transformed\play-services-fido-21.0.0\AndroidManifest.xml:2:1-10:12
+MERGED from [com.google.android.gms:play-services-auth-blockstore:16.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\c4f42fd55a42bf3b5f28ef6f024a2a13\transformed\play-services-auth-blockstore-16.4.0\AndroidManifest.xml:2:1-9:12
+MERGED from [com.google.android.gms:play-services-identity-credentials:16.0.0-alpha02] C:\Users\peyma\.gradle\caches\8.13\transforms\0bb33e90797194698ae82fc3a22399f1\transformed\play-services-identity-credentials-16.0.0-alpha02\AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\41250e7b5324aa524686d219eb0729c5\transformed\play-services-base-18.5.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\73edec37d7c703941f7a5a316445009a\transformed\drawerlayout-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.emoji2:emoji2-views-helper:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\f139af471e995d2ddd224f6725d83f10\transformed\emoji2-views-helper-1.3.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bcd700d38af666f43319ebdeb5486eac\transformed\emoji2-1.3.0\AndroidManifest.xml:17:1-35:12
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a5750404eac2e20b9009569e3f78dfbd\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:2:1-5:12
+MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\202a676a56b9f150421430e760765058\transformed\play-services-places-placereport-17.0.0\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.gms:play-services-basement:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\44d25a5ae7b6276542f50c0437eb5ede\transformed\play-services-basement-18.5.0\AndroidManifest.xml:16:1-26:12
+MERGED from [androidx.fragment:fragment:1.8.4] C:\Users\peyma\.gradle\caches\8.13\transforms\c957f40d3224b1895bb46780df5c2543\transformed\fragment-1.8.4\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.browser:browser:1.9.0] C:\Users\peyma\.gradle\caches\8.13\transforms\4df2ac4e4487dae71384e5761f45cda7\transformed\browser-1.9.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity:1.9.2] C:\Users\peyma\.gradle\caches\8.13\transforms\0ae37760a2751bf73d4d0ac24ce55d83\transformed\activity-1.9.2\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.2.0] C:\Users\peyma\.gradle\caches\8.13\transforms\5b47a1632c023595707bab6fb9c82a9b\transformed\coordinatorlayout-1.2.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.webkit:webkit:1.12.1] C:\Users\peyma\.gradle\caches\8.13\transforms\a00b6d0988b8f4b2178620920e674022\transformed\webkit-1.12.1\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a618f82b717233ecf90c642bb8785a3b\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\4a50b8f3bdb5f371e76ef0fbed00ce56\transformed\vectordrawable-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\1e15fcd754a5d2d19cfb1b8dfce38795\transformed\viewpager-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e1f0993f8980c5198bb45bd6e31f1d1d\transformed\customview-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\peyma\.gradle\caches\8.13\transforms\e41c103b6b4012a517afb67fb1fb81a0\transformed\savedstate-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.loader:loader:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7824fefafd419e01b30a5f0666609a51\transformed\loader-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\60f18c431273bd9d9e599efd2cac678a\transformed\lifecycle-viewmodel-2.6.2\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\5f26bd1e6a03d9ca5c403aec3369ac35\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\1e9893244eb9a3bb9f07af381687465f\transformed\lifecycle-livedata-core-2.6.2\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\c2571562c40a82b872b657e57a6dbca9\transformed\lifecycle-runtime-2.6.2\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\75e7f47b648e030411fdfc2a0b303b74\transformed\lifecycle-viewmodel-savedstate-2.6.2\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.core:core-ktx:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\5a2fd1240c4b5b3e5fd286cddabded13\transformed\core-ktx-1.15.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:17:1-30:12
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\045a9e4dbe830f874b308c1eb537e9d7\transformed\cursoradapter-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:17:1-55:12
+MERGED from [com.auth0.android:jwtdecode:2.0.2] C:\Users\peyma\.gradle\caches\8.13\transforms\ba04aac1f7eda214a36381f115a8c854\transformed\jwtdecode-2.0.2\AndroidManifest.xml:2:1-11:12
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:15:1-37:12
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:15:1-41:12
+MERGED from [com.google.android.datatransport:transport-api:3.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\517d7661da2fe8eea24a140beaec1bfc\transformed\transport-api-3.0.0\AndroidManifest.xml:15:1-22:12
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\a26bf78833d0f71e4c58c3a3b29674d5\transformed\startup-runtime-1.1.1\AndroidManifest.xml:17:1-33:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\0b6e5b9e9308965b59615e6e80ecec13\transformed\interpolator-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.tracing:tracing:1.2.0] C:\Users\peyma\.gradle\caches\8.13\transforms\24d772ab71f54c52032acde0e0376232\transformed\tracing-1.2.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\4d48be0512330cb290f692b4924703f9\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:17:1-27:12
+MERGED from [com.google.firebase:firebase-encoders-json:18.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a600d139fa32c2d23c02c89070124cae\transformed\firebase-encoders-json-18.0.0\AndroidManifest.xml:15:1-23:12
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\peyma\.gradle\caches\8.13\transforms\c1ddef6843407ac7ab63e6ccfd29bb19\transformed\core-runtime-2.2.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] C:\Users\peyma\.gradle\caches\8.13\transforms\4778533fce73b4b7ad9ec8e7c7fa1b2e\transformed\annotation-experimental-1.4.1\AndroidManifest.xml:2:1-7:12
+MERGED from [org.apache.cordova:framework:10.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\e0e21bf0251bfb8894c7994fc38216b7\transformed\framework-10.1.1\AndroidManifest.xml:20:1-27:12
 	package
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:21:70-97
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:3:5-32
 		INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml
 	android:versionName
 		INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml
 	android:versionCode
 		INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml
 	xmlns:android
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:21:11-69
-uses-permission#android.permission.POST_NOTIFICATIONS
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:22:5-77
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:2:11-69
+uses-permission#android.permission.INTERNET
+ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:5:5-67
+MERGED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:9:5-67
+MERGED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:9:5-67
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:25:5-67
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:25:5-67
 	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:22:22-74
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:5:22-64
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:6:5-77
+	android:name
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:6:22-74
 application
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:24:5-194:19
-INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:24:5-194:19
-MERGED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:21:5-36:19
-MERGED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:21:5-36:19
-MERGED from [com.google.android.gms:play-services-location:19.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\e7cbde54ad547b82b2f871a970f72558\transformed\play-services-location-19.0.0\AndroidManifest.xml:7:5-20
-MERGED from [com.google.android.gms:play-services-location:19.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\e7cbde54ad547b82b2f871a970f72558\transformed\play-services-location-19.0.0\AndroidManifest.xml:7:5-20
-MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\57bacb9ef58048c0e6f8321d8067096b\transformed\play-services-base-18.5.0\AndroidManifest.xml:4:5-6:19
-MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\57bacb9ef58048c0e6f8321d8067096b\transformed\play-services-base-18.5.0\AndroidManifest.xml:4:5-6:19
-MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\f2a6b48e9a6cb6e056c7b13574ad3934\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:4:5-20
-MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\f2a6b48e9a6cb6e056c7b13574ad3934\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:4:5-20
-MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\9c4047d309d98e979e204eb4954e87de\transformed\play-services-places-placereport-17.0.0\AndroidManifest.xml:22:5-20
-MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\9c4047d309d98e979e204eb4954e87de\transformed\play-services-places-placereport-17.0.0\AndroidManifest.xml:22:5-20
-MERGED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\af1250092db6525f6762c9b32f91bede\transformed\play-services-basement-18.4.0\AndroidManifest.xml:5:5-7:19
-MERGED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\af1250092db6525f6762c9b32f91bede\transformed\play-services-basement-18.4.0\AndroidManifest.xml:5:5-7:19
-MERGED from [androidx.core:core:1.2.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ff508743d175973d09d76c1413220923\transformed\core-1.2.0\AndroidManifest.xml:24:5-89
-MERGED from [androidx.core:core:1.2.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ff508743d175973d09d76c1413220923\transformed\core-1.2.0\AndroidManifest.xml:24:5-89
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ede02a27188e30128c4e6e8452cf3ac9\transformed\versionedparcelable-1.1.0\AndroidManifest.xml:24:5-25:19
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ede02a27188e30128c4e6e8452cf3ac9\transformed\versionedparcelable-1.1.0\AndroidManifest.xml:24:5-25:19
-MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:27:5-35:19
-MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:27:5-35:19
-MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:25:5-39:19
-MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:25:5-39:19
+ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:8:5-45:19
+INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:8:5-45:19
+MERGED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:13:5-24:19
+MERGED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:13:5-24:19
+MERGED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:23:5-50:19
+MERGED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:23:5-50:19
+MERGED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:22:5-38:19
+MERGED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:22:5-38:19
+MERGED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:13:5-19:19
+MERGED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:13:5-19:19
+MERGED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:21:5-36:19
+MERGED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:21:5-36:19
+MERGED from [com.google.android.gms:play-services-location:19.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a59635e39919e204e4bf797ee6374050\transformed\play-services-location-19.0.0\AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.gms:play-services-location:19.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a59635e39919e204e4bf797ee6374050\transformed\play-services-location-19.0.0\AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.gms:play-services-fido:21.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\68b29823e4df4ff37f55095332746ecd\transformed\play-services-fido-21.0.0\AndroidManifest.xml:7:5-8:19
+MERGED from [com.google.android.gms:play-services-fido:21.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\68b29823e4df4ff37f55095332746ecd\transformed\play-services-fido-21.0.0\AndroidManifest.xml:7:5-8:19
+MERGED from [com.google.android.gms:play-services-auth-blockstore:16.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\c4f42fd55a42bf3b5f28ef6f024a2a13\transformed\play-services-auth-blockstore-16.4.0\AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.gms:play-services-auth-blockstore:16.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\c4f42fd55a42bf3b5f28ef6f024a2a13\transformed\play-services-auth-blockstore-16.4.0\AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\41250e7b5324aa524686d219eb0729c5\transformed\play-services-base-18.5.0\AndroidManifest.xml:4:5-6:19
+MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\41250e7b5324aa524686d219eb0729c5\transformed\play-services-base-18.5.0\AndroidManifest.xml:4:5-6:19
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bcd700d38af666f43319ebdeb5486eac\transformed\emoji2-1.3.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bcd700d38af666f43319ebdeb5486eac\transformed\emoji2-1.3.0\AndroidManifest.xml:23:5-33:19
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a5750404eac2e20b9009569e3f78dfbd\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:4:5-20
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a5750404eac2e20b9009569e3f78dfbd\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:4:5-20
+MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\202a676a56b9f150421430e760765058\transformed\play-services-places-placereport-17.0.0\AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\202a676a56b9f150421430e760765058\transformed\play-services-places-placereport-17.0.0\AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.gms:play-services-basement:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\44d25a5ae7b6276542f50c0437eb5ede\transformed\play-services-basement-18.5.0\AndroidManifest.xml:20:5-24:19
+MERGED from [com.google.android.gms:play-services-basement:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\44d25a5ae7b6276542f50c0437eb5ede\transformed\play-services-basement-18.5.0\AndroidManifest.xml:20:5-24:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\5f26bd1e6a03d9ca5c403aec3369ac35\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\5f26bd1e6a03d9ca5c403aec3369ac35\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:28:5-89
+MERGED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:28:5-89
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:23:5-53:19
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:27:5-35:19
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:27:5-35:19
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:25:5-39:19
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:25:5-39:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\a26bf78833d0f71e4c58c3a3b29674d5\transformed\startup-runtime-1.1.1\AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\a26bf78833d0f71e4c58c3a3b29674d5\transformed\startup-runtime-1.1.1\AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\4d48be0512330cb290f692b4924703f9\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\4d48be0512330cb290f692b4924703f9\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:24:5-25:19
 	android:extractNativeLibs
 		INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml
 	android:appComponentFactory
-		ADDED from [androidx.core:core:1.2.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ff508743d175973d09d76c1413220923\transformed\core-1.2.0\AndroidManifest.xml:24:18-86
+		ADDED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:30:9-35
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:13:9-35
 	android:label
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:28:9-40
-	android:manageSpaceActivity
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:29:9-105
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:11:9-35
 	android:roundIcon
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:32:9-54
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:12:9-54
 	android:icon
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:27:9-43
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:10:9-43
 	android:allowBackup
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:26:9-35
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:9:9-35
 	android:theme
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:31:9-68
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:25:9-35
-meta-data#asset_statements
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:33:9-97
-	android:resource
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:33:52-94
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:33:20-51
-meta-data#web_manifest_url
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:35:9-93
-	android:value
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:35:52-90
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:35:20-51
-meta-data#twa_generator
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:37:9-88
-	android:value
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:37:49-85
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:37:20-48
-activity#com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:39:9-52:20
-	android:enabled
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:42:13-35
-	android:excludeFromRecents
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:43:13-46
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:14:9-56
+activity#com.bextrader.app.MainActivity
+ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:16:9-27:20
+	android:launchMode
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:19:13-44
 	android:exported
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:41:13-37
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:18:13-36
+	android:theme
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:20:13-60
 	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:40:13-94
-meta-data#android.support.customtabs.trusted.MANAGE_SPACE_URL
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:44:13-47:15
-	android:value
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:46:17-50
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:45:17-83
-intent-filter#action:name:android.intent.action.APPLICATION_PREFERENCES+category:name:android.intent.category.DEFAULT
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:48:13-51:29
-action#android.intent.action.APPLICATION_PREFERENCES
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:49:17-88
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:49:25-85
-category#android.intent.category.DEFAULT
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:50:17-76
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:50:27-73
-activity#com.bextrader.app.LauncherActivity
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:54:9-137:20
-	android:label
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:57:13-49
-	android:exported
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:58:13-36
-	android:alwaysRetainTaskState
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:56:13-49
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:55:13-44
-meta-data#android.support.customtabs.trusted.DEFAULT_URL
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:59:13-62:15
-	android:value
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:61:17-50
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:60:17-78
-meta-data#android.support.customtabs.trusted.STATUS_BAR_COLOR
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:64:13-67:15
-	android:resource
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:66:17-55
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:65:17-83
-meta-data#android.support.customtabs.trusted.STATUS_BAR_COLOR_DARK
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:69:13-72:15
-	android:resource
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:71:17-59
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:70:17-88
-meta-data#android.support.customtabs.trusted.NAVIGATION_BAR_COLOR
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:74:13-77:15
-	android:resource
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:76:17-58
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:75:17-87
-meta-data#android.support.customtabs.trusted.NAVIGATION_BAR_COLOR_DARK
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:79:13-82:15
-	android:resource
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:81:17-62
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:80:17-92
-meta-data#androix.browser.trusted.NAVIGATION_BAR_DIVIDER_COLOR
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:84:13-87:15
-	android:resource
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:86:17-65
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:85:17-84
-meta-data#androix.browser.trusted.NAVIGATION_BAR_DIVIDER_COLOR_DARK
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:89:13-92:15
-	android:resource
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:91:17-69
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:90:17-89
-meta-data#android.support.customtabs.trusted.SPLASH_IMAGE_DRAWABLE
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:94:13-97:15
-	android:resource
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:96:17-52
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:95:17-88
-meta-data#android.support.customtabs.trusted.SPLASH_SCREEN_BACKGROUND_COLOR
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:99:13-102:15
-	android:resource
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:101:17-58
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:100:17-97
-meta-data#android.support.customtabs.trusted.SPLASH_SCREEN_FADE_OUT_DURATION
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:104:13-107:15
-	android:value
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:106:17-69
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:105:17-98
-meta-data#android.support.customtabs.trusted.FILE_PROVIDER_AUTHORITY
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:109:13-112:15
-	android:value
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:111:17-58
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:110:17-90
-meta-data#android.app.shortcuts
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:114:13-97
-	android:resource
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:114:61-94
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:114:24-60
-meta-data#android.support.customtabs.trusted.FALLBACK_STRATEGY
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:116:13-119:15
-	android:value
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:118:17-53
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:117:17-84
-meta-data#android.support.customtabs.trusted.SCREEN_ORIENTATION
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:121:13-124:15
-	android:value
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:123:17-52
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:122:17-85
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:17:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:126:13-129:29
+ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:22:13-25:29
 action#android.intent.action.MAIN
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:127:17-69
+ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:23:17-69
 	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:127:25-66
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:23:25-66
 category#android.intent.category.LAUNCHER
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:128:17-77
+ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:24:17-77
 	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:128:27-74
-intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:host:@string/hostName+data:scheme:https
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:131:13-136:29
-	android:autoVerify
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:131:28-53
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:24:27-74
+activity#com.capgo.sociallogin.SocialLoginActivity
+ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:29:9-43:20
+	android:exported
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:31:13-36
+	android:name
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:30:13-69
+intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:scheme:com.googleusercontent.apps.50746359348-l24lp3dj2m9plp7qc8godulthhdiaa6k
+ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:33:13-41:29
 action#android.intent.action.VIEW
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:132:17-69
+ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:34:17-69
 	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:132:25-66
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:34:25-66
+category#android.intent.category.DEFAULT
+ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:36:17-76
+	android:name
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:36:27-73
 category#android.intent.category.BROWSABLE
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:134:17-78
+ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:37:17-78
 	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:134:27-75
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:37:27-75
 data
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:135:17-80
-	android:host
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:135:46-77
+ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:39:17-40:112
 	android:scheme
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:135:23-45
-activity#com.google.androidbrowserhelper.trusted.FocusActivity
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:139:9-90
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:139:19-87
-activity#com.google.androidbrowserhelper.trusted.WebViewFallbackActivity
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:141:9-144:11
-	android:configChanges
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:143:13-59
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:142:13-91
-provider#androidx.core.content.FileProvider
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:146:9-152:20
-	android:grantUriPermissions
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:149:13-47
-	android:authorities
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:148:13-60
-	android:exported
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:150:13-37
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:147:13-62
-meta-data#android.support.FILE_PROVIDER_PATHS
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:151:13-111
-	android:resource
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:151:75-108
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:151:24-74
-service#com.bextrader.app.DelegationService
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:154:9-167:19
-	android:enabled
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:156:13-55
-	android:exported
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:157:13-56
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:155:13-46
-meta-data#android.support.customtabs.trusted.SMALL_ICON
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:158:13-161:15
-	android:resource
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:160:17-66
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:159:17-77
-intent-filter#action:name:android.support.customtabs.trusted.TRUSTED_WEB_ACTIVITY_SERVICE+category:name:android.intent.category.DEFAULT
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:163:13-166:29
-action#android.support.customtabs.trusted.TRUSTED_WEB_ACTIVITY_SERVICE
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:164:17-106
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:164:25-103
-activity#com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:169:9-114
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:169:19-111
-activity#com.google.androidbrowserhelper.playbilling.provider.PaymentActivity
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:171:9-184:20
-	android:exported
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:175:13-36
-	android:configChanges
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:174:13-96
-	android:theme
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:173:13-72
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:172:13-96
-intent-filter#action:name:org.chromium.intent.action.PAY
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:176:13-178:29
-action#org.chromium.intent.action.PAY
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:177:17-73
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:177:25-70
-meta-data#org.chromium.default_payment_method_name
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:180:13-183:15
-	android:value
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:182:17-64
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:181:17-72
-service#com.google.androidbrowserhelper.playbilling.provider.PaymentService
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:187:9-193:19
-	android:exported
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:189:13-36
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:188:13-95
-intent-filter#action:name:org.chromium.intent.action.IS_READY_TO_PAY
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:190:13-192:29
-action#org.chromium.intent.action.IS_READY_TO_PAY
-ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:191:17-85
-	android:name
-		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:191:25-82
+		ADDED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml:40:21-109
 uses-sdk
 INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml
 INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml
-MERGED from [com.google.androidbrowserhelper:billing:1.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\86daebdf1ac5a298358120b63e4f1cb9\transformed\billing-1.1.0\AndroidManifest.xml:5:5-44
-MERGED from [com.google.androidbrowserhelper:billing:1.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\86daebdf1ac5a298358120b63e4f1cb9\transformed\billing-1.1.0\AndroidManifest.xml:5:5-44
-MERGED from [com.google.androidbrowserhelper:androidbrowserhelper:2.5.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\6071355b2723133aa2fcbafcfb6267b1\transformed\androidbrowserhelper-2.5.0\AndroidManifest.xml:22:5-24:41
-MERGED from [com.google.androidbrowserhelper:androidbrowserhelper:2.5.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\6071355b2723133aa2fcbafcfb6267b1\transformed\androidbrowserhelper-2.5.0\AndroidManifest.xml:22:5-24:41
-MERGED from [androidx.browser:browser:1.4.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\77d08ee97a7a0929b9f21dda428cd18a\transformed\browser-1.4.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.browser:browser:1.4.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\77d08ee97a7a0929b9f21dda428cd18a\transformed\browser-1.4.0\AndroidManifest.xml:20:5-22:41
-MERGED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:6:5-8:41
-MERGED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:6:5-8:41
-MERGED from [com.google.android.gms:play-services-location:19.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\e7cbde54ad547b82b2f871a970f72558\transformed\play-services-location-19.0.0\AndroidManifest.xml:5:5-44
-MERGED from [com.google.android.gms:play-services-location:19.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\e7cbde54ad547b82b2f871a970f72558\transformed\play-services-location-19.0.0\AndroidManifest.xml:5:5-44
-MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\57bacb9ef58048c0e6f8321d8067096b\transformed\play-services-base-18.5.0\AndroidManifest.xml:3:5-44
-MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\57bacb9ef58048c0e6f8321d8067096b\transformed\play-services-base-18.5.0\AndroidManifest.xml:3:5-44
-MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\f2a6b48e9a6cb6e056c7b13574ad3934\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:3:5-44
-MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\f2a6b48e9a6cb6e056c7b13574ad3934\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:3:5-44
-MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\9c4047d309d98e979e204eb4954e87de\transformed\play-services-places-placereport-17.0.0\AndroidManifest.xml:20:5-44
-MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\9c4047d309d98e979e204eb4954e87de\transformed\play-services-places-placereport-17.0.0\AndroidManifest.xml:20:5-44
-MERGED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\af1250092db6525f6762c9b32f91bede\transformed\play-services-basement-18.4.0\AndroidManifest.xml:3:5-44
-MERGED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\af1250092db6525f6762c9b32f91bede\transformed\play-services-basement-18.4.0\AndroidManifest.xml:3:5-44
-MERGED from [androidx.fragment:fragment:1.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\41781af1c6e09f4822948875803c83c7\transformed\fragment-1.1.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.fragment:fragment:1.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\41781af1c6e09f4822948875803c83c7\transformed\fragment-1.1.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.activity:activity:1.2.3] C:\Users\peyma\.gradle\caches\8.11.1\transforms\a49f5b7a6985eb5a5d66d83adc8fa9e0\transformed\activity-1.2.3\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.activity:activity:1.2.3] C:\Users\peyma\.gradle\caches\8.11.1\transforms\a49f5b7a6985eb5a5d66d83adc8fa9e0\transformed\activity-1.2.3\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\7a17fcb820eb6f9d68b4346d0296d65d\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\7a17fcb820eb6f9d68b4346d0296d65d\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.loader:loader:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\084a750bd95de8b03c30a62db7c865b0\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.loader:loader:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\084a750bd95de8b03c30a62db7c865b0\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.customview:customview:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\3c0b595a199549f3e428240151565589\transformed\customview-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.customview:customview:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\3c0b595a199549f3e428240151565589\transformed\customview-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.core:core:1.2.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ff508743d175973d09d76c1413220923\transformed\core-1.2.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.core:core:1.2.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ff508743d175973d09d76c1413220923\transformed\core-1.2.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ede02a27188e30128c4e6e8452cf3ac9\transformed\versionedparcelable-1.1.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ede02a27188e30128c4e6e8452cf3ac9\transformed\versionedparcelable-1.1.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\0cc7dfd2c0fcae0982c28937b18f49ab\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\0cc7dfd2c0fcae0982c28937b18f49ab\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:18:5-20:41
-MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:18:5-20:41
-MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:18:5-20:41
-MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:18:5-20:41
-MERGED from [com.google.android.datatransport:transport-api:3.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\697bc74ea5c0de88d2e10b1368645f78\transformed\transport-api-3.0.0\AndroidManifest.xml:18:5-20:41
-MERGED from [com.google.android.datatransport:transport-api:3.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\697bc74ea5c0de88d2e10b1368645f78\transformed\transport-api-3.0.0\AndroidManifest.xml:18:5-20:41
-MERGED from [androidx.lifecycle:lifecycle-runtime:2.3.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\7bdd9e3391ad84bdccaad1e0d96d2738\transformed\lifecycle-runtime-2.3.1\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.lifecycle:lifecycle-runtime:2.3.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\7bdd9e3391ad84bdccaad1e0d96d2738\transformed\lifecycle-runtime-2.3.1\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.3.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\db7a554921d5f0bf72a9e3ff61c5c1c5\transformed\lifecycle-viewmodel-savedstate-2.3.1\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.3.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\db7a554921d5f0bf72a9e3ff61c5c1c5\transformed\lifecycle-viewmodel-savedstate-2.3.1\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.3.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ebab47f2f2d0f0abbd7bd9c77aa3b7a0\transformed\lifecycle-viewmodel-2.3.1\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.3.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ebab47f2f2d0f0abbd7bd9c77aa3b7a0\transformed\lifecycle-viewmodel-2.3.1\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.savedstate:savedstate:1.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\c112e2907b8fb468f4b8ec308058a79b\transformed\savedstate-1.1.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.savedstate:savedstate:1.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\c112e2907b8fb468f4b8ec308058a79b\transformed\savedstate-1.1.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\474639784496fdcb1dff3c865820bc2e\transformed\tracing-1.0.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\474639784496fdcb1dff3c865820bc2e\transformed\tracing-1.0.0\AndroidManifest.xml:20:5-22:41
-MERGED from [com.google.firebase:firebase-encoders-json:18.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ff5ffd328ca3417fbb38a1e1582cc96d\transformed\firebase-encoders-json-18.0.0\AndroidManifest.xml:19:5-21:41
-MERGED from [com.google.firebase:firebase-encoders-json:18.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\ff5ffd328ca3417fbb38a1e1582cc96d\transformed\firebase-encoders-json-18.0.0\AndroidManifest.xml:19:5-21:41
-MERGED from [androidx.lifecycle:lifecycle-livedata:2.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\0465b0c41e232f9758bbbe67283f8116\transformed\lifecycle-livedata-2.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata:2.0.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\0465b0c41e232f9758bbbe67283f8116\transformed\lifecycle-livedata-2.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.3.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\f432280746b68184cde2a7f9a313e4c6\transformed\lifecycle-livedata-core-2.3.1\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.3.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\f432280746b68184cde2a7f9a313e4c6\transformed\lifecycle-livedata-core-2.3.1\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.arch.core:core-runtime:2.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\017843d23ff14032b1831a1cd6fb2431\transformed\core-runtime-2.1.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.arch.core:core-runtime:2.1.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\017843d23ff14032b1831a1cd6fb2431\transformed\core-runtime-2.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.androidbrowserhelper:billing:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e9ef8c5ef81feb063ea999f7c57524d6\transformed\billing-1.1.0\AndroidManifest.xml:5:5-44
+MERGED from [com.google.androidbrowserhelper:billing:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e9ef8c5ef81feb063ea999f7c57524d6\transformed\billing-1.1.0\AndroidManifest.xml:5:5-44
+MERGED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:6:5-44
+MERGED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:6:5-44
+MERGED from [com.google.androidbrowserhelper:androidbrowserhelper:2.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bfd3d8197231ac030e244e61a0635dd3\transformed\androidbrowserhelper-2.5.0\AndroidManifest.xml:22:5-24:41
+MERGED from [com.google.androidbrowserhelper:androidbrowserhelper:2.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bfd3d8197231ac030e244e61a0635dd3\transformed\androidbrowserhelper-2.5.0\AndroidManifest.xml:22:5-24:41
+MERGED from [com.google.android.libraries.identity.googleid:googleid:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\52ed94827d478dbaeda11754a5124f5d\transformed\googleid-1.1.1\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.libraries.identity.googleid:googleid:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\52ed94827d478dbaeda11754a5124f5d\transformed\googleid-1.1.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.credentials:credentials:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\c9d5bec25f1fc273c03f68ec7e2aa379\transformed\credentials-1.5.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.credentials:credentials:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\c9d5bec25f1fc273c03f68ec7e2aa379\transformed\credentials-1.5.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:21:5-44
+MERGED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:20:5-44
+MERGED from [:capacitor-app] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\app\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:5:5-44
+MERGED from [:capacitor-app] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\app\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:5:5-44
+MERGED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:5:5-44
+MERGED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:5:5-44
+MERGED from [:capacitor-android] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\android\capacitor\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:5:5-44
+MERGED from [:capacitor-android] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\android\capacitor\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:5:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.7.0] C:\Users\peyma\.gradle\caches\8.13\transforms\36ec878634e53fe21777bac23975c232\transformed\appcompat-resources-1.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.7.0] C:\Users\peyma\.gradle\caches\8.13\transforms\36ec878634e53fe21777bac23975c232\transformed\appcompat-resources-1.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.biometric:biometric:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\9d808e8c80c6b6346f2153982105b79b\transformed\biometric-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.biometric:biometric:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\9d808e8c80c6b6346f2153982105b79b\transformed\biometric-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.appcompat:appcompat:1.7.0] C:\Users\peyma\.gradle\caches\8.13\transforms\615f85221447bddcc1f79f2629f60c40\transformed\appcompat-1.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.appcompat:appcompat:1.7.0] C:\Users\peyma\.gradle\caches\8.13\transforms\615f85221447bddcc1f79f2629f60c40\transformed\appcompat-1.7.0\AndroidManifest.xml:5:5-44
+MERGED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:6:5-8:41
+MERGED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:6:5-8:41
+MERGED from [com.google.android.gms:play-services-location:19.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a59635e39919e204e4bf797ee6374050\transformed\play-services-location-19.0.0\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-location:19.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a59635e39919e204e4bf797ee6374050\transformed\play-services-location-19.0.0\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-api-phone:18.0.2] C:\Users\peyma\.gradle\caches\8.13\transforms\80b9770111733c33c2c17280458d99d3\transformed\play-services-auth-api-phone-18.0.2\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-api-phone:18.0.2] C:\Users\peyma\.gradle\caches\8.13\transforms\80b9770111733c33c2c17280458d99d3\transformed\play-services-auth-api-phone-18.0.2\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-base:18.0.10] C:\Users\peyma\.gradle\caches\8.13\transforms\6ff89481b01883523efaa2f2b376f3c7\transformed\play-services-auth-base-18.0.10\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-base:18.0.10] C:\Users\peyma\.gradle\caches\8.13\transforms\6ff89481b01883523efaa2f2b376f3c7\transformed\play-services-auth-base-18.0.10\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-fido:21.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\68b29823e4df4ff37f55095332746ecd\transformed\play-services-fido-21.0.0\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-fido:21.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\68b29823e4df4ff37f55095332746ecd\transformed\play-services-fido-21.0.0\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-blockstore:16.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\c4f42fd55a42bf3b5f28ef6f024a2a13\transformed\play-services-auth-blockstore-16.4.0\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-blockstore:16.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\c4f42fd55a42bf3b5f28ef6f024a2a13\transformed\play-services-auth-blockstore-16.4.0\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-identity-credentials:16.0.0-alpha02] C:\Users\peyma\.gradle\caches\8.13\transforms\0bb33e90797194698ae82fc3a22399f1\transformed\play-services-identity-credentials-16.0.0-alpha02\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-identity-credentials:16.0.0-alpha02] C:\Users\peyma\.gradle\caches\8.13\transforms\0bb33e90797194698ae82fc3a22399f1\transformed\play-services-identity-credentials-16.0.0-alpha02\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\41250e7b5324aa524686d219eb0729c5\transformed\play-services-base-18.5.0\AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\41250e7b5324aa524686d219eb0729c5\transformed\play-services-base-18.5.0\AndroidManifest.xml:3:5-44
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\73edec37d7c703941f7a5a316445009a\transformed\drawerlayout-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\73edec37d7c703941f7a5a316445009a\transformed\drawerlayout-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.emoji2:emoji2-views-helper:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\f139af471e995d2ddd224f6725d83f10\transformed\emoji2-views-helper-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2-views-helper:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\f139af471e995d2ddd224f6725d83f10\transformed\emoji2-views-helper-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bcd700d38af666f43319ebdeb5486eac\transformed\emoji2-1.3.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bcd700d38af666f43319ebdeb5486eac\transformed\emoji2-1.3.0\AndroidManifest.xml:21:5-44
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a5750404eac2e20b9009569e3f78dfbd\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a5750404eac2e20b9009569e3f78dfbd\transformed\play-services-tasks-18.2.0\AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\202a676a56b9f150421430e760765058\transformed\play-services-places-placereport-17.0.0\AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\202a676a56b9f150421430e760765058\transformed\play-services-places-placereport-17.0.0\AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-basement:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\44d25a5ae7b6276542f50c0437eb5ede\transformed\play-services-basement-18.5.0\AndroidManifest.xml:18:5-43
+MERGED from [com.google.android.gms:play-services-basement:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\44d25a5ae7b6276542f50c0437eb5ede\transformed\play-services-basement-18.5.0\AndroidManifest.xml:18:5-43
+MERGED from [androidx.fragment:fragment:1.8.4] C:\Users\peyma\.gradle\caches\8.13\transforms\c957f40d3224b1895bb46780df5c2543\transformed\fragment-1.8.4\AndroidManifest.xml:5:5-44
+MERGED from [androidx.fragment:fragment:1.8.4] C:\Users\peyma\.gradle\caches\8.13\transforms\c957f40d3224b1895bb46780df5c2543\transformed\fragment-1.8.4\AndroidManifest.xml:5:5-44
+MERGED from [androidx.browser:browser:1.9.0] C:\Users\peyma\.gradle\caches\8.13\transforms\4df2ac4e4487dae71384e5761f45cda7\transformed\browser-1.9.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.browser:browser:1.9.0] C:\Users\peyma\.gradle\caches\8.13\transforms\4df2ac4e4487dae71384e5761f45cda7\transformed\browser-1.9.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity:1.9.2] C:\Users\peyma\.gradle\caches\8.13\transforms\0ae37760a2751bf73d4d0ac24ce55d83\transformed\activity-1.9.2\AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.9.2] C:\Users\peyma\.gradle\caches\8.13\transforms\0ae37760a2751bf73d4d0ac24ce55d83\transformed\activity-1.9.2\AndroidManifest.xml:20:5-44
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.2.0] C:\Users\peyma\.gradle\caches\8.13\transforms\5b47a1632c023595707bab6fb9c82a9b\transformed\coordinatorlayout-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.2.0] C:\Users\peyma\.gradle\caches\8.13\transforms\5b47a1632c023595707bab6fb9c82a9b\transformed\coordinatorlayout-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.webkit:webkit:1.12.1] C:\Users\peyma\.gradle\caches\8.13\transforms\a00b6d0988b8f4b2178620920e674022\transformed\webkit-1.12.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.webkit:webkit:1.12.1] C:\Users\peyma\.gradle\caches\8.13\transforms\a00b6d0988b8f4b2178620920e674022\transformed\webkit-1.12.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a618f82b717233ecf90c642bb8785a3b\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a618f82b717233ecf90c642bb8785a3b\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\4a50b8f3bdb5f371e76ef0fbed00ce56\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\4a50b8f3bdb5f371e76ef0fbed00ce56\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\1e15fcd754a5d2d19cfb1b8dfce38795\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\1e15fcd754a5d2d19cfb1b8dfce38795\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e1f0993f8980c5198bb45bd6e31f1d1d\transformed\customview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e1f0993f8980c5198bb45bd6e31f1d1d\transformed\customview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\peyma\.gradle\caches\8.13\transforms\e41c103b6b4012a517afb67fb1fb81a0\transformed\savedstate-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\peyma\.gradle\caches\8.13\transforms\e41c103b6b4012a517afb67fb1fb81a0\transformed\savedstate-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7824fefafd419e01b30a5f0666609a51\transformed\loader-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.loader:loader:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7824fefafd419e01b30a5f0666609a51\transformed\loader-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\60f18c431273bd9d9e599efd2cac678a\transformed\lifecycle-viewmodel-2.6.2\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\60f18c431273bd9d9e599efd2cac678a\transformed\lifecycle-viewmodel-2.6.2\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\5f26bd1e6a03d9ca5c403aec3369ac35\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\5f26bd1e6a03d9ca5c403aec3369ac35\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\1e9893244eb9a3bb9f07af381687465f\transformed\lifecycle-livedata-core-2.6.2\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\1e9893244eb9a3bb9f07af381687465f\transformed\lifecycle-livedata-core-2.6.2\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\c2571562c40a82b872b657e57a6dbca9\transformed\lifecycle-runtime-2.6.2\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\c2571562c40a82b872b657e57a6dbca9\transformed\lifecycle-runtime-2.6.2\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\75e7f47b648e030411fdfc2a0b303b74\transformed\lifecycle-viewmodel-savedstate-2.6.2\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\75e7f47b648e030411fdfc2a0b303b74\transformed\lifecycle-viewmodel-savedstate-2.6.2\AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core-ktx:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\5a2fd1240c4b5b3e5fd286cddabded13\transformed\core-ktx-1.15.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-ktx:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\5a2fd1240c4b5b3e5fd286cddabded13\transformed\core-ktx-1.15.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\045a9e4dbe830f874b308c1eb537e9d7\transformed\cursoradapter-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\045a9e4dbe830f874b308c1eb537e9d7\transformed\cursoradapter-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:21:5-44
+MERGED from [com.auth0.android:jwtdecode:2.0.2] C:\Users\peyma\.gradle\caches\8.13\transforms\ba04aac1f7eda214a36381f115a8c854\transformed\jwtdecode-2.0.2\AndroidManifest.xml:7:5-9:41
+MERGED from [com.auth0.android:jwtdecode:2.0.2] C:\Users\peyma\.gradle\caches\8.13\transforms\ba04aac1f7eda214a36381f115a8c854\transformed\jwtdecode-2.0.2\AndroidManifest.xml:7:5-9:41
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.android.datatransport:transport-api:3.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\517d7661da2fe8eea24a140beaec1bfc\transformed\transport-api-3.0.0\AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.android.datatransport:transport-api:3.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\517d7661da2fe8eea24a140beaec1bfc\transformed\transport-api-3.0.0\AndroidManifest.xml:18:5-20:41
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\a26bf78833d0f71e4c58c3a3b29674d5\transformed\startup-runtime-1.1.1\AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\a26bf78833d0f71e4c58c3a3b29674d5\transformed\startup-runtime-1.1.1\AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\0b6e5b9e9308965b59615e6e80ecec13\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\0b6e5b9e9308965b59615e6e80ecec13\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.tracing:tracing:1.2.0] C:\Users\peyma\.gradle\caches\8.13\transforms\24d772ab71f54c52032acde0e0376232\transformed\tracing-1.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.tracing:tracing:1.2.0] C:\Users\peyma\.gradle\caches\8.13\transforms\24d772ab71f54c52032acde0e0376232\transformed\tracing-1.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\4d48be0512330cb290f692b4924703f9\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\4d48be0512330cb290f692b4924703f9\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.firebase:firebase-encoders-json:18.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a600d139fa32c2d23c02c89070124cae\transformed\firebase-encoders-json-18.0.0\AndroidManifest.xml:19:5-21:41
+MERGED from [com.google.firebase:firebase-encoders-json:18.0.0] C:\Users\peyma\.gradle\caches\8.13\transforms\a600d139fa32c2d23c02c89070124cae\transformed\firebase-encoders-json-18.0.0\AndroidManifest.xml:19:5-21:41
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\peyma\.gradle\caches\8.13\transforms\c1ddef6843407ac7ab63e6ccfd29bb19\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\peyma\.gradle\caches\8.13\transforms\c1ddef6843407ac7ab63e6ccfd29bb19\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] C:\Users\peyma\.gradle\caches\8.13\transforms\4778533fce73b4b7ad9ec8e7c7fa1b2e\transformed\annotation-experimental-1.4.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] C:\Users\peyma\.gradle\caches\8.13\transforms\4778533fce73b4b7ad9ec8e7c7fa1b2e\transformed\annotation-experimental-1.4.1\AndroidManifest.xml:5:5-44
+MERGED from [org.apache.cordova:framework:10.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\e0e21bf0251bfb8894c7994fc38216b7\transformed\framework-10.1.1\AndroidManifest.xml:25:5-44
+MERGED from [org.apache.cordova:framework:10.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\e0e21bf0251bfb8894c7994fc38216b7\transformed\framework-10.1.1\AndroidManifest.xml:25:5-44
 	android:targetSdkVersion
 		INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml
 	android:minSdkVersion
 		INJECTED from C:\Users\peyma\Desktop\APP FIGMA\asli 8\android\app\src\main\AndroidManifest.xml
+uses-permission#android.permission.USE_CREDENTIALS
+ADDED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:8:5-74
+	android:name
+		ADDED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:8:22-71
+provider#com.facebook.internal.FacebookInitProvider
+ADDED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:14:9-18:35
+	tools:node
+		ADDED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:18:13-32
+	android:authorities
+		ADDED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:16:13-72
+	android:exported
+		ADDED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:17:13-37
+	android:name
+		ADDED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:15:13-70
+activity#ee.forgr.capacitor.social.login.TwitterLoginActivity
+ADDED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:20:9-23:84
+	android:exported
+		ADDED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:22:13-37
+	android:theme
+		ADDED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:23:13-81
+	android:name
+		ADDED from [:capgo-capacitor-social-login] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capgo\capacitor-social-login\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:21:13-80
 queries
-ADDED from [com.google.androidbrowserhelper:androidbrowserhelper:2.5.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\6071355b2723133aa2fcbafcfb6267b1\transformed\androidbrowserhelper-2.5.0\AndroidManifest.xml:26:5-34:15
-MERGED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:12:5-19:15
-MERGED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:12:5-19:15
+ADDED from [com.google.androidbrowserhelper:androidbrowserhelper:2.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bfd3d8197231ac030e244e61a0635dd3\transformed\androidbrowserhelper-2.5.0\AndroidManifest.xml:26:5-34:15
+MERGED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:7:5-11:15
+MERGED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:7:5-11:15
+MERGED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:12:5-19:15
+MERGED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:12:5-19:15
 intent#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+data:scheme:https
-ADDED from [com.google.androidbrowserhelper:androidbrowserhelper:2.5.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\6071355b2723133aa2fcbafcfb6267b1\transformed\androidbrowserhelper-2.5.0\AndroidManifest.xml:27:9-33:18
-uses-permission#com.android.vending.BILLING
-ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:10:5-67
-	android:name
-		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:10:22-64
-intent#action:name:com.android.vending.billing.InAppBillingService.BIND
-ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:13:9-15:18
-action#com.android.vending.billing.InAppBillingService.BIND
-ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:14:13-91
-	android:name
-		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:14:21-88
-intent#action:name:com.google.android.apps.play.billingtestcompanion.BillingOverrideService.BIND
-ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:16:9-18:18
-action#com.google.android.apps.play.billingtestcompanion.BillingOverrideService.BIND
-ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:17:13-116
-	android:name
-		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:17:21-113
-meta-data#com.google.android.play.billingclient.version
-ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:22:9-24:37
-	android:value
-		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:24:13-34
-	android:name
-		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:23:13-73
-activity#com.android.billingclient.api.ProxyBillingActivity
-ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:26:9-30:75
+ADDED from [com.google.androidbrowserhelper:androidbrowserhelper:2.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bfd3d8197231ac030e244e61a0635dd3\transformed\androidbrowserhelper-2.5.0\AndroidManifest.xml:27:9-33:18
+service#androidx.credentials.playservices.CredentialProviderMetadataHolder
+ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:24:9-32:19
+	android:enabled
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:26:13-35
 	android:exported
-		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:29:13-37
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:27:13-37
+	tools:ignore
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:28:13-60
+	android:name
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:25:13-94
+meta-data#androidx.credentials.CREDENTIAL_PROVIDER_KEY
+ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:29:13-31:104
+	android:value
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:31:17-101
+	android:name
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:30:17-76
+activity#androidx.credentials.playservices.HiddenActivity
+ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:34:9-41:20
+	android:fitsSystemWindows
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:39:13-45
+	android:enabled
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:38:13-37
 	android:configChanges
-		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:28:13-96
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:36:13-87
 	android:theme
-		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:30:13-72
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:40:13-48
 	android:name
-		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:27:13-78
-activity#com.android.billingclient.api.ProxyBillingActivityV2
-ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:31:9-35:75
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:35:13-76
+activity#androidx.credentials.playservices.IdentityCredentialApiHiddenActivity
+ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:42:9-49:20
+	android:fitsSystemWindows
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:47:13-45
+	android:enabled
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:45:13-35
 	android:exported
-		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:34:13-37
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:46:13-37
 	android:configChanges
-		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:33:13-96
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:44:13-87
 	android:theme
-		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:35:13-72
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:48:13-48
 	android:name
-		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.11.1\transforms\1dcabcea90c9508775a51aeea5d7fca7\transformed\billing-7.1.1\AndroidManifest.xml:32:13-80
-activity#com.google.android.gms.common.api.GoogleApiActivity
-ADDED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\57bacb9ef58048c0e6f8321d8067096b\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:9-173
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\abf8ff71a56d79f67eaf0889b0a7a889\transformed\credentials-play-services-auth-1.5.0\AndroidManifest.xml:43:13-97
+activity#com.google.android.gms.auth.api.signin.internal.SignInHubActivity
+ADDED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:23:9-27:75
+	android:excludeFromRecents
+		ADDED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:25:13-46
 	android:exported
-		ADDED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\57bacb9ef58048c0e6f8321d8067096b\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:146-170
+		ADDED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:26:13-37
 	android:theme
-		ADDED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\57bacb9ef58048c0e6f8321d8067096b\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:86-145
+		ADDED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:27:13-72
 	android:name
-		ADDED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\57bacb9ef58048c0e6f8321d8067096b\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:19-85
-meta-data#com.google.android.gms.version
-ADDED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\af1250092db6525f6762c9b32f91bede\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:9-122
-	android:value
-		ADDED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\af1250092db6525f6762c9b32f91bede\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:66-119
-	android:name
-		ADDED from [com.google.android.gms:play-services-basement:18.4.0] C:\Users\peyma\.gradle\caches\8.11.1\transforms\af1250092db6525f6762c9b32f91bede\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:20-65
-uses-permission#android.permission.ACCESS_NETWORK_STATE
-ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:24:5-79
-MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:22:5-79
-MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:22:5-79
-	android:name
-		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:24:22-76
-uses-permission#android.permission.INTERNET
-ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:25:5-67
-	android:name
-		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:25:22-64
-service#com.google.android.datatransport.runtime.backends.TransportBackendDiscovery
-ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:28:9-34:19
-MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:36:9-38:40
-MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:36:9-38:40
+		ADDED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:24:13-93
+service#com.google.android.gms.auth.api.signin.RevocationBoundService
+ADDED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:33:9-37:51
 	android:exported
-		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:30:13-37
-	android:name
-		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:29:13-103
-meta-data#backend:com.google.android.datatransport.cct.CctBackendFactory
-ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:31:13-33:39
-	android:value
-		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:33:17-36
-	android:name
-		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\85bc3f8cc97bd85b10d760e1ca7886a3\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:32:17-94
-service#com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService
-ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:26:9-30:19
-	android:exported
-		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:28:13-37
+		ADDED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:35:13-36
+	android:visibleToInstantApps
+		ADDED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:37:13-48
 	android:permission
-		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:29:13-69
+		ADDED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:36:13-107
 	android:name
-		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:27:13-117
-receiver#com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver
-ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:32:9-34:40
+		ADDED from [com.google.android.gms:play-services-auth:21.4.0] C:\Users\peyma\.gradle\caches\8.13\transforms\7c14ef3319e71aed889d69c90cc011c0\transformed\play-services-auth-21.4.0\AndroidManifest.xml:34:13-89
+intent#action:name:android.support.customtabs.action.CustomTabsService
+ADDED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:8:9-10:18
+action#android.support.customtabs.action.CustomTabsService
+ADDED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:9:13-90
+	android:name
+		ADDED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:9:21-87
+activity#com.capacitorjs.plugins.browser.BrowserControllerActivity
+ADDED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:14:9-18:75
+	android:launchMode
+		ADDED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:17:13-44
 	android:exported
-		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:34:13-37
+		ADDED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:16:13-37
+	android:theme
+		ADDED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:18:13-72
 	android:name
-		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.11.1\transforms\390580f802b798735a90189ae7e85163\transformed\transport-runtime-3.1.8\AndroidManifest.xml:33:13-132
+		ADDED from [:capacitor-browser] C:\Users\peyma\Desktop\APP FIGMA\asli 8\node_modules\@capacitor\browser\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:15:13-85
+uses-permission#android.permission.USE_BIOMETRIC
+ADDED from [androidx.biometric:biometric:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\9d808e8c80c6b6346f2153982105b79b\transformed\biometric-1.1.0\AndroidManifest.xml:24:5-72
+	android:name
+		ADDED from [androidx.biometric:biometric:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\9d808e8c80c6b6346f2153982105b79b\transformed\biometric-1.1.0\AndroidManifest.xml:24:22-69
+uses-permission#android.permission.USE_FINGERPRINT
+ADDED from [androidx.biometric:biometric:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\9d808e8c80c6b6346f2153982105b79b\transformed\biometric-1.1.0\AndroidManifest.xml:27:5-74
+	android:name
+		ADDED from [androidx.biometric:biometric:1.1.0] C:\Users\peyma\.gradle\caches\8.13\transforms\9d808e8c80c6b6346f2153982105b79b\transformed\biometric-1.1.0\AndroidManifest.xml:27:22-71
+uses-permission#com.android.vending.BILLING
+ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:10:5-67
+	android:name
+		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:10:22-64
+intent#action:name:com.android.vending.billing.InAppBillingService.BIND
+ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:13:9-15:18
+action#com.android.vending.billing.InAppBillingService.BIND
+ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:14:13-91
+	android:name
+		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:14:21-88
+intent#action:name:com.google.android.apps.play.billingtestcompanion.BillingOverrideService.BIND
+ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:16:9-18:18
+action#com.google.android.apps.play.billingtestcompanion.BillingOverrideService.BIND
+ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:17:13-116
+	android:name
+		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:17:21-113
+meta-data#com.google.android.play.billingclient.version
+ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:22:9-24:37
+	android:value
+		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:24:13-34
+	android:name
+		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:23:13-73
+activity#com.android.billingclient.api.ProxyBillingActivity
+ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:26:9-30:75
+	android:exported
+		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:29:13-37
+	android:configChanges
+		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:28:13-96
+	android:theme
+		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:30:13-72
+	android:name
+		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:27:13-78
+activity#com.android.billingclient.api.ProxyBillingActivityV2
+ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:31:9-35:75
+	android:exported
+		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:34:13-37
+	android:configChanges
+		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:33:13-96
+	android:theme
+		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:35:13-72
+	android:name
+		ADDED from [com.android.billingclient:billing:7.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\84bea3f32d9ea61ee6a1a157a2a75feb\transformed\billing-7.1.1\AndroidManifest.xml:32:13-80
+activity#com.google.android.gms.common.api.GoogleApiActivity
+ADDED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\41250e7b5324aa524686d219eb0729c5\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:9-173
+	android:exported
+		ADDED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\41250e7b5324aa524686d219eb0729c5\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:146-170
+	android:theme
+		ADDED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\41250e7b5324aa524686d219eb0729c5\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:86-145
+	android:name
+		ADDED from [com.google.android.gms:play-services-base:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\41250e7b5324aa524686d219eb0729c5\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:19-85
+provider#androidx.startup.InitializationProvider
+ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bcd700d38af666f43319ebdeb5486eac\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\5f26bd1e6a03d9ca5c403aec3369ac35\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\5f26bd1e6a03d9ca5c403aec3369ac35\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\a26bf78833d0f71e4c58c3a3b29674d5\transformed\startup-runtime-1.1.1\AndroidManifest.xml:26:9-30:34
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\peyma\.gradle\caches\8.13\transforms\a26bf78833d0f71e4c58c3a3b29674d5\transformed\startup-runtime-1.1.1\AndroidManifest.xml:26:9-30:34
+	tools:node
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bcd700d38af666f43319ebdeb5486eac\transformed\emoji2-1.3.0\AndroidManifest.xml:28:13-31
+	android:authorities
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bcd700d38af666f43319ebdeb5486eac\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+	android:exported
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bcd700d38af666f43319ebdeb5486eac\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bcd700d38af666f43319ebdeb5486eac\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+meta-data#androidx.emoji2.text.EmojiCompatInitializer
+ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bcd700d38af666f43319ebdeb5486eac\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bcd700d38af666f43319ebdeb5486eac\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\peyma\.gradle\caches\8.13\transforms\bcd700d38af666f43319ebdeb5486eac\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+meta-data#com.google.android.gms.version
+ADDED from [com.google.android.gms:play-services-basement:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\44d25a5ae7b6276542f50c0437eb5ede\transformed\play-services-basement-18.5.0\AndroidManifest.xml:21:9-23:69
+	android:value
+		ADDED from [com.google.android.gms:play-services-basement:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\44d25a5ae7b6276542f50c0437eb5ede\transformed\play-services-basement-18.5.0\AndroidManifest.xml:23:13-66
+	android:name
+		ADDED from [com.google.android.gms:play-services-basement:18.5.0] C:\Users\peyma\.gradle\caches\8.13\transforms\44d25a5ae7b6276542f50c0437eb5ede\transformed\play-services-basement-18.5.0\AndroidManifest.xml:22:13-58
+meta-data#androidx.lifecycle.ProcessLifecycleInitializer
+ADDED from [androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\5f26bd1e6a03d9ca5c403aec3369ac35\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\5f26bd1e6a03d9ca5c403aec3369ac35\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\peyma\.gradle\caches\8.13\transforms\5f26bd1e6a03d9ca5c403aec3369ac35\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
+permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:23:9-81
+permission#com.bextrader.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:23:9-81
+uses-permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:26:22-94
+uses-permission#com.bextrader.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.15.0] C:\Users\peyma\.gradle\caches\8.13\transforms\e4e18790c0d187e42193898971bcc8f7\transformed\core-1.15.0\AndroidManifest.xml:26:22-94
+meta-data#androidx.profileinstaller.ProfileInstallerInitializer
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+receiver#androidx.profileinstaller.ProfileInstallReceiver
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+	android:enabled
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+	android:permission
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+	android:directBootAware
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+intent-filter#action:name:androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+action#androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+intent-filter#action:name:androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+action#androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+intent-filter#action:name:androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+action#androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+intent-filter#action:name:androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+action#androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\peyma\.gradle\caches\8.13\transforms\8f996be58141965f6bf580088e39fddc\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:24:5-79
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:22:5-79
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:22:5-79
+	android:name
+		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:24:22-76
+service#com.google.android.datatransport.runtime.backends.TransportBackendDiscovery
+ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:28:9-34:19
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:36:9-38:40
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:36:9-38:40
+	android:exported
+		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:30:13-37
+	android:name
+		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:29:13-103
+meta-data#backend:com.google.android.datatransport.cct.CctBackendFactory
+ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:31:13-33:39
+	android:value
+		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:33:17-36
+	android:name
+		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\7ac3a3065b52f4610d9bff45b1260541\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:32:17-94
+service#com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService
+ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:26:9-30:19
+	android:exported
+		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:28:13-37
+	android:permission
+		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:29:13-69
+	android:name
+		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:27:13-117
+receiver#com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver
+ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:32:9-34:40
+	android:exported
+		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:34:13-37
+	android:name
+		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\peyma\.gradle\caches\8.13\transforms\3785c5d2f8eddddff0d5b06f09e15f71\transformed\transport-runtime-3.1.8\AndroidManifest.xml:33:13-132

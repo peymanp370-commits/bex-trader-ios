@@ -491,7 +491,7 @@ export default {
         return redirectWithCookies(request, googleUrl.toString(), [stateCookie]);
       }
 
-      if (url.pathname === "/auth/google/callback" && request.method === "GET") {
+      if ((url.pathname === "/auth/google/callback" || url.pathname === "/auth/google/mobile/callback") && request.method === "GET") {
         if (!isGoogleConfigured(env)) {
           return redirectToAppError(env, "GOOGLE_NOT_CONFIGURED");
         }
@@ -588,11 +588,18 @@ export default {
           }
 
           const allowedAudiences = new Set([
+            String(env.GOOGLE_ANDROID_CLIENT_ID || "").trim(),
+            String(env.GOOGLE_ANDROID_CLIENT_ID_2 || "").trim(),
             String(env.GOOGLE_IOS_CLIENT_ID || "").trim(),
             String(env.GOOGLE_NATIVE_CLIENT_ID || "").trim(),
-            "50746359348-j196c7embvnelnj7rfm2s35vdgbthvv6.apps.googleusercontent.com",
             String(env.GOOGLE_WEB_CLIENT_ID || "").trim(),
-            String(env.GOOGLE_CLIENT_ID || "").trim()
+            String(env.GOOGLE_CLIENT_ID || "").trim(),
+            // BEX Trader Android OAuth client created in Google Cloud/Firebase.
+            "50746359348-m2qkskc10r9hgkct5gimr3qogtdvue10.apps.googleusercontent.com",
+            // BEX Trader iOS OAuth client.
+            "50746359348-j196c7embvnelnj7rfm2s35vdgbthvv6.apps.googleusercontent.com",
+            // BEX Trader Web OAuth client.
+            "50746359348-l24lp3dj2m9plp7qc8godulthhdiaa6k.apps.googleusercontent.com"
           ].filter(Boolean));
 
           if (allowedAudiences.size > 0 && tokenInfo.aud && !allowedAudiences.has(String(tokenInfo.aud))) {
@@ -618,8 +625,66 @@ export default {
           }
 
           profile = profileData;
+        } else if (serverAuthCode) {
+          const clientId =
+            String(env.GOOGLE_WEB_CLIENT_ID || env.GOOGLE_CLIENT_ID || "").trim();
+          const clientSecret = String(env.GOOGLE_CLIENT_SECRET || "").trim();
+
+          if (!clientId || !clientSecret) {
+            return fail(request, 500, "GOOGLE_NATIVE_SERVER_CODE_NOT_CONFIGURED", "Google native server auth code exchange is not configured");
+          }
+
+          const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              code: serverAuthCode,
+              client_id: clientId,
+              client_secret: clientSecret,
+              grant_type: "authorization_code"
+            }).toString()
+          });
+
+          const tokenData = await tokenRes.json().catch(() => ({}));
+
+          if (!tokenRes.ok || (!tokenData.id_token && !tokenData.access_token)) {
+            return fail(request, 401, "GOOGLE_NATIVE_SERVER_CODE_EXCHANGE_FAILED", "Could not exchange Google native server auth code", {
+              google_error: tokenData?.error_description || tokenData?.error || null
+            });
+          }
+
+          if (tokenData.id_token) {
+            const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(tokenData.id_token)}`);
+            const tokenInfo = await tokenInfoRes.json().catch(() => ({}));
+
+            if (!tokenInfoRes.ok || !tokenInfo?.email || !tokenInfo?.sub) {
+              return fail(request, 401, "GOOGLE_NATIVE_ID_TOKEN_INVALID", "Invalid Google identity token from server auth code", {
+                google_error: tokenInfo?.error_description || tokenInfo?.error || null
+              });
+            }
+
+            profile = {
+              id: String(tokenInfo.sub),
+              email: normalizeEmail(tokenInfo.email),
+              given_name: clean(tokenInfo.given_name || body.first_name || body.givenName) || "Google",
+              family_name: clean(tokenInfo.family_name || body.last_name || body.familyName) || "User",
+              name: clean(tokenInfo.name || body.name) || "Google User",
+              verified_email: String(tokenInfo.email_verified) === "true" || tokenInfo.email_verified === true
+            };
+          } else {
+            const profileRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+              headers: { Authorization: `Bearer ${tokenData.access_token}` }
+            });
+            const profileData = await profileRes.json().catch(() => ({}));
+
+            if (!profileRes.ok || !profileData?.email || !profileData?.id) {
+              return fail(request, 401, "GOOGLE_NATIVE_PROFILE_FAILED", "Could not read Google profile from server auth code");
+            }
+
+            profile = profileData;
+          }
         } else {
-          return fail(request, 400, "GOOGLE_NATIVE_ID_TOKEN_REQUIRED", "Google native sign-in requires an id token or access token");
+          return fail(request, 400, "GOOGLE_NATIVE_ID_TOKEN_REQUIRED", "Google native sign-in requires an id token, access token, or server auth code");
         }
 
         const linked = await findOrCreateSocialUser(env.DB, {
@@ -1510,12 +1575,11 @@ function clearTempCookie(request, env, name, options = {}) {
 function corsHeaders(request) {
   const origin = request?.headers?.get("Origin") || "";
 
-  // BEX AUTH CORS FIX
-  // Web, Cloudflare Pages previews, and Capacitor WebViews must get their exact
-  // Origin echoed back when credentials/cookies are used. If we fallback to only
-  // https://bextrader.com, browser fetches from another valid BEX origin can fail
-  // and the frontend route guard sends the user back to Login even though
-  // /auth/me works when opened directly.
+  // BEX AUTH CORS FIX - Android Capacitor/TWA native Google exchange.
+  // Important: credentialed fetches must echo the exact Origin. Android WebView,
+  // Capacitor, Chrome Custom Tabs/TWA, and local debug builds may send different
+  // localhost/custom-scheme origins. If this does not match exactly, the app sees
+  // only "Failed to fetch" at backend_exchange even though Google login succeeded.
   const allowed = [
     "https://bextrader.com",
     "https://www.bextrader.com",
@@ -1523,26 +1587,53 @@ function corsHeaders(request) {
     "capacitor://localhost",
     "ionic://localhost",
     "bextrader://localhost",
+    "bextrader://auth",
     "http://localhost",
     "http://localhost:3000",
+    "http://localhost:4200",
     "http://localhost:5173",
+    "http://localhost:8080",
+    "http://localhost:8100",
+    "https://localhost",
+    "https://localhost:3000",
+    "https://localhost:4200",
+    "https://localhost:5173",
+    "https://localhost:8080",
+    "https://localhost:8100",
     "http://127.0.0.1",
     "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173"
+    "http://127.0.0.1:4200",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:8100",
+    "https://127.0.0.1",
+    "https://127.0.0.1:3000",
+    "https://127.0.0.1:4200",
+    "https://127.0.0.1:5173",
+    "https://127.0.0.1:8080",
+    "https://127.0.0.1:8100",
+    "null"
   ];
 
   const isAllowed =
+    !origin ||
     allowed.includes(origin) ||
     /^https:\/\/([a-z0-9-]+\.)*bextrader\.com$/i.test(origin) ||
-    /^https:\/\/[a-z0-9-]+\.pages\.dev$/i.test(origin);
+    /^https:\/\/[a-z0-9-]+\.pages\.dev$/i.test(origin) ||
+    /^https?:\/\/localhost(?::\d+)?$/i.test(origin) ||
+    /^https?:\/\/127\.0\.0\.1(?::\d+)?$/i.test(origin) ||
+    /^capacitor:\/\/localhost(?::\d+)?$/i.test(origin) ||
+    /^ionic:\/\/localhost(?::\d+)?$/i.test(origin) ||
+    /^bextrader:\/\//i.test(origin);
 
-  const finalOrigin = isAllowed ? origin : "https://bextrader.com";
+  const finalOrigin = origin && isAllowed ? origin : "https://bextrader.com";
 
   return {
     "Access-Control-Allow-Origin": finalOrigin,
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin",
     "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Max-Age": "86400",
     "Vary": "Origin"
   };
 }

@@ -104,9 +104,9 @@ const initializeNativeSocialLogin = async () => {
           mode: "online",
         }
       : {
+          // Android native Google sign-in must use the WEB client id here.
+          // Do not pass Android client id or iOS ids into the Android path.
           webClientId: GOOGLE_WEB_CLIENT_ID,
-          iOSClientId: GOOGLE_IOS_CLIENT_ID,
-          iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
           mode: "online",
         },
     // IMPORTANT: iOS native Apple must NOT use the Service ID.
@@ -1075,21 +1075,41 @@ export function Login() {
       throw new Error("GOOGLE_NATIVE_MISSING_TOKEN");
     }
 
-    const res = await fetch(`${AUTH_BASE}/auth/google/native`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id_token: idToken,
-        access_token: accessToken,
-        server_auth_code: serverAuthCode,
-        email,
-        first_name: firstName,
-        last_name: lastName,
-        name,
+    const nativePayload = {
+      id_token: idToken,
+      access_token: accessToken,
+      server_auth_code: serverAuthCode,
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      name,
+      platform: Capacitor.getPlatform(),
+      app_origin: typeof window !== "undefined" ? window.location.origin : "",
+    };
+
+    let res: Response;
+    try {
+      res = await fetch(`${AUTH_BASE}/auth/google/native`, {
+        method: "POST",
+        mode: "cors",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(nativePayload),
+      });
+    } catch (networkErr: any) {
+      console.error("Google native backend exchange network/CORS failure", {
+        authBase: AUTH_BASE,
+        origin: typeof window !== "undefined" ? window.location.origin : "",
         platform: Capacitor.getPlatform(),
-      }),
-    });
+        message: networkErr?.message || String(networkErr),
+      });
+      throw new Error(
+        `GOOGLE_NATIVE_BACKEND_FETCH_FAILED: ${networkErr?.message || "Network/CORS error"}`
+      );
+    }
 
     const data = await res.json().catch(() => ({}));
 
@@ -1119,35 +1139,51 @@ export function Login() {
     setError("");
     setSocialLoading("google");
 
+    let googleStage = "start";
+
     try {
-      await resetAuthForFreshSignIn();
+      // CRITICAL: do not call resetAuthForFreshSignIn(), /auth/logout,
+      // /auth/logout-all, clearLocalAuthState(), or SocialLogin.logout()
+      // immediately before native Google login on Android. Those resets can
+      // close the Google Play Services activity and return
+      // "activity is cancelled by the user" even after an account is selected.
+      googleStage = "initialize";
       await initializeNativeSocialLogin();
 
-      try {
-        await SocialLogin.logout({ provider: "google" } as any);
-      } catch {}
-
+      googleStage = "plugin_login";
       const googleResult = await SocialLogin.login({
         provider: "google",
-        options: {},
+        options: {
+          scopes: ["email", "profile"],
+        },
       } as any) as NativeGoogleResponse;
 
+      googleStage = "backend_exchange";
       await exchangeNativeGoogleToken(googleResult);
     } catch (err: any) {
-      console.error("Google native sign-in failed", err);
-      const code = String(err?.message || err?.code || "GOOGLE_NATIVE_SIGNIN_FAILED");
+      console.error("Google native sign-in failed at stage:", googleStage, err);
+      const rawCode = String(
+        err?.message ||
+        err?.code ||
+        err?.errorMessage ||
+        err?.error ||
+        "GOOGLE_NATIVE_SIGNIN_FAILED"
+      );
+      const code = rawCode.length > 220 ? rawCode.slice(0, 220) : rawCode;
+      const wasCancelled = /cancelled|canceled|user_cancel|user cancel/i.test(code);
+
       setError(tx(lang, {
-        en: code.includes("cancel") || code.includes("CANCEL") ? "Google sign-in was cancelled." : `Google native sign-in failed: ${code}`,
-        fa: code.includes("cancel") || code.includes("CANCEL") ? "ورود با گوگل لغو شد." : `ورود native گوگل ناموفق بود: ${code}`,
-        ar: code.includes("cancel") || code.includes("CANCEL") ? "تم إلغاء تسجيل الدخول عبر Google." : "فشل تسجيل الدخول الأصلي عبر Google. تحقق من Google iOS Client ID وحاول مرة أخرى.",
-        es: code.includes("cancel") || code.includes("CANCEL") ? "El inicio con Google fue cancelado." : "Falló el inicio nativo con Google. Revisa el Google iOS Client ID e inténtalo de nuevo.",
-        "pt-BR": code.includes("cancel") || code.includes("CANCEL") ? "O login com Google foi cancelado." : "Falha no login nativo com Google. Verifique o Google iOS Client ID e tente novamente.",
-        hi: code.includes("cancel") || code.includes("CANCEL") ? "Google साइन-इन रद्द हो गया।" : "Google native login विफल रहा। Google iOS Client ID चेक करें और फिर कोशिश करें।",
-        tr: code.includes("cancel") || code.includes("CANCEL") ? "Google ile giriş iptal edildi." : "Google native giriş başarısız oldu. Google iOS Client ID değerini kontrol edin ve tekrar deneyin.",
-        de: code.includes("cancel") || code.includes("CANCEL") ? "Google-Anmeldung wurde abgebrochen." : "Native Google-Anmeldung fehlgeschlagen. Prüfe die Google iOS Client ID und versuche es erneut.",
-        fr: code.includes("cancel") || code.includes("CANCEL") ? "La connexion Google a été annulée." : "La connexion native Google a échoué. Vérifiez le Google iOS Client ID puis réessayez.",
-        zh: code.includes("cancel") || code.includes("CANCEL") ? "Google 登录已取消。" : "Google 原生登录失败。请检查 Google iOS Client ID 后重试。",
-        ko: code.includes("cancel") || code.includes("CANCEL") ? "Google 로그인이 취소되었습니다." : "Google 네이티브 로그인이 실패했습니다. Google iOS Client ID를 확인하고 다시 시도하세요.",
+        en: wasCancelled ? `Google sign-in was cancelled at ${googleStage}: ${code}` : `Google native sign-in failed at ${googleStage}: ${code}`,
+        fa: wasCancelled ? `ورود با گوگل در مرحله ${googleStage} لغو شد: ${code}` : `ورود native گوگل در مرحله ${googleStage} ناموفق بود: ${code}`,
+        ar: wasCancelled ? `تم إلغاء تسجيل الدخول عبر Google في مرحلة ${googleStage}: ${code}` : `فشل تسجيل الدخول الأصلي عبر Google في مرحلة ${googleStage}: ${code}`,
+        es: wasCancelled ? `El inicio con Google fue cancelado en ${googleStage}: ${code}` : `Falló el inicio nativo con Google en ${googleStage}: ${code}`,
+        "pt-BR": wasCancelled ? `O login com Google foi cancelado em ${googleStage}: ${code}` : `Falha no login nativo com Google em ${googleStage}: ${code}`,
+        hi: wasCancelled ? `Google साइन-इन ${googleStage} चरण में रद्द हुआ: ${code}` : `Google native login ${googleStage} चरण में विफल रहा: ${code}`,
+        tr: wasCancelled ? `Google ile giriş ${googleStage} aşamasında iptal edildi: ${code}` : `Google native giriş ${googleStage} aşamasında başarısız oldu: ${code}`,
+        de: wasCancelled ? `Google-Anmeldung bei ${googleStage} abgebrochen: ${code}` : `Native Google-Anmeldung bei ${googleStage} fehlgeschlagen: ${code}`,
+        fr: wasCancelled ? `La connexion Google a été annulée à ${googleStage}: ${code}` : `La connexion native Google a échoué à ${googleStage}: ${code}`,
+        zh: wasCancelled ? `Google 登录在 ${googleStage} 阶段取消: ${code}` : `Google 原生登录在 ${googleStage} 阶段失败: ${code}`,
+        ko: wasCancelled ? `Google 로그인이 ${googleStage} 단계에서 취소되었습니다: ${code}` : `Google 네이티브 로그인이 ${googleStage} 단계에서 실패했습니다: ${code}`,
       }));
     } finally {
       setSocialLoading(null);
@@ -1160,7 +1196,7 @@ export function Login() {
       return;
     }
 
-    if (provider === "google" && Capacitor.getPlatform() === "ios") {
+    if (provider === "google" && Capacitor.isNativePlatform()) {
       await handleNativeGoogleSignIn();
       return;
     }
@@ -1611,43 +1647,45 @@ export function Login() {
               </span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleAppleSignIn}
-              disabled={loading || socialLoading === "google"}
-              className="w-full flex items-center justify-center gap-3 bg-black text-white border border-gray-700 py-3 rounded-xl font-semibold hover:border-gray-500 transition-all disabled:opacity-50"
-            >
-              <AppleIcon />
-              <span>
-                {socialLoading === "apple"
-                  ? tx(lang, {
-                      en: "Opening Apple sign-in...",
-                      fa: "در حال باز کردن ورود با اپل...",
-                      ar: "جارٍ فتح تسجيل الدخول عبر Apple...",
-                      es: "Abriendo inicio con Apple...",
-                      "pt-BR": "Abrindo login com Apple...",
-                      hi: "Apple साइन-इन खुल रहा है...",
-                      tr: "Apple girişi açılıyor...",
-                      de: "Apple-Anmeldung wird geöffnet...",
-                      fr: "Ouverture de la connexion Apple...",
-                      zh: "正在打开 Apple 登录...",
-                      ko: "Apple 로그인을 여는 중...",
-                    })
-                  : tx(lang, {
-                      en: "Continue with Apple",
-                      fa: "ادامه با اپل",
-                      ar: "المتابعة باستخدام Apple",
-                      es: "Continuar con Apple",
-                      "pt-BR": "Continuar com Apple",
-                      hi: "Apple के साथ जारी रखें",
-                      tr: "Apple ile devam et",
-                      de: "Mit Apple fortfahren",
-                      fr: "Continuer avec Apple",
-                      zh: "使用 Apple 继续",
-                      ko: "Apple로 계속",
-                    })}
-              </span>
-            </button>
+            {Capacitor.getPlatform() === "ios" && (
+              <button
+                type="button"
+                onClick={handleAppleSignIn}
+                disabled={loading || socialLoading === "google"}
+                className="w-full flex items-center justify-center gap-3 bg-black text-white border border-gray-700 py-3 rounded-xl font-semibold hover:border-gray-500 transition-all disabled:opacity-50"
+              >
+                <AppleIcon />
+                <span>
+                  {socialLoading === "apple"
+                    ? tx(lang, {
+                        en: "Opening Apple sign-in...",
+                        fa: "در حال باز کردن ورود با اپل...",
+                        ar: "جارٍ فتح تسجيل الدخول عبر Apple...",
+                        es: "Abriendo inicio con Apple...",
+                        "pt-BR": "Abrindo login com Apple...",
+                        hi: "Apple साइन-इन खुल रहा है...",
+                        tr: "Apple girişi açılıyor...",
+                        de: "Apple-Anmeldung wird geöffnet...",
+                        fr: "Ouverture de la connexion Apple...",
+                        zh: "正在打开 Apple 登录...",
+                        ko: "Apple 로그인을 여는 중...",
+                      })
+                    : tx(lang, {
+                        en: "Continue with Apple",
+                        fa: "ادامه با اپل",
+                        ar: "المتابعة باستخدام Apple",
+                        es: "Continuar con Apple",
+                        "pt-BR": "Continuar com Apple",
+                        hi: "Apple के साथ जारी रखें",
+                        tr: "Apple ile devam et",
+                        de: "Mit Apple fortfahren",
+                        fr: "Continuer avec Apple",
+                        zh: "使用 Apple 继续",
+                        ko: "Apple로 계속",
+                      })}
+                </span>
+              </button>
+            )}
           </div>
 
           <div className="text-center pt-1">

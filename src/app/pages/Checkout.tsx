@@ -58,12 +58,24 @@ export function Checkout() {
     setError("");
 
     try {
+      // Android Capacitor WebView may not reliably attach cross-domain cookies.
+      // Native Google/Apple login stores the refresh token in localStorage.
+      // Send it as Bearer too; the auth worker already accepts Authorization: Bearer <refresh_token>.
+      const refreshToken =
+        localStorage.getItem("bex_refresh_token") ||
+        localStorage.getItem("refresh_token") ||
+        localStorage.getItem("token") ||
+        localStorage.getItem("access_token") ||
+        localStorage.getItem("auth_token") ||
+        "";
+
       const res = await fetch(`${AUTH_BASE}/api/billing/create-checkout-session`, {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
+          ...(refreshToken ? { Authorization: `Bearer ${refreshToken}` } : {}),
         },
         body: JSON.stringify({ plan, billing }),
       });

@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "50746359348",
+    "project_id": "forward-pad-493302-v5",
+    "storage_bucket": "forward-pad-493302-v5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:50746359348:android:801d16d01fbf38bf0f1461",
+        "android_client_info": {
+          "package_name": "com.bextrader.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "50746359348-m2qkskc10r9hgkct5gimr3qogtdvue10.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bextrader.app",
+            "certificate_hash": "c9c3baeee4805c408b2a787b03eeaf01848504c2"
+          }
+        },
+        {
+          "client_id": "50746359348-l24lp3dj2m9plp7qc8godulthhdiaa6k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-2ySXe-MTtme3Nuhem1p3h7atMF1_738"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "50746359348-l24lp3dj2m9plp7qc8godulthhdiaa6k.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "50746359348-j196c7embvnelnj7rfm2s35vdgbthvv6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.bextrader.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

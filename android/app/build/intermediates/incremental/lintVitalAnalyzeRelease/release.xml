@@ -1,12 +1,12 @@
 <variant
     name="release"
     package="com.bextrader.app"
-    minSdkVersion="21"
-    targetSdkVersion="35"
+    minSdkVersion="23"
+    targetSdkVersion="36.0"
     mergedManifest="build\intermediates\merged_manifest\release\processReleaseMainManifest\AndroidManifest.xml"
-    proguardFiles="build\intermediates\default_proguard_files\global\proguard-android.txt-8.9.1"
+    proguardFiles="build\intermediates\default_proguard_files\global\proguard-android.txt-8.13.2"
     partialResultsDir="build\intermediates\lint_vital_partial_results\release\lintVitalAnalyzeRelease\out"
-    desugaredMethodsFiles="C:\Users\peyma\.gradle\caches\8.11.1\transforms\d7a2fbcbd2d7d86a6a876e1ed9df0fc2\transformed\D8BackportedDesugaredMethods.txt">
+    desugaredMethodsFiles="C:\Users\peyma\.gradle\caches\8.13\transforms\289ef317397053e198ee7e1edab54fbb\transformed\D8BackportedDesugaredMethods.txt">
   <buildFeatures
       namespacing="REQUIRED"/>
   <sourceProviders>
@@ -98,6 +98,10 @@
         name="providerAuthority"
         value="com.bextrader.app.fileprovider" />
     <resValue
+        type="string"
+        name="server_client_id"
+        value="50746359348-l24lp3dj2m9plp7qc8godulthhdiaa6k.apps.googleusercontent.com" />
+    <resValue
         type="integer"
         name="splashScreenFadeOutDuration"
         value="300" />
@@ -149,7 +153,7 @@
       type="MAIN"
       applicationId="com.bextrader.app"
       generatedSourceFolders="build\generated\ap_generated_sources\release\out"
-      generatedResourceFolders="build\generated\res\resValues\release"
-      desugaredMethodsFiles="C:\Users\peyma\.gradle\caches\8.11.1\transforms\d7a2fbcbd2d7d86a6a876e1ed9df0fc2\transformed\D8BackportedDesugaredMethods.txt">
+      generatedResourceFolders="build\generated\res\processReleaseGoogleServices;build\generated\res\resValues\release"
+      desugaredMethodsFiles="C:\Users\peyma\.gradle\caches\8.13\transforms\289ef317397053e198ee7e1edab54fbb\transformed\D8BackportedDesugaredMethods.txt">
   </artifact>
 </variant>

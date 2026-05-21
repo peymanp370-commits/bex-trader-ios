@@ -2,10 +2,6 @@
 	"appId": "com.bextrader.app",
 	"appName": "BEX Trader",
 	"webDir": "dist",
-	"server": {
-		"androidScheme": "https",
-		"iosScheme": "bextrader"
-	},
 	"plugins": {
 		"App": {
 			"urlScheme": "bextrader"
