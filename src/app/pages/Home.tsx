@@ -20,11 +20,13 @@ type DashboardMarketContext = {
   news: string;
 };
 
+const HOME_SYMBOLS = ["XAGUSD", "XAUUSD"] as const;
+type HomeSymbol = typeof HOME_SYMBOLS[number];
+
 const getHomeCacheKey = (symbol: "XAUUSD" | "XAGUSD") =>
   `bex_home_cache_v2_signal_lock_${symbol}`;
 
 const SIGNAL_TTL_MS = 10 * 60 * 1000;
-const MT5_HOME_EVENT_TTL_MS = 5 * 60 * 1000;
 const HOME_REFRESH_MS = 10 * 60 * 1000;
 const CLOCK_REFRESH_MS = 1 * 1000;
 
@@ -196,91 +198,26 @@ function getTradeNumber(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function normalizeMt5HomeStatusLabel(value?: string | null): string {
-  const raw = String(value || "").trim().toUpperCase();
-  if (raw === "ORDER_PLACED") return "ORDER PLACED";
-  if (raw === "POSITION_OPENED") return "TRADE OPENED";
-  if (raw === "POSITION_CLOSED") return "TRADE CLOSED";
-  if (raw === "ORDER_CANCELLED") return "ORDER CANCELLED";
-  return raw.replace(/_/g, " ") || "MT5 UPDATE";
-}
-
-function isDisplayableMt5HomeEvent(item: Mt5ExecutionItem | null | undefined): boolean {
+function isRecentMt5Item(item: Mt5ExecutionItem | null, ttlMs = 5 * 60 * 1000): boolean {
   if (!item) return false;
-  const status = String(item.status || item.trade_state || "").trim().toUpperCase();
-  if (!status) return false;
-
-  // Never fill Home signal card from noisy EA safety reports.
-  if (status.includes("BLOCKED") || status.includes("REJECTED") || status.includes("FAILED")) return false;
-
-  return [
-    "ORDER_PLACED",
-    "ORDER_CANCELLED",
-    "POSITION_OPENED",
-    "POSITION_CLOSED",
-    "PENDING",
-    "OPEN",
-    "CLOSED",
-  ].includes(status);
+  const n = Number(item.created_at);
+  if (!Number.isFinite(n) || n <= 0) return true;
+  return Date.now() - n <= ttlMs;
 }
 
-function mt5CreatedAtMs(value?: number | string | null): number | null {
-  if (value === null || value === undefined || value === "") return null;
-  const n = Number(value);
-  if (Number.isFinite(n) && n > 0) return n;
-  const parsed = new Date(String(value)).getTime();
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+function isActiveMt5ExecutionItem(item: Mt5ExecutionItem | null): boolean {
+  if (!item) return false;
+  const state = normalizeTradeState(item.trade_state || item.status);
+  const status = String(item.status || "").trim().toUpperCase();
+  if (state === "OPEN" || state === "PENDING") return true;
+  if (["POSITION_OPENED", "ORDER_PLACED"].includes(status)) return isRecentMt5Item(item);
+  return false;
 }
 
-function isRecentMt5HomeEvent(item: Mt5ExecutionItem | null | undefined, now = Date.now()): boolean {
-  if (!isDisplayableMt5HomeEvent(item)) return false;
-  const createdAt = mt5CreatedAtMs(item?.created_at);
-  if (!createdAt) return false;
-  return now - createdAt <= MT5_HOME_EVENT_TTL_MS;
+function getSymbolDecimals(symbol: HomeSymbol): number {
+  return symbol === "XAGUSD" ? 3 : 2;
 }
 
-function rrFromMt5Item(item: Mt5ExecutionItem | null | undefined): number | null {
-  if (!item) return null;
-  const entry = getTradeNumber(item.entry ?? item.fill_price);
-  const sl = getTradeNumber(item.sl);
-  const tp = getTradeNumber(item.tp);
-  if (entry === null || sl === null || tp === null) return null;
-  const risk = Math.abs(entry - sl);
-  const reward = Math.abs(tp - entry);
-  if (!Number.isFinite(risk) || risk <= 0 || !Number.isFinite(reward)) return null;
-  return Number((reward / risk).toFixed(2));
-}
-
-function buildHomeSignalFromMt5Item(
-  item: Mt5ExecutionItem | null | undefined,
-  symbol: "XAUUSD" | "XAGUSD"
-): DashboardSignal | null {
-  if (!isRecentMt5HomeEvent(item)) return null;
-
-  const statusRaw = String(item?.status || item?.trade_state || "").trim().toUpperCase();
-  const entry = getTradeNumber(item?.entry ?? item?.fill_price);
-  const sl = getTradeNumber(item?.sl);
-  const tp = getTradeNumber(item?.tp);
-  const rr = rrFromMt5Item(item);
-  const side = String(item?.side || "").trim().toUpperCase();
-  const createdAt = mt5CreatedAtMs(item?.created_at);
-
-  return {
-    symbol: String(item?.symbol || item?.broker_symbol || symbol).toUpperCase(),
-    side: side === "BUY" || side === "SELL" ? side : undefined,
-    entry: entry ?? undefined,
-    sl: sl ?? undefined,
-    tp: tp ?? undefined,
-    rr: rr ?? undefined,
-    confidence: undefined,
-    status: normalizeMt5HomeStatusLabel(statusRaw),
-    signal_id: String(item?.signal_id || (item as any)?.order_id || (item as any)?.position_id || item?.id || `mt5-${symbol}-${createdAt || Date.now()}`),
-    setup_type: statusRaw === "POSITION_CLOSED" ? "MT5 CLOSED" : statusRaw === "POSITION_OPENED" ? "MT5 LIVE" : "MT5 ORDER",
-    source: "mt5_execution_report",
-    created_at: createdAt ? new Date(createdAt).toISOString() : new Date().toISOString(),
-    execute: true,
-  } as any;
-}
 
 function normalizePricesShape(raw: any): DashboardPrices | null {
   if (!raw) return null;
@@ -644,7 +581,7 @@ type CurrencyCode = typeof ALL_CURRENCIES[number];
 
 export function Home() {
   const navigate = useNavigate();
-  const [selectedSymbol, setSelectedSymbol] = useState<"XAUUSD" | "XAGUSD">("XAUUSD");
+  const [selectedSymbol, setSelectedSymbol] = useState<"XAUUSD" | "XAGUSD">("XAGUSD");
   const [showMenu, setShowMenu] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>("USD");
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -691,6 +628,7 @@ export function Home() {
   const [fxRates, setFxRates] = useState<Partial<Record<CurrencyCode, number>>>({ USD: 1 });
   const [mobilePushHint, setMobilePushHint] = useState<string | null>(null);
   const [mt5Status, setMt5Status] = useState<Mt5StatusResponse | null>(null);
+  const [mt5StatusBySymbol, setMt5StatusBySymbol] = useState<Partial<Record<HomeSymbol, Mt5StatusResponse | null>>>({});
   const [mt5StatusLoading, setMt5StatusLoading] = useState(false);
   const [mt5StatusError, setMt5StatusError] = useState<string | null>(null);
 
@@ -753,6 +691,7 @@ export function Home() {
     const loadMt5Status = async () => {
       if (!hasVipAutoContext()) {
         setMt5Status(null);
+        setMt5StatusBySymbol({});
         setMt5StatusError(null);
         setMt5StatusLoading(false);
         return;
@@ -760,9 +699,25 @@ export function Home() {
 
       setMt5StatusLoading(true);
       try {
-        const status = await fetchMt5StatusForSymbol(selectedSymbol);
+        const results = await Promise.all(
+          HOME_SYMBOLS.map(async (symbol) => {
+            try {
+              return [symbol, await fetchMt5StatusForSymbol(symbol)] as const;
+            } catch (err) {
+              return [symbol, null] as const;
+            }
+          })
+        );
+
         if (cancelled) return;
-        setMt5Status(status);
+
+        const nextBySymbol = results.reduce<Partial<Record<HomeSymbol, Mt5StatusResponse | null>>>((acc, [symbol, status]) => {
+          acc[symbol] = status;
+          return acc;
+        }, {});
+
+        setMt5StatusBySymbol(nextBySymbol);
+        setMt5Status(nextBySymbol[selectedSymbol] || null);
         setMt5StatusError(null);
       } catch (err: any) {
         if (cancelled) return;
@@ -985,34 +940,29 @@ export function Home() {
   const activeMt5Profit = getTradeNumber(activeMt5Item?.profit);
   const showMt5Card = !!activeMt5Item || hasVipAutoContext();
 
-  const mt5HomeSignal = buildHomeSignalFromMt5Item(activeMt5Item, selectedSymbol);
-  const homeSignal = mt5HomeSignal || signal;
-  const homeSignalTimestamp = mt5HomeSignal?.created_at ? parseIsoDate(String((mt5HomeSignal as any).created_at)) : signalTimestamp;
-  const isMt5HomeSignal = !!mt5HomeSignal;
-
   const currentPrice = selectedSymbol === "XAUUSD" ? prices?.XAUUSD : prices?.XAGUSD;
 
 
   const quickStats = [
     { label: tr(lang, "Active Symbol", "نماد فعال", "الرمز النشط"), value: selectedSymbol },
     { label: tr(lang, "Active Trades", "معاملات فعال", "الصفقات النشطة"), value: formatNumber(positionsCount, lang) },
-    { label: tr(lang, "Market State", "وضعیت بازار", "حالة السوق"), value: homeSignal?.side ? translateSide(homeSignal.side, lang) : translateMarketPhase(homeSignal?.status || "WAIT", lang) },
+    { label: tr(lang, "Market State", "وضعیت بازار", "حالة السوق"), value: signal?.side ? translateSide(signal.side, lang) : translateMarketPhase(signal?.status || "WAIT", lang) },
   ];
 
-  const signalRemainingMs = homeSignal && homeSignalTimestamp ? Math.max(0, (isMt5HomeSignal ? MT5_HOME_EVENT_TTL_MS : SIGNAL_TTL_MS) - (currentTime.getTime() - homeSignalTimestamp.getTime())) : 0;
+  const signalRemainingMs = signal && signalTimestamp ? Math.max(0, SIGNAL_TTL_MS - (currentTime.getTime() - signalTimestamp.getTime())) : 0;
   const signalExpiresIn = signalRemainingMs > 0 ? formatExpiresIn(signalRemainingMs) : null;
 
   const copySignal = async () => {
-    if (!homeSignal) return;
+    if (!signal) return;
     const text = [
       `${selectedSymbol}`,
-      `${tr(lang, "Side", "جهت", "الاتجاه")}: ${homeSignal.side ? translateSide(homeSignal.side, lang) : "—"}`,
-      `${tr(lang, "Entry", "ورود", "الدخول")}: ${homeSignal.entry ?? "—"}`,
-      `SL: ${homeSignal.sl ?? "—"}`,
-      `TP: ${homeSignal.tp ?? "—"}`,
-      `RR: ${homeSignal.rr ?? "—"}`,
-      `${tr(lang, "Confidence", "اعتماد", "الثقة")}: ${homeSignal.confidence ?? "—"}%`,
-      `${tr(lang, "Status", "وضعیت", "الحالة")}: ${homeSignal.status ? translateMarketPhase(homeSignal.status, lang) : "—"}`,
+      `${tr(lang, "Side", "جهت", "الاتجاه")}: ${signal.side ? translateSide(signal.side, lang) : "—"}`,
+      `${tr(lang, "Entry", "ورود", "الدخول")}: ${signal.entry ?? "—"}`,
+      `SL: ${signal.sl ?? "—"}`,
+      `TP: ${signal.tp ?? "—"}`,
+      `RR: ${signal.rr ?? "—"}`,
+      `${tr(lang, "Confidence", "اعتماد", "الثقة")}: ${signal.confidence ?? "—"}%`,
+      `${tr(lang, "Status", "وضعیت", "الحالة")}: ${signal.status ? translateMarketPhase(signal.status, lang) : "—"}`,
     ].join("\n");
 
     try {
@@ -1030,10 +980,10 @@ export function Home() {
   const selectedAssetName = selectedSymbol === "XAUUSD"
     ? tr(lang, "Gold / US Dollar", "طلا / دلار آمریکا", "الذهب / الدولار الأمريكي")
     : tr(lang, "Silver / US Dollar", "نقره / دلار آمریکا", "الفضة / الدولار الأمريكي");
-  const signalSetupLabel = String((homeSignal as any)?.setup_type || (homeSignal as any)?.type || "—").replace(/_/g, " ");
-  const signalDirectionLabel = homeSignal?.side ? translateSide(homeSignal.side, lang) : tr(lang, "WAIT", "انتظار", "انتظار");
-  const signalStatusLabel = homeSignal
-    ? (isMt5HomeSignal ? String(homeSignal.status || "MT5 UPDATE") : (homeSignal.status ? translateMarketPhase(homeSignal.status, lang) : tr(lang, "LIVE", "زنده", "زنده")))
+  const signalSetupLabel = String((signal as any)?.setup_type || (signal as any)?.type || "—").replace(/_/g, " ");
+  const signalDirectionLabel = signal?.side ? translateSide(signal.side, lang) : tr(lang, "WAIT", "انتظار", "انتظار");
+  const signalStatusLabel = signal
+    ? (signal.status ? translateMarketPhase(signal.status, lang) : tr(lang, "LIVE", "زنده", "زنده"))
     : tr(lang, "WAITING", "در انتظار", "بانتظار");
   const biasIsBullish = marketContext.bias === "BULLISH";
   const biasIsBearish = marketContext.bias === "BEARISH";
@@ -1042,6 +992,82 @@ export function Home() {
   const commodityTheme = getCommodityTheme(selectedSymbol);
   const oppositeSymbol: "XAUUSD" | "XAGUSD" = selectedSymbol === "XAUUSD" ? "XAGUSD" : "XAUUSD";
   const oppositePrice = prices?.[oppositeSymbol] ?? null;
+
+  const getSymbolPrimaryMt5Item = (symbol: HomeSymbol): Mt5ExecutionItem | null =>
+    pickPrimaryMt5Item(mt5StatusBySymbol[symbol] || null);
+
+  const getSymbolVisibleSignal = (symbol: HomeSymbol): DashboardSignal | null =>
+    selectedSymbol === symbol ? signal : null;
+
+  const getSymbolExecutionView = (symbol: HomeSymbol) => {
+    const item = getSymbolPrimaryMt5Item(symbol);
+    const activeItem = isActiveMt5ExecutionItem(item) ? item : null;
+    const fallbackSignal = getSymbolVisibleSignal(symbol);
+    const decimals = getSymbolDecimals(symbol);
+    const side = String(activeItem?.side || fallbackSignal?.side || "").toUpperCase();
+    const entry = getTradeNumber(activeItem?.entry ?? activeItem?.fill_price ?? fallbackSignal?.entry);
+    const sl = getTradeNumber(activeItem?.sl ?? fallbackSignal?.sl);
+    const tp = getTradeNumber(activeItem?.tp ?? fallbackSignal?.tp);
+    const lot = getTradeNumber(activeItem?.lot);
+    const profit = getTradeNumber(activeItem?.profit);
+    const rrValue = fallbackSignal?.rr !== null && fallbackSignal?.rr !== undefined ? fallbackSignal.rr : null;
+    const state = normalizeTradeState(activeItem?.trade_state || activeItem?.status);
+    const statusText = activeItem
+      ? (state === "OPEN"
+        ? tr(lang, "POSITION OPENED", "پوزیشن باز", "صفقة مفتوحة")
+        : state === "PENDING"
+        ? tr(lang, "ORDER PLACED", "سفارش ثبت شد", "تم وضع الأمر")
+        : String(activeItem.status || "LIVE").replace(/_/g, " "))
+      : fallbackSignal
+      ? (fallbackSignal.status ? translateMarketPhase(fallbackSignal.status, lang) : tr(lang, "LIVE", "زنده", "زنده"))
+      : tr(lang, "WAITING", "در انتظار", "بانتظار");
+
+    return {
+      item: activeItem,
+      signal: fallbackSignal,
+      side,
+      entry,
+      sl,
+      tp,
+      lot,
+      profit,
+      rrValue,
+      decimals,
+      state,
+      statusText,
+      hasTradeData: !!activeItem || !!fallbackSignal,
+      sourceLabel: activeItem
+        ? tr(lang, "MT5 LIVE", "زنده MT5", "MT5 مباشر")
+        : fallbackSignal
+        ? tr(lang, "BEX SIGNAL", "سیگنال BEX", "إشارة BEX")
+        : tr(lang, "WAITING", "در انتظار", "بانتظار"),
+      updatedAt: activeItem?.created_at || null,
+      setupLabel: String((fallbackSignal as any)?.setup_type || (fallbackSignal as any)?.type || activeItem?.message || "—").replace(/_/g, " "),
+    };
+  };
+
+  const copySymbolSignal = async (symbol: HomeSymbol) => {
+    const view = getSymbolExecutionView(symbol);
+    if (!view.hasTradeData) return;
+
+    const text = [
+      `${symbol}`,
+      `${tr(lang, "Status", "وضعیت", "الحالة")}: ${view.statusText}`,
+      `${tr(lang, "Side", "جهت", "الاتجاه")}: ${view.side ? translateSide(view.side, lang) : "—"}`,
+      `${tr(lang, "Entry", "ورود", "الدخول")}: ${view.entry ?? "—"}`,
+      `SL: ${view.sl ?? "—"}`,
+      `TP: ${view.tp ?? "—"}`,
+      view.lot !== null ? `Lot: ${view.lot}` : null,
+      view.rrValue !== null ? `RR: ${view.rrValue}` : null,
+    ].filter(Boolean).join("\n");
+
+    try {
+      await navigator.clipboard.writeText(text);
+      alert(tr(getLanguage(), "Signal copied", "سیگنال کپی شد", "تم نسخ الإشارة"));
+    } catch {
+      alert(tr(getLanguage(), "Failed to copy signal", "کپی سیگنال ناموفق بود", "فشل نسخ الإشارة"));
+    }
+  };
 
   return (
     <div className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[radial-gradient(circle_at_top_left,#142033_0%,#05070d_38%,#02040a_100%)] text-white" : "bg-gray-50 text-gray-900"} pb-8`}>
@@ -1109,37 +1135,46 @@ export function Home() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {["XAUUSD", "XAGUSD"].map((symbol) => {
-            const typedSymbol = symbol as "XAUUSD" | "XAGUSD";
-            const active = selectedSymbol === typedSymbol;
-            const theme = getCommodityTheme(typedSymbol);
+        <div className="grid gap-3 lg:grid-cols-2">
+          {HOME_SYMBOLS.map((symbol) => {
+            const livePrice = prices?.[symbol] ?? null;
+            const decimals = getSymbolDecimals(symbol);
+            const symbolName = getCommodityName(symbol, lang);
+            const theme = getCommodityTheme(symbol);
             return (
-              <button
-                key={typedSymbol}
-                type="button"
-                onClick={() => setSelectedSymbol(typedSymbol)}
-                className={`relative overflow-hidden rounded-2xl border py-3 text-sm font-black tracking-wide transition-all hover:scale-[1.01] active:scale-[0.99] ${active ? `border-transparent bg-gradient-to-r ${theme.tab} text-black shadow-[0_0_35px_rgba(234,179,8,0.22)]` : darkMode ? "border-white/10 bg-[#0b1220]/95 text-gray-300 hover:border-yellow-500/25" : "border-gray-200 bg-white text-gray-700"}`}
+              <div
+                key={symbol}
+                onClick={() => setSelectedSymbol(symbol)}
+                className={`${darkMode ? "border-white/10 bg-[#0b1220]/95 text-gray-200" : "border-gray-200 bg-white text-gray-800"} relative cursor-pointer overflow-hidden rounded-2xl border p-3 shadow-lg transition hover:-translate-y-0.5 hover:border-yellow-400/50`}
               >
-                <span className="pointer-events-none absolute inset-y-0 right-0 w-36" style={{ opacity: active ? 0.58 : 0.22 }}>
-                  <img src={getCommodityImage(typedSymbol)} alt="" className="h-full w-full object-cover object-center" />
+                <span className="pointer-events-none absolute inset-y-0 right-0 w-36 opacity-20">
+                  <img src={getCommodityImage(symbol)} alt="" className="h-full w-full object-cover object-center" />
                 </span>
-                <span className="relative z-10 inline-flex items-center justify-center gap-2">
-                  <img src={getCommodityImage(typedSymbol)} alt="" className="h-8 w-12 rounded-xl object-cover shadow-md ring-1 ring-white/20" />
-                  <span>{typedSymbol}</span>
-                </span>
-              </button>
+                <div className="relative z-10 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <img src={getCommodityImage(symbol)} alt="" className="h-9 w-12 rounded-xl object-cover shadow-md ring-1 ring-white/20" />
+                    <div>
+                      <p className={`text-base font-black ${theme.text}`}>{symbol}</p>
+                      <p className="text-xs text-gray-400">{symbolName} / US Dollar</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Live Price", "قیمت زنده", "السعر المباشر")}</p>
+                    <p className="text-xl font-black">{livePrice ? formatNumber(Number(livePrice), lang, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : "—"}</p>
+                  </div>
+                </div>
+              </div>
             );
           })}
         </div>
 
-        <section className={`${darkMode ? "border-yellow-500/35 bg-gradient-to-br from-[#0d1728] via-[#09111f] to-[#03050b] shadow-[0_0_55px_rgba(234,179,8,0.12)]" : "border-yellow-500/30 bg-white"} relative overflow-hidden rounded-[2rem] border p-5 shadow-2xl`}>
+        <section className={`${darkMode ? "border-yellow-500/35 bg-gradient-to-br from-[#0d1728] via-[#09111f] to-[#03050b] shadow-[0_0_55px_rgba(234,179,8,0.12)]" : "border-yellow-500/30 bg-white"} relative overflow-hidden rounded-[1.6rem] border p-4 shadow-xl`}>
           <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-yellow-500/15 blur-3xl" />
           <div className={`pointer-events-none absolute bottom-0 left-0 h-32 w-32 rounded-full ${commodityTheme.glow} blur-3xl`} />
           <img
             src={commodityImage}
             alt=""
-            className="pointer-events-none absolute bottom-0 right-0 h-full w-[64%] max-w-[760px] object-cover object-center opacity-90"
+            className="pointer-events-none absolute bottom-0 right-0 h-full w-[52%] max-w-[560px] object-cover object-center opacity-90"
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#050812] via-[#050812]/82 to-[#050812]/18" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent" />
@@ -1160,7 +1195,7 @@ export function Home() {
               </div>
 
               <p className="text-[11px] uppercase tracking-[0.22em] text-gray-500">{tr(lang, "Live Price", "قیمت زنده", "السعر المباشر")}</p>
-              <p className="mt-1 text-5xl font-black tracking-tight drop-shadow-[0_0_18px_rgba(250,204,21,0.20)] sm:text-6xl">{formattedCurrentPrice}</p>
+              <p className="mt-1 text-4xl font-black tracking-tight drop-shadow-[0_0_18px_rgba(250,204,21,0.20)] sm:text-5xl">{formattedCurrentPrice}</p>
               <p className="mt-1 text-sm font-bold text-green-400">{tr(lang, "Real-time market feed", "داده زنده بازار", "بيانات السوق المباشرة")}</p>
             </div>
 
@@ -1196,97 +1231,127 @@ export function Home() {
           </div>
         </section>
 
-        <section className={`${darkMode ? "border-yellow-500/40 bg-gradient-to-br from-[#0c1526] via-[#07101e] to-[#03050b] shadow-[0_0_60px_rgba(234,179,8,0.14)]" : "border-yellow-500/30 bg-white"} relative overflow-hidden rounded-[2rem] border shadow-2xl shadow-yellow-500/5`}>
-          <img src={signalCommodityImage} alt="" className="pointer-events-none absolute right-0 top-0 h-40 w-72 object-cover opacity-[0.34]" />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/15" />
-          <div className="relative border-b border-white/10 p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.28em] text-yellow-400">📡 {tr(lang, "BEX LIVE SIGNAL", "سیگنال زنده BEX", "إشارة BEX المباشرة")} <span className="text-green-400">({tr(lang, "FREE", "رایگان", "مجاني")})</span></p>
-                <h2 className="mt-3 text-2xl font-black tracking-wide">{selectedSymbol}</h2>
-                <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{selectedAssetName}</p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <img src={signalCommodityImage} alt="" className="hidden h-14 w-24 rounded-2xl object-cover shadow-lg ring-1 ring-yellow-400/20 sm:block" />
-                <span className={`rounded-xl px-3 py-1 text-xs font-black ${homeSignal ? "bg-green-500/15 text-green-400" : "bg-yellow-500/15 text-yellow-400"}`}>{homeSignal ? (isMt5HomeSignal ? tr(lang, "MT5", "MT5", "MT5") : tr(lang, "PUBLIC", "عمومی", "عام")) : signalStatusLabel}</span>
-              </div>
+        <section className={`${darkMode ? "border-yellow-500/40 bg-gradient-to-br from-[#0c1526] via-[#07101e] to-[#03050b] shadow-[0_0_60px_rgba(234,179,8,0.14)]" : "border-yellow-500/30 bg-white"} relative overflow-hidden rounded-[1.5rem] border p-3 shadow-xl shadow-yellow-500/5`}>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-yellow-400">📡 {tr(lang, "BEX LIVE SIGNAL", "سیگنال زنده BEX", "إشارة BEX المباشرة")} <span className="text-green-400">({tr(lang, "FREE", "رایگان", "مجاني")})</span></p>
+              <p className={`mt-1 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                {tr(lang, "XAUUSD and XAGUSD stay visible together. MT5 reports update each card.", "طلا و نقره همزمان دیده می‌شوند و گزارش MT5 هر کارت را جدا آپدیت می‌کند.", "يبقى الذهب والفضة ظاهرين معًا ويتم تحديث كل بطاقة من MT5.")}
+              </p>
             </div>
+            <span className={`rounded-xl px-3 py-1 text-xs font-black ${mt5StatusLoading ? "bg-yellow-500/15 text-yellow-400" : "bg-green-500/15 text-green-400"}`}>
+              {mt5StatusLoading ? tr(lang, "SYNCING", "همگام‌سازی", "مزامنة") : tr(lang, "LIVE", "زنده", "مباشر")}
+            </span>
+          </div>
 
-            <div className="mt-5 grid grid-cols-3 gap-3">
-              <div className={`col-span-1 rounded-2xl p-4 text-center shadow-inner ${homeSignal?.side === "BUY" ? "bg-green-500/20 text-green-300 ring-1 ring-green-400/20" : homeSignal?.side === "SELL" ? "bg-red-500/20 text-red-300 ring-1 ring-red-400/20" : "bg-gray-500/15 text-gray-300 ring-1 ring-white/10"}`}>
-                <p className="text-3xl font-black tracking-widest sm:text-4xl">{signalDirectionLabel}</p>
-                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">{signalSetupLabel}</p>
-              </div>
-              <div className="col-span-2 grid grid-cols-2 gap-3">
-                <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-2xl p-3`}>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Confidence", "اعتماد", "الثقة")}</p>
-                  <p className="mt-1 text-2xl font-black">{homeSignal?.confidence ? `${formatNumber(Number(homeSignal.confidence), lang, { maximumFractionDigits: 0 })}%` : isMt5HomeSignal ? "MT5" : "—"}</p>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
-                    <div className="h-full rounded-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-600 shadow-[0_0_18px_rgba(250,204,21,0.45)]" style={{ width: `${Math.max(0, Math.min(100, Number(homeSignal?.confidence || (isMt5HomeSignal ? 100 : 0))))}%` }} />
+          <div className="grid gap-3 xl:grid-cols-2">
+            {HOME_SYMBOLS.map((symbol) => {
+              const view = getSymbolExecutionView(symbol);
+              const theme = getCommodityTheme(symbol);
+              const isBuy = view.side === "BUY";
+              const isSell = view.side === "SELL";
+              const sideLabel = view.side ? translateSide(view.side, lang) : tr(lang, "WAIT", "انتظار", "انتظار");
+              const cardAssetName = symbol === "XAUUSD"
+                ? tr(lang, "Gold / US Dollar", "طلا / دلار آمریکا", "الذهب / الدولار الأمريكي")
+                : tr(lang, "Silver / US Dollar", "نقره / دلار آمریکا", "الفضة / الدولار الأمريكي");
+              const cardPrice = prices?.[symbol] ?? null;
+
+              return (
+                <div key={symbol} className={`${darkMode ? "border-white/10 bg-[#0b1220]/95" : "border-gray-200 bg-white"} relative overflow-hidden rounded-[1.25rem] border shadow-lg`}>
+                  <img src={getSignalCommodityImage(symbol)} alt="" className="pointer-events-none absolute right-0 top-0 h-28 w-48 object-cover opacity-[0.22]" />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/20" />
+
+                  <div className="relative border-b border-white/10 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className={`text-[11px] font-black uppercase tracking-[0.22em] ${theme.text}`}>{symbol}</p>
+                        <h2 className="mt-1 text-xl font-black tracking-wide">{cardPrice ? formatNumber(Number(cardPrice), lang, { minimumFractionDigits: view.decimals, maximumFractionDigits: view.decimals }) : "—"}</h2>
+                        <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{cardAssetName}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <img src={getCommodityImage(symbol)} alt="" className="hidden h-10 w-16 rounded-xl object-cover shadow-lg ring-1 ring-yellow-400/20 sm:block" />
+                        <span className={`rounded-xl px-3 py-1 text-xs font-black ${view.item ? "bg-green-500/15 text-green-400" : view.signal ? "bg-blue-500/15 text-blue-300" : "bg-yellow-500/15 text-yellow-400"}`}>{view.sourceLabel}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      <div className={`col-span-1 rounded-xl p-3 text-center shadow-inner ${isBuy ? "bg-green-500/20 text-green-300 ring-1 ring-green-400/20" : isSell ? "bg-red-500/20 text-red-300 ring-1 ring-red-400/20" : "bg-gray-500/15 text-gray-300 ring-1 ring-white/10"}`}>
+                        <p className="text-2xl font-black tracking-widest sm:text-3xl">{sideLabel}</p>
+                        <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">{view.setupLabel}</p>
+                      </div>
+                      <div className="col-span-2 grid grid-cols-2 gap-2">
+                        <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-xl p-2`}>
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Status", "وضعیت", "الحالة")}</p>
+                          <p className={`mt-1 text-base font-black ${view.item ? "text-green-400" : "text-yellow-400"}`}>{view.statusText}</p>
+                          <p className="mt-1 text-[11px] text-gray-400">{view.updatedAt ? `${tr(lang, "Updated", "آپدیت", "تحديث")}: ${formatMt5Time(view.updatedAt)}` : tr(lang, "Waiting for setup", "در انتظار ستاپ", "بانتظار الإعداد")}</p>
+                        </div>
+                        <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-xl p-2`}>
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">Lot / P/L</p>
+                          <p className="mt-1 text-base font-black">{view.lot !== null ? formatNumber(view.lot, lang, { maximumFractionDigits: 2 }) : "—"}</p>
+                          <p className={`mt-1 text-[11px] font-bold ${view.profit !== null && view.profit < 0 ? "text-red-400" : "text-green-400"}`}>{view.profit !== null ? formatNumber(view.profit, lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-px bg-white/10 sm:grid-cols-4">
+                    <div className={`${darkMode ? "bg-[#0b1220]" : "bg-white"} p-3 text-center`}>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Entry", "ورود", "الدخول")}</p>
+                      <p className="mt-1 text-base font-black text-green-400">{view.entry !== null ? formatNumber(view.entry, lang, { minimumFractionDigits: view.decimals, maximumFractionDigits: view.decimals }) : "—"}</p>
+                    </div>
+                    <div className={`${darkMode ? "bg-[#0b1220]" : "bg-white"} p-3 text-center`}>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Stop Loss", "حد ضرر", "وقف الخسارة")}</p>
+                      <p className="mt-1 text-base font-black text-red-400">{view.sl !== null ? formatNumber(view.sl, lang, { minimumFractionDigits: view.decimals, maximumFractionDigits: view.decimals }) : "—"}</p>
+                    </div>
+                    <div className={`${darkMode ? "bg-[#0b1220]" : "bg-white"} p-3 text-center`}>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Take Profit", "حد سود", "جني الربح")}</p>
+                      <p className="mt-1 text-base font-black text-green-400">{view.tp !== null ? formatNumber(view.tp, lang, { minimumFractionDigits: view.decimals, maximumFractionDigits: view.decimals }) : "—"}</p>
+                    </div>
+                    <div className={`${darkMode ? "bg-[#0b1220]" : "bg-white"} p-3 text-center`}>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Risk/Reward", "ریسک/ریوارد", "المخاطرة/العائد")}</p>
+                      <p className="mt-1 text-base font-black text-teal-400">{view.rrValue !== null && view.rrValue !== undefined ? String(view.rrValue) : "—"}</p>
+                    </div>
+                  </div>
+
+                  <div className="p-3">
+                    <div className={`rounded-xl border px-3 py-2 text-xs ${view.item ? "border-green-500/20 bg-green-500/10 text-green-100" : darkMode ? "border-yellow-500/20 bg-yellow-500/10 text-yellow-100" : "border-yellow-500/30 bg-yellow-50 text-yellow-800"}`}>
+                      {view.item
+                        ? tr(lang, "Live MT5 execution report is active for this symbol.", "گزارش اجرای زنده MT5 برای این نماد فعال است.", "تقرير تنفيذ MT5 المباشر نشط لهذا الرمز.")
+                        : tr(lang, "Waiting for the next executable BEX signal. Entry, SL and TP will appear when the setup is ready.", "در انتظار سیگنال اجرایی بعدی BEX. ورود، حد ضرر و حد سود وقتی ستاپ آماده شد نمایش داده می‌شوند.", "بانتظار إشارة BEX التنفيذية التالية. سيظهر الدخول ووقف الخسارة والهدف عند جاهزية الإعداد.")}
+                    </div>
+                    <div className="mt-2 flex justify-end">
+                      <button
+                        onClick={() => copySymbolSignal(symbol)}
+                        className={`rounded-xl border px-4 py-2 ${darkMode ? "border-white/10 bg-[#121b2b]" : "border-gray-200 bg-gray-50"} flex items-center justify-center`}
+                        aria-label={tr(lang, "Copy signal", "کپی سیگنال", "نسخ الإشارة")}
+                      >
+                        <Copy className="h-5 w-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-2xl p-3`}>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Status", "وضعیت", "الحالة")}</p>
-                  <p className="mt-1 text-xl font-black text-yellow-400">{signalStatusLabel}</p>
-                  <p className="mt-2 text-xs text-gray-400">{signalExpiresIn ? `${tr(lang, "Expires in", "انقضا تا", "ينتهي خلال")} ${signalExpiresIn}` : tr(lang, "Waiting for setup", "در انتظار ستاپ", "بانتظار الإعداد")}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-px bg-white/10 sm:grid-cols-4">
-            <div className={`${darkMode ? "bg-[#0b1220]" : "bg-white"} p-4 text-center`}>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Entry", "ورود", "الدخول")}</p>
-              <p className="mt-1 text-lg font-black text-green-400">{homeSignal?.entry ? formatNumber(Number(homeSignal.entry), lang, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals }) : "—"}</p>
-            </div>
-            <div className={`${darkMode ? "bg-[#0b1220]" : "bg-white"} p-4 text-center`}>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Stop Loss", "حد ضرر", "وقف الخسارة")}</p>
-              <p className="mt-1 text-lg font-black text-red-400">{homeSignal?.sl ? formatNumber(Number(homeSignal.sl), lang, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals }) : "—"}</p>
-            </div>
-            <div className={`${darkMode ? "bg-[#0b1220]" : "bg-white"} p-4 text-center`}>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Take Profit", "حد سود", "جني الربح")}</p>
-              <p className="mt-1 text-lg font-black text-green-400">{homeSignal?.tp ? formatNumber(Number(homeSignal.tp), lang, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals }) : "—"}</p>
-            </div>
-            <div className={`${darkMode ? "bg-[#0b1220]" : "bg-white"} p-4 text-center`}>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Risk/Reward", "ریسک/ریوارد", "المخاطرة/العائد")}</p>
-              <p className="mt-1 text-lg font-black text-teal-400">{homeSignal?.rr !== null && homeSignal?.rr !== undefined ? String(homeSignal.rr) : "—"}</p>
-            </div>
-          </div>
-
-          <div className="p-4">
-            <div className={`rounded-2xl border px-4 py-3 text-sm ${darkMode ? "border-yellow-500/20 bg-yellow-500/10 text-yellow-100" : "border-yellow-500/30 bg-yellow-50 text-yellow-800"}`}>
-              {homeSignal
-                ? (isMt5HomeSignal ? tr(lang, "Latest EA execution report is shown for 5 minutes, then Home returns to WAIT.", "آخرین گزارش اجرای EA به مدت ۵ دقیقه نمایش داده می‌شود، بعد Home به WAIT برمی‌گردد.", "يظهر آخر تقرير تنفيذ من EA لمدة 5 دقائق ثم تعود الصفحة إلى الانتظار.") : tr(lang, "This public signal is visible to every user. Auto execution stays VIP only.", "این سیگنال عمومی برای همه کاربران قابل مشاهده است. اجرای خودکار فقط برای VIP است.", "هذه الإشارة العامة مرئية لكل المستخدمين. التنفيذ التلقائي خاص بـ VIP فقط."))
-                : tr(lang, "Waiting for the next executable BEX signal. Entry, SL and TP will appear when the setup is ready.", "در انتظار سیگنال اجرایی بعدی BEX. ورود، حد ضرر و حد سود وقتی ستاپ آماده شد نمایش داده می‌شوند.", "بانتظار إشارة BEX التنفيذية التالية. سيظهر الدخول ووقف الخسارة والهدف عند جاهزية الإعداد.")}
-            </div>
-            <div className="mt-3 flex justify-end">
-              <button
-                onClick={copySignal}
-                className={`rounded-2xl border px-5 py-3 ${darkMode ? "border-white/10 bg-[#121b2b]" : "border-gray-200 bg-gray-50"} flex items-center justify-center`}
-                aria-label={tr(lang, "Copy signal", "کپی سیگنال", "نسخ الإشارة")}
-              >
-                <Copy className="h-5 w-5" />
-              </button>
-            </div>
+              );
+            })}
           </div>
         </section>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className={`${darkMode ? "border-white/10 bg-[#0b1220]" : "border-gray-200 bg-white"} rounded-2xl border p-4`}>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Bias", "بایاس", "الاتجاه")}</p>
-            <p className={`mt-1 text-lg font-black ${biasIsBullish ? "text-green-400" : biasIsBearish ? "text-red-400" : "text-yellow-400"}`}>{translateBias(marketContext.bias, lang)}</p>
-          </div>
-          <div className={`${darkMode ? "border-white/10 bg-[#0b1220]" : "border-gray-200 bg-white"} rounded-2xl border p-4`}>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "News", "اخبار", "الأخبار")}</p>
-            <p className="mt-1 text-lg font-black text-green-400">{translateNews(marketContext.news, lang)}</p>
-          </div>
-          <div className={`${darkMode ? "border-white/10 bg-[#0b1220]" : "border-gray-200 bg-white"} rounded-2xl border p-4`}>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Phase", "فاز", "المرحلة")}</p>
-            <p className="mt-1 text-sm font-black">{translateMarketPhase(marketContext.marketPhase, lang)}</p>
-          </div>
-          <div className={`${darkMode ? "border-white/10 bg-[#0b1220]" : "border-gray-200 bg-white"} rounded-2xl border p-4`}>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Liquidity", "نقدشوندگی", "السيولة")}</p>
-            <p className={`mt-1 text-sm font-black ${marketContext.liquidityRisk === "HIGH" ? "text-red-400" : marketContext.liquidityRisk === "LOW" ? "text-green-400" : "text-yellow-400"}`}>{translateRisk(marketContext.liquidityRisk, lang)}</p>
+        <div className={`${darkMode ? "border-white/10 bg-[#0b1220]/80" : "border-gray-200 bg-white"} rounded-2xl border px-3 py-3 shadow-lg`}>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="mr-1 text-[10px] font-black uppercase tracking-[0.22em] text-yellow-400">
+              {tr(lang, "Market Pulse", "نبض بازار", "نبض السوق")}
+            </span>
+            <span className={`rounded-full px-3 py-1 font-black ${biasIsBullish ? "bg-green-500/15 text-green-400" : biasIsBearish ? "bg-red-500/15 text-red-400" : "bg-yellow-500/15 text-yellow-400"}`}>
+              {tr(lang, "Bias", "بایاس", "الاتجاه")}: {translateBias(marketContext.bias, lang)}
+            </span>
+            <span className="rounded-full bg-blue-500/10 px-3 py-1 font-black text-blue-300">
+              {tr(lang, "Session", "سشن", "الجلسة")}: {translateMarketPhase(marketContext.session, lang)}
+            </span>
+            <span className="rounded-full bg-purple-500/10 px-3 py-1 font-black text-purple-300">
+              {tr(lang, "Phase", "فاز", "المرحلة")}: {translateMarketPhase(marketContext.marketPhase, lang)}
+            </span>
+            <span className={`rounded-full px-3 py-1 font-black ${marketContext.news === "SAFE" ? "bg-green-500/15 text-green-400" : "bg-yellow-500/15 text-yellow-400"}`}>
+              {tr(lang, "Event Risk", "ریسک رویداد", "مخاطر الأحداث")}: {translateNews(marketContext.news, lang)}
+            </span>
           </div>
         </div>
 
@@ -1317,10 +1382,10 @@ export function Home() {
             ) : activeMt5Item ? (
               <>
                 <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-2xl p-3`}><p className="text-xs text-gray-400">Symbol</p><p className="font-black">{activeMt5Item.symbol || selectedSymbol}</p></div>
-                  <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-2xl p-3`}><p className="text-xs text-gray-400">Side</p><p className={`font-black ${String(activeMt5Item.side).toUpperCase() === "SELL" ? "text-red-400" : "text-green-400"}`}>{translateSide(activeMt5Item.side || "WAIT", lang)}</p></div>
-                  <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-2xl p-3`}><p className="text-xs text-gray-400">Lot</p><p className="font-black">{activeMt5Lot !== null ? formatNumber(activeMt5Lot, lang, { maximumFractionDigits: 2 }) : "—"}</p></div>
-                  <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-2xl p-3`}><p className="text-xs text-gray-400">P/L</p><p className={`font-black ${activeMt5Profit !== null && activeMt5Profit < 0 ? "text-red-400" : "text-green-400"}`}>{activeMt5Profit !== null ? formatNumber(activeMt5Profit, lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</p></div>
+                  <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-xl p-2`}><p className="text-xs text-gray-400">Symbol</p><p className="font-black">{activeMt5Item.symbol || selectedSymbol}</p></div>
+                  <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-xl p-2`}><p className="text-xs text-gray-400">Side</p><p className={`font-black ${String(activeMt5Item.side).toUpperCase() === "SELL" ? "text-red-400" : "text-green-400"}`}>{translateSide(activeMt5Item.side || "WAIT", lang)}</p></div>
+                  <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-xl p-2`}><p className="text-xs text-gray-400">Lot</p><p className="font-black">{activeMt5Lot !== null ? formatNumber(activeMt5Lot, lang, { maximumFractionDigits: 2 }) : "—"}</p></div>
+                  <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-xl p-2`}><p className="text-xs text-gray-400">P/L</p><p className={`font-black ${activeMt5Profit !== null && activeMt5Profit < 0 ? "text-red-400" : "text-green-400"}`}>{activeMt5Profit !== null ? formatNumber(activeMt5Profit, lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</p></div>
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
                   <div className={`${darkMode ? "bg-[#121b2b] border-white/10" : "bg-gray-50 border-gray-200"} rounded-2xl border p-3`}><p className="text-xs text-gray-400">Entry</p><p className="text-lg font-black">{activeMt5Entry !== null ? formatNumber(activeMt5Entry, lang, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals }) : "—"}</p></div>
