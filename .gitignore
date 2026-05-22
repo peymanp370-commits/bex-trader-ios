@@ -9,3 +9,11 @@ dist/
 codemagic_cert_key
 
 codemagic_cert_key.pub
+
+# Android build outputs / secrets risk
+*.apk
+*.aab
+android/*.apk
+android/*.aab
+android/app/build/
+dist/
