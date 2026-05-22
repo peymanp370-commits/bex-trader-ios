@@ -1,0 +1,36 @@
+name = "bex-channel-scalp-shadow-v1"
+main = "bex-channel-scalp-engine-v1.0.0-shadow.worker.ts"
+compatibility_date = "2026-05-22"
+
+[vars]
+PHASE = "shadow"
+CHANNEL_SCALP_PHASE = "shadow"
+ALLOW_CHANNEL_SCALP_LIVE = "0"
+CHANNEL_SCALP_SHADOW_LOG = "1"
+CHANNEL_MIN_QUALITY = "70"
+CHANNEL_MIN_INSIDE_RATIO = "0.70"
+CHANNEL_MIN_TOUCHES = "4"
+CHANNEL_MAX_SLOPE_ATR_PER_BAR = "0.08"
+CHANNEL_ENTRY_SELL_POSITION = "0.75"
+CHANNEL_ENTRY_BUY_POSITION = "0.25"
+CHANNEL_OUTSIDE_INVALID_ATR = "0.20"
+CHANNEL_MIN_RR = "1.20"
+CHANNEL_SL_BUFFER_ATR = "0.18"
+XAU_CHANNEL_MIN_QUALITY = "68"
+XAU_MIN_CONF_LIVE = "58"
+XAG_CHANNEL_MIN_QUALITY = "70"
+XAG_MIN_CONF_LIVE = "62"
+
+# Add your existing D1 binding here if you want shadow logs:
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "bex_mt5_history"
+# database_id = "YOUR_D1_ID"
+
+# Optional service bindings, depending on your current architecture:
+# [[services]]
+# binding = "MTF_ENGINE"
+# service = "bex-mtf-engine"
+# [[services]]
+# binding = "HISTORY_INGEST"
+# service = "bex-mt5-history-ingest"

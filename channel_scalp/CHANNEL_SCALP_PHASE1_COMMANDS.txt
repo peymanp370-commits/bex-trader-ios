@@ -1,0 +1,26 @@
+# BEX CHANNEL_SCALP Phase 1 - Shadow deploy commands
+
+# 1) Put these files in a new folder or worker folder:
+# - bex-channel-scalp-engine-v1.0.0-shadow.worker.ts
+# - wrangler_channel_scalp_shadow_v1.toml
+# - D1_schema_channel_scalp_shadow_v1.sql
+
+# 2) Create/apply D1 table if using bex_mt5_history:
+wrangler d1 execute bex_mt5_history --remote --file D1_schema_channel_scalp_shadow_v1.sql
+
+# 3) Deploy shadow worker:
+wrangler deploy --config wrangler_channel_scalp_shadow_v1.toml
+
+# 4) Health check:
+Invoke-RestMethod -UseBasicParsing "https://bex-channel-scalp-engine.peymanp370.workers.dev/health"
+
+# 5) Analyze with candle POST body first, or after binding CANDLES/MTF_ENGINE:
+Invoke-RestMethod -UseBasicParsing "https://bex-channel-scalp-engine.peymanp370.workers.dev/analyze?symbol=XAGUSD&tf=15m&limit=80"
+
+# 6) View shadow logs:
+wrangler d1 execute bex_mt5_history --remote --command "SELECT id,symbol,timeframe,detected,direction,side,confidence,quality_score,price_position,breakout_risk,rr,decision,reason,created_at FROM channel_scalp_shadow_logs ORDER BY created_at DESC LIMIT 20;"
+
+# IMPORTANT: keep live off for now
+# PHASE=shadow
+# CHANNEL_SCALP_PHASE=shadow
+# ALLOW_CHANNEL_SCALP_LIVE=0

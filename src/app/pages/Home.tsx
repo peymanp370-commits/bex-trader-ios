@@ -26,7 +26,7 @@ type HomeSymbol = typeof HOME_SYMBOLS[number];
 const getHomeCacheKey = (symbol: "XAUUSD" | "XAGUSD") =>
   `bex_home_cache_v2_signal_lock_${symbol}`;
 
-const SIGNAL_TTL_MS = 10 * 60 * 1000;
+const SIGNAL_TTL_MS = 5 * 60 * 1000;
 const HOME_REFRESH_MS = 10 * 60 * 1000;
 const CLOCK_REFRESH_MS = 1 * 1000;
 
@@ -50,6 +50,8 @@ const POSITION_ENGINE_BASE =
   "https://bex-position-engine.peymanp370.workers.dev";
 
 const MT5_STATUS_REFRESH_MS = 30 * 1000;
+const MT5_LAST_CLOSED_VISIBLE_MS = 30 * 60 * 1000;
+const MT5_LAST_CANCELLED_VISIBLE_MS = 10 * 60 * 1000;
 
 const BEX_ASSET_VERSION = "v=999";
 const BEX_GOLD_BARS_IMAGE = `/assets/bex-gold-bars.png?${BEX_ASSET_VERSION}`;
@@ -105,6 +107,11 @@ type Mt5ExecutionItem = {
   account_login?: string | null;
   account_server?: string | null;
   signal_id?: string | null;
+  fingerprint?: string | null;
+  order_id?: number | string | null;
+  position_id?: number | string | null;
+  ticket?: number | string | null;
+  order_type?: string | null;
   created_at?: number | string | null;
   message?: string | null;
 };
@@ -157,12 +164,19 @@ async function fetchMt5StatusForSymbol(symbol: "XAUUSD" | "XAGUSD"): Promise<Mt5
   const ctx = getVipMt5ContextFromStorage();
   if (!ctx.token || (!ctx.accountLogin && !ctx.clientId)) return null;
 
-  const qs = new URLSearchParams({ symbol, token: ctx.token, limit: "20" });
+  const qs = new URLSearchParams({
+    symbol,
+    token: ctx.token,
+    limit: "20",
+    fresh: "1",
+    nocache: "1",
+    t: String(Date.now()),
+  });
   if (ctx.clientId) qs.set("client_id", ctx.clientId);
   if (ctx.accountLogin) qs.set("account_login", ctx.accountLogin);
   if (ctx.accountServer) qs.set("account_server", ctx.accountServer);
 
-  const res = await fetch(`${POSITION_ENGINE_BASE}/mt5-status?${qs.toString()}`, {
+  const res = await fetch(`${POSITION_ENGINE_BASE}/client-status?${qs.toString()}`, {
     headers: { accept: "application/json" },
     cache: "no-store",
   });
@@ -188,9 +202,11 @@ function pickPrimaryMt5Item(status: Mt5StatusResponse | null): Mt5ExecutionItem 
 }
 
 function formatMt5Time(value?: number | string | null): string {
-  const n = Number(value);
-  if (!Number.isFinite(n) || n <= 0) return "—";
-  try { return new Date(n).toLocaleString(); } catch { return "—"; }
+  if (value === null || value === undefined || value === "") return "—";
+  const numeric = Number(value);
+  const ts = Number.isFinite(numeric) && numeric > 0 ? numeric : new Date(String(value)).getTime();
+  if (!Number.isFinite(ts) || ts <= 0) return "—";
+  try { return new Date(ts).toLocaleString(); } catch { return "—"; }
 }
 
 function getTradeNumber(value: unknown): number | null {
@@ -198,11 +214,24 @@ function getTradeNumber(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function getTradePriceNumber(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function getMt5ItemAgeMs(item: Mt5ExecutionItem | null): number | null {
+  if (!item) return null;
+  const numeric = Number(item.created_at);
+  const ts = Number.isFinite(numeric) && numeric > 0 ? numeric : new Date(String(item.created_at || "")).getTime();
+  if (!Number.isFinite(ts) || ts <= 0) return null;
+  return Math.max(0, Date.now() - ts);
+}
+
 function isRecentMt5Item(item: Mt5ExecutionItem | null, ttlMs = 5 * 60 * 1000): boolean {
   if (!item) return false;
-  const n = Number(item.created_at);
-  if (!Number.isFinite(n) || n <= 0) return true;
-  return Date.now() - n <= ttlMs;
+  const ageMs = getMt5ItemAgeMs(item);
+  if (ageMs === null) return true;
+  return ageMs <= ttlMs;
 }
 
 function isActiveMt5ExecutionItem(item: Mt5ExecutionItem | null): boolean {
@@ -212,6 +241,67 @@ function isActiveMt5ExecutionItem(item: Mt5ExecutionItem | null): boolean {
   if (state === "OPEN" || state === "PENDING") return true;
   if (["POSITION_OPENED", "ORDER_PLACED"].includes(status)) return isRecentMt5Item(item);
   return false;
+}
+
+function isClosedMt5ExecutionItem(item: Mt5ExecutionItem | null): boolean {
+  if (!item) return false;
+  const state = normalizeTradeState(item.trade_state || item.status);
+  const status = String(item.status || "").trim().toUpperCase();
+  return state === "CLOSED" || status === "POSITION_CLOSED" || status === "DEAL_CLOSED";
+}
+
+function isCancelledMt5ExecutionItem(item: Mt5ExecutionItem | null): boolean {
+  if (!item) return false;
+  const state = normalizeTradeState(item.trade_state || item.status);
+  const status = String(item.status || "").trim().toUpperCase();
+  return state === "CANCELLED" || status === "ORDER_CANCELLED" || status === "CANCELLED";
+}
+
+function shouldShowMt5ItemOnHome(item: Mt5ExecutionItem | null): boolean {
+  if (!item) return false;
+  if (isActiveMt5ExecutionItem(item)) return true;
+  if (isClosedMt5ExecutionItem(item)) return isRecentMt5Item(item, MT5_LAST_CLOSED_VISIBLE_MS);
+  if (isCancelledMt5ExecutionItem(item)) return isRecentMt5Item(item, MT5_LAST_CANCELLED_VISIBLE_MS);
+  return isRecentMt5Item(item, 5 * 60 * 1000);
+}
+
+function getHomeTradeAgeMs(item: Mt5ExecutionItem | null, fallbackTimestamp?: Date | null): number | null {
+  const itemAge = getMt5ItemAgeMs(item);
+  if (itemAge !== null) return itemAge;
+  if (fallbackTimestamp) return Math.max(0, Date.now() - fallbackTimestamp.getTime());
+  return null;
+}
+
+function getHomeTradeRemainingMs(item: Mt5ExecutionItem | null, fallbackTimestamp?: Date | null): number | null {
+  const ageMs = getHomeTradeAgeMs(item, fallbackTimestamp);
+  if (ageMs === null) return null;
+  return Math.max(0, SIGNAL_TTL_MS - ageMs);
+}
+
+function isHomeTradeExpired(item: Mt5ExecutionItem | null, fallbackTimestamp?: Date | null): boolean {
+  const ageMs = getHomeTradeAgeMs(item, fallbackTimestamp);
+  return ageMs !== null && ageMs > SIGNAL_TTL_MS;
+}
+
+function parseSetupFromSignalId(signalId?: string | null): string | null {
+  const s = String(signalId || "").toUpperCase();
+  if (!s) return null;
+  if (s.includes("TREND_PULLBACK")) return "TREND PULLBACK";
+  if (s.includes("BREAKOUT_CONTINUATION")) return "BREAKOUT CONTINUATION";
+  if (s.includes("REVERSAL_EXHAUSTION")) return "REVERSAL EXHAUSTION";
+  if (s.includes("CHANNEL_SCALP")) return "CHANNEL SCALP";
+  if (s.includes("RANGE_SOFT_REVERSAL")) return "RANGE SOFT REVERSAL";
+  return null;
+}
+
+function getMt5SetupLabel(item: Mt5ExecutionItem | null, fallbackSignal: DashboardSignal | null | undefined): string {
+  const fallbackSetup = String((fallbackSignal as any)?.setup_type || (fallbackSignal as any)?.type || "").replace(/_/g, " ").trim();
+  const fromSignalId = parseSetupFromSignalId(item?.signal_id);
+  if (fromSignalId) return fromSignalId;
+  if (fallbackSetup) return fallbackSetup;
+  const orderType = String(item?.order_type || "").replace(/_/g, " ").trim();
+  if (orderType) return orderType;
+  return "—";
 }
 
 function getSymbolDecimals(symbol: HomeSymbol): number {
@@ -778,7 +868,7 @@ export function Home() {
       let activeSignalTimestampIso: string | null = null;
 
       // SIGNAL LOCK RULE:
-      // - A valid/executable signal is locked on the Home page for 10 minutes from the moment the app receives it.
+      // - A valid/executable signal is locked on the Home page for 5 minutes from the moment the app receives it.
       // - Empty/WAIT/timeout responses from the backend must NOT clear the visible signal.
       // - A different valid signal can replace the old one and starts a fresh 10 minute lock.
       const incomingSignalIsBetter = isIncomingSignalBetter(incomingSignal, currentSignal);
@@ -931,11 +1021,12 @@ export function Home() {
     return formatNumber(usdPrice * Number(rate), lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const activeMt5Item = pickPrimaryMt5Item(mt5Status);
+  const rawActiveMt5Item = pickPrimaryMt5Item(mt5Status);
+  const activeMt5Item = shouldShowMt5ItemOnHome(rawActiveMt5Item) ? rawActiveMt5Item : null;
   const activeMt5State = normalizeTradeState(activeMt5Item?.trade_state || activeMt5Item?.status);
-  const activeMt5Entry = getTradeNumber(activeMt5Item?.entry ?? activeMt5Item?.fill_price);
-  const activeMt5Sl = getTradeNumber(activeMt5Item?.sl);
-  const activeMt5Tp = getTradeNumber(activeMt5Item?.tp);
+  const activeMt5Entry = getTradePriceNumber(activeMt5Item?.entry ?? activeMt5Item?.fill_price);
+  const activeMt5Sl = getTradePriceNumber(activeMt5Item?.sl);
+  const activeMt5Tp = getTradePriceNumber(activeMt5Item?.tp);
   const activeMt5Lot = getTradeNumber(activeMt5Item?.lot);
   const activeMt5Profit = getTradeNumber(activeMt5Item?.profit);
   const showMt5Card = !!activeMt5Item || hasVipAutoContext();
@@ -999,31 +1090,63 @@ export function Home() {
   const getSymbolVisibleSignal = (symbol: HomeSymbol): DashboardSignal | null =>
     selectedSymbol === symbol ? signal : null;
 
+  const getSymbolVisibleSignalTimestamp = (symbol: HomeSymbol): Date | null =>
+    selectedSymbol === symbol ? signalTimestamp : null;
+
   const getSymbolExecutionView = (symbol: HomeSymbol) => {
     const item = getSymbolPrimaryMt5Item(symbol);
-    const activeItem = isActiveMt5ExecutionItem(item) ? item : null;
+    // Keep the last real trade/report visible on Home instead of clearing the card.
+    // After 5 minutes the same data stays on the card but is marked EXPIRED until a newer trade arrives.
+    const mt5Item = item || null;
     const fallbackSignal = getSymbolVisibleSignal(symbol);
+    const fallbackSignalTimestamp = getSymbolVisibleSignalTimestamp(symbol);
+    const timerRemainingMs = getHomeTradeRemainingMs(mt5Item, fallbackSignal ? fallbackSignalTimestamp : null);
+    const isExpired = (!!mt5Item || !!fallbackSignal) && isHomeTradeExpired(mt5Item, fallbackSignal ? fallbackSignalTimestamp : null);
     const decimals = getSymbolDecimals(symbol);
-    const side = String(activeItem?.side || fallbackSignal?.side || "").toUpperCase();
-    const entry = getTradeNumber(activeItem?.entry ?? activeItem?.fill_price ?? fallbackSignal?.entry);
-    const sl = getTradeNumber(activeItem?.sl ?? fallbackSignal?.sl);
-    const tp = getTradeNumber(activeItem?.tp ?? fallbackSignal?.tp);
-    const lot = getTradeNumber(activeItem?.lot);
-    const profit = getTradeNumber(activeItem?.profit);
+    const state = normalizeTradeState(mt5Item?.trade_state || mt5Item?.status);
+    const isClosed = isClosedMt5ExecutionItem(mt5Item);
+    const isCancelled = isCancelledMt5ExecutionItem(mt5Item);
+    const side = String(mt5Item?.side || fallbackSignal?.side || "").toUpperCase();
+    const entry = getTradePriceNumber(mt5Item?.entry ?? mt5Item?.fill_price ?? fallbackSignal?.entry);
+    const sl = getTradePriceNumber(mt5Item?.sl ?? fallbackSignal?.sl);
+    const tp = getTradePriceNumber(mt5Item?.tp ?? fallbackSignal?.tp);
+    const lot = getTradeNumber(mt5Item?.lot);
+    const profit = getTradeNumber(mt5Item?.profit);
     const rrValue = fallbackSignal?.rr !== null && fallbackSignal?.rr !== undefined ? fallbackSignal.rr : null;
-    const state = normalizeTradeState(activeItem?.trade_state || activeItem?.status);
-    const statusText = activeItem
+    const statusText = isExpired
+      ? tr(lang, "EXPIRED", "منقضی", "منتهية")
+      : mt5Item
       ? (state === "OPEN"
         ? tr(lang, "POSITION OPENED", "پوزیشن باز", "صفقة مفتوحة")
         : state === "PENDING"
         ? tr(lang, "ORDER PLACED", "سفارش ثبت شد", "تم وضع الأمر")
-        : String(activeItem.status || "LIVE").replace(/_/g, " "))
+        : isClosed
+        ? tr(lang, "LAST TRADE CLOSED", "آخرین معامله بسته شد", "آخر صفقة أُغلقت")
+        : isCancelled
+        ? tr(lang, "ORDER CANCELLED", "سفارش لغو شد", "تم إلغاء الأمر")
+        : String(mt5Item.status || "MT5 UPDATE").replace(/_/g, " "))
       : fallbackSignal
       ? (fallbackSignal.status ? translateMarketPhase(fallbackSignal.status, lang) : tr(lang, "LIVE", "زنده", "زنده"))
       : tr(lang, "WAITING", "در انتظار", "بانتظار");
 
+    const sourceLabel = isExpired
+      ? tr(lang, "EXPIRED", "منقضی", "منتهية")
+      : mt5Item
+      ? (state === "OPEN"
+        ? tr(lang, "MT5 OPEN", "باز MT5", "MT5 مفتوح")
+        : state === "PENDING"
+        ? tr(lang, "MT5 PENDING", "در انتظار MT5", "MT5 معلق")
+        : isClosed
+        ? tr(lang, "MT5 CLOSED", "بسته MT5", "MT5 مغلق")
+        : isCancelled
+        ? tr(lang, "MT5 CANCELLED", "لغو MT5", "MT5 ملغى")
+        : tr(lang, "MT5 UPDATE", "آپدیت MT5", "تحديث MT5"))
+      : fallbackSignal
+      ? tr(lang, "BEX SIGNAL", "سیگنال BEX", "إشارة BEX")
+      : tr(lang, "WAITING", "در انتظار", "بانتظار");
+
     return {
-      item: activeItem,
+      item: mt5Item,
       signal: fallbackSignal,
       side,
       entry,
@@ -1035,14 +1158,14 @@ export function Home() {
       decimals,
       state,
       statusText,
-      hasTradeData: !!activeItem || !!fallbackSignal,
-      sourceLabel: activeItem
-        ? tr(lang, "MT5 LIVE", "زنده MT5", "MT5 مباشر")
-        : fallbackSignal
-        ? tr(lang, "BEX SIGNAL", "سیگنال BEX", "إشارة BEX")
-        : tr(lang, "WAITING", "در انتظار", "بانتظار"),
-      updatedAt: activeItem?.created_at || null,
-      setupLabel: String((fallbackSignal as any)?.setup_type || (fallbackSignal as any)?.type || activeItem?.message || "—").replace(/_/g, " "),
+      isClosed,
+      isCancelled,
+      hasTradeData: !!mt5Item || !!fallbackSignal,
+      sourceLabel,
+      updatedAt: mt5Item?.created_at || (fallbackSignalTimestamp ? fallbackSignalTimestamp.toISOString() : null),
+      setupLabel: getMt5SetupLabel(mt5Item, fallbackSignal),
+      timerRemainingMs,
+      isExpired,
     };
   };
 
@@ -1145,22 +1268,22 @@ export function Home() {
               <div
                 key={symbol}
                 onClick={() => setSelectedSymbol(symbol)}
-                className={`${darkMode ? "border-white/10 bg-[#0b1220]/95 text-gray-200" : "border-gray-200 bg-white text-gray-800"} relative cursor-pointer overflow-hidden rounded-2xl border p-3 shadow-lg transition hover:-translate-y-0.5 hover:border-yellow-400/50`}
+                className={`${darkMode ? "border-white/10 bg-[#0b1220]/95 text-gray-200" : "border-gray-200 bg-white text-gray-800"} relative min-h-[90px] cursor-pointer overflow-hidden rounded-2xl border p-3 shadow-lg transition hover:-translate-y-0.5 hover:border-yellow-400/50`}
               >
                 <span className="pointer-events-none absolute inset-y-0 right-0 w-36 opacity-20">
                   <img src={getCommodityImage(symbol)} alt="" className="h-full w-full object-cover object-center" />
                 </span>
-                <div className="relative z-10 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <img src={getCommodityImage(symbol)} alt="" className="h-9 w-12 rounded-xl object-cover shadow-md ring-1 ring-white/20" />
-                    <div>
+                <div className="relative z-10 flex min-h-[64px] items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <img src={getCommodityImage(symbol)} alt="" className="h-9 w-12 shrink-0 rounded-xl object-cover shadow-md ring-1 ring-white/20" />
+                    <div className="min-w-0">
                       <p className={`text-base font-black ${theme.text}`}>{symbol}</p>
-                      <p className="text-xs text-gray-400">{symbolName} / US Dollar</p>
+                      <p className="truncate text-xs text-gray-400">{symbolName} / US Dollar</p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="w-[120px] shrink-0 text-right sm:w-[138px]">
                     <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Live Price", "قیمت زنده", "السعر المباشر")}</p>
-                    <p className="text-xl font-black">{livePrice ? formatNumber(Number(livePrice), lang, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : "—"}</p>
+                    <p className="text-xl font-black tabular-nums sm:text-2xl">{livePrice ? formatNumber(Number(livePrice), lang, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : "—"}</p>
                   </div>
                 </div>
               </div>
@@ -1199,13 +1322,13 @@ export function Home() {
               <p className="mt-1 text-sm font-bold text-green-400">{tr(lang, "Real-time market feed", "داده زنده بازار", "بيانات السوق المباشرة")}</p>
             </div>
 
-            <div className="hidden shrink-0 rounded-2xl border border-white/10 bg-black/30 p-3 text-right shadow-xl sm:block">
+            <div className="hidden w-[168px] shrink-0 rounded-2xl border border-white/10 bg-black/30 p-3 text-right shadow-xl sm:block">
               <div className="mb-2 flex items-center justify-end gap-2">
                 <span className="text-xs font-black text-gray-400">{oppositeSymbol}</span>
                 <img src={getCommodityImage(oppositeSymbol)} alt="" className="h-8 w-12 rounded-lg object-cover" />
               </div>
-              <p className="text-xl font-black">{oppositePrice ? formatNumber(Number(oppositePrice), lang, { minimumFractionDigits: oppositeSymbol === "XAGUSD" ? 3 : 2, maximumFractionDigits: oppositeSymbol === "XAGUSD" ? 3 : 2 }) : "—"}</p>
-              <p className="text-xs font-bold text-green-400">{getCommodityName(oppositeSymbol, lang)}</p>
+              <p className="text-2xl font-black tabular-nums">{oppositePrice ? formatNumber(Number(oppositePrice), lang, { minimumFractionDigits: oppositeSymbol === "XAGUSD" ? 3 : 2, maximumFractionDigits: oppositeSymbol === "XAGUSD" ? 3 : 2 }) : "—"}</p>
+              <p className="mt-1 text-xs font-bold text-green-400">{getCommodityName(oppositeSymbol, lang)}</p>
             </div>
 
             <div className="shrink-0 text-right">
@@ -1255,6 +1378,46 @@ export function Home() {
                 ? tr(lang, "Gold / US Dollar", "طلا / دلار آمریکا", "الذهب / الدولار الأمريكي")
                 : tr(lang, "Silver / US Dollar", "نقره / دلار آمریکا", "الفضة / الدولار الأمريكي");
               const cardPrice = prices?.[symbol] ?? null;
+              const sourcePillClass = view.isExpired
+                ? "bg-red-500/15 text-red-300"
+                : view.item
+                ? view.isClosed
+                  ? "bg-slate-500/15 text-slate-200"
+                  : view.isCancelled
+                  ? "bg-red-500/15 text-red-300"
+                  : "bg-green-500/15 text-green-400"
+                : view.signal
+                ? "bg-blue-500/15 text-blue-300"
+                : "bg-yellow-500/15 text-yellow-400";
+              const statusTextClass = view.isExpired
+                ? "text-red-300"
+                : view.item
+                ? view.isClosed
+                  ? "text-slate-200"
+                  : view.isCancelled
+                  ? "text-red-300"
+                  : "text-green-400"
+                : "text-yellow-400";
+              const reportBoxClass = view.isExpired
+                ? "border-red-500/20 bg-red-500/10 text-red-100"
+                : view.item
+                ? view.isClosed
+                  ? "border-slate-400/20 bg-slate-400/10 text-slate-100"
+                  : view.isCancelled
+                  ? "border-red-500/20 bg-red-500/10 text-red-100"
+                  : "border-green-500/20 bg-green-500/10 text-green-100"
+                : darkMode
+                ? "border-yellow-500/20 bg-yellow-500/10 text-yellow-100"
+                : "border-yellow-500/30 bg-yellow-50 text-yellow-800";
+              const reportText = view.isExpired
+                ? tr(lang, "This trade window is expired. It stays visible until a newer BEX trade replaces it.", "پنجره این معامله منقضی شده؛ تا وقتی معامله جدید BEX بیاید همین‌جا می‌ماند.", "انتهت نافذة هذه الصفقة وتبقى ظاهرة حتى تستبدلها صفقة BEX أحدث.")
+                : view.item
+                ? view.isClosed
+                  ? tr(lang, "Last MT5 trade is closed. The result stays visible briefly so Home matches the notification.", "آخرین معامله MT5 بسته شده و نتیجه موقتاً می‌ماند تا Home با نوتیفیکیشن یکی باشد.", "آخر صفقة MT5 مغلقة وتبقى النتيجة ظاهرة مؤقتًا حتى تتطابق الصفحة مع الإشعار.")
+                  : view.isCancelled
+                  ? tr(lang, "Last MT5 pending order was cancelled or expired.", "آخرین سفارش در انتظار MT5 لغو یا منقضی شد.", "آخر أمر معلق في MT5 تم إلغاؤه أو انتهت صلاحيته.")
+                  : tr(lang, "Live MT5 execution report is active for this symbol.", "گزارش اجرای زنده MT5 برای این نماد فعال است.", "تقرير تنفيذ MT5 المباشر نشط لهذا الرمز.")
+                : tr(lang, "Waiting for the next executable BEX signal. Entry, SL and TP will appear when the setup is ready.", "در انتظار سیگنال اجرایی بعدی BEX. ورود، حد ضرر و حد سود وقتی ستاپ آماده شد نمایش داده می‌شوند.", "بانتظار إشارة BEX التنفيذية التالية. سيظهر الدخول ووقف الخسارة والهدف عند جاهزية الإعداد.");
 
               return (
                 <div key={symbol} className={`${darkMode ? "border-white/10 bg-[#0b1220]/95" : "border-gray-200 bg-white"} relative overflow-hidden rounded-[1.25rem] border shadow-lg`}>
@@ -1270,7 +1433,12 @@ export function Home() {
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         <img src={getCommodityImage(symbol)} alt="" className="hidden h-10 w-16 rounded-xl object-cover shadow-lg ring-1 ring-yellow-400/20 sm:block" />
-                        <span className={`rounded-xl px-3 py-1 text-xs font-black ${view.item ? "bg-green-500/15 text-green-400" : view.signal ? "bg-blue-500/15 text-blue-300" : "bg-yellow-500/15 text-yellow-400"}`}>{view.sourceLabel}</span>
+                        <span className={`rounded-xl px-3 py-1 text-xs font-black ${sourcePillClass}`}>{view.sourceLabel}</span>
+                        {view.hasTradeData && (
+                          <span className={`rounded-xl px-3 py-1 font-mono text-xs font-black ${view.isExpired ? "bg-red-500/15 text-red-300" : "bg-yellow-500/15 text-yellow-300"}`}>
+                            ⏱ {view.isExpired ? tr(lang, "EXPIRED", "منقضی", "منتهية") : formatExpiresIn(view.timerRemainingMs ?? 0)}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -1282,7 +1450,7 @@ export function Home() {
                       <div className="col-span-2 grid grid-cols-2 gap-2">
                         <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-xl p-2`}>
                           <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Status", "وضعیت", "الحالة")}</p>
-                          <p className={`mt-1 text-base font-black ${view.item ? "text-green-400" : "text-yellow-400"}`}>{view.statusText}</p>
+                          <p className={`mt-1 text-base font-black ${statusTextClass}`}>{view.statusText}</p>
                           <p className="mt-1 text-[11px] text-gray-400">{view.updatedAt ? `${tr(lang, "Updated", "آپدیت", "تحديث")}: ${formatMt5Time(view.updatedAt)}` : tr(lang, "Waiting for setup", "در انتظار ستاپ", "بانتظار الإعداد")}</p>
                         </div>
                         <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-xl p-2`}>
@@ -1314,10 +1482,8 @@ export function Home() {
                   </div>
 
                   <div className="p-3">
-                    <div className={`rounded-xl border px-3 py-2 text-xs ${view.item ? "border-green-500/20 bg-green-500/10 text-green-100" : darkMode ? "border-yellow-500/20 bg-yellow-500/10 text-yellow-100" : "border-yellow-500/30 bg-yellow-50 text-yellow-800"}`}>
-                      {view.item
-                        ? tr(lang, "Live MT5 execution report is active for this symbol.", "گزارش اجرای زنده MT5 برای این نماد فعال است.", "تقرير تنفيذ MT5 المباشر نشط لهذا الرمز.")
-                        : tr(lang, "Waiting for the next executable BEX signal. Entry, SL and TP will appear when the setup is ready.", "در انتظار سیگنال اجرایی بعدی BEX. ورود، حد ضرر و حد سود وقتی ستاپ آماده شد نمایش داده می‌شوند.", "بانتظار إشارة BEX التنفيذية التالية. سيظهر الدخول ووقف الخسارة والهدف عند جاهزية الإعداد.")}
+                    <div className={`rounded-xl border px-3 py-2 text-xs ${reportBoxClass}`}>
+                      {reportText}
                     </div>
                     <div className="mt-2 flex justify-end">
                       <button
@@ -1334,26 +1500,6 @@ export function Home() {
             })}
           </div>
         </section>
-
-        <div className={`${darkMode ? "border-white/10 bg-[#0b1220]/80" : "border-gray-200 bg-white"} rounded-2xl border px-3 py-3 shadow-lg`}>
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="mr-1 text-[10px] font-black uppercase tracking-[0.22em] text-yellow-400">
-              {tr(lang, "Market Pulse", "نبض بازار", "نبض السوق")}
-            </span>
-            <span className={`rounded-full px-3 py-1 font-black ${biasIsBullish ? "bg-green-500/15 text-green-400" : biasIsBearish ? "bg-red-500/15 text-red-400" : "bg-yellow-500/15 text-yellow-400"}`}>
-              {tr(lang, "Bias", "بایاس", "الاتجاه")}: {translateBias(marketContext.bias, lang)}
-            </span>
-            <span className="rounded-full bg-blue-500/10 px-3 py-1 font-black text-blue-300">
-              {tr(lang, "Session", "سشن", "الجلسة")}: {translateMarketPhase(marketContext.session, lang)}
-            </span>
-            <span className="rounded-full bg-purple-500/10 px-3 py-1 font-black text-purple-300">
-              {tr(lang, "Phase", "فاز", "المرحلة")}: {translateMarketPhase(marketContext.marketPhase, lang)}
-            </span>
-            <span className={`rounded-full px-3 py-1 font-black ${marketContext.news === "SAFE" ? "bg-green-500/15 text-green-400" : "bg-yellow-500/15 text-yellow-400"}`}>
-              {tr(lang, "Event Risk", "ریسک رویداد", "مخاطر الأحداث")}: {translateNews(marketContext.news, lang)}
-            </span>
-          </div>
-        </div>
 
         {showMt5Card && (
           <div className={`${darkMode ? "border-yellow-500/30 bg-gradient-to-br from-[#0b1220] via-[#09111f] to-[#03050b]" : "border-yellow-500/30 bg-white"} relative overflow-hidden rounded-3xl border p-5 shadow-xl`}>
