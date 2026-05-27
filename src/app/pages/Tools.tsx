@@ -87,8 +87,8 @@ export function Tools() {
     return cap ? Math.min(raw, cap) : raw;
   }, [volumeMode, manualLot, maxLot, suggestedLot]);
 
-  const cardClass = `${darkMode ? "bg-[#0f1623] border-gray-800/50" : "bg-white border-gray-200"} rounded-2xl p-5 border`;
-  const inputClass = `${darkMode ? "bg-[#1a2332] border-gray-700 text-white placeholder:text-gray-500" : "bg-gray-100 border-gray-300 text-gray-900 placeholder:text-gray-400"} w-full border rounded-xl px-3 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-yellow-500/40`;
+  const cardClass = `${darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"} rounded-[1.35rem] p-5 border backdrop-blur-md`;
+  const inputClass = `${darkMode ? "bg-[#111a2a] border-gray-700 text-white placeholder:text-gray-500" : "bg-gray-100 border-gray-300 text-gray-900 placeholder:text-gray-400"} w-full border rounded-2xl px-3 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-yellow-500/40 focus:border-yellow-400/70`;
   const labelClass = `text-xs font-bold tracking-widest ${darkMode ? "text-gray-400" : "text-gray-500"}`;
 
   const saveMt5Settings = () => {
@@ -109,7 +109,7 @@ export function Tools() {
   };
 
   return (
-    <div className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}>
+    <div className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[#050812] text-white" : "bg-[#f6f4ee] text-gray-950"} pb-24`}>
 <AppHeader
         title={tr(lang, "Tools", "ابزارها", "الأدوات")}
         subtitle={tr(lang, "Risk calculators", "محاسبه ریسک", "حاسبات المخاطر")}
@@ -119,6 +119,27 @@ export function Tools() {
         showSettings={true}
         showThemeToggle={true}
       />
+
+      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
+        <div className={`${darkMode ? "border-yellow-500/20 bg-gradient-to-br from-[#111a2a]/95 via-[#08101c]/95 to-[#050812]/95 shadow-[0_0_45px_rgba(234,179,8,0.08)]" : "border-yellow-500/20 bg-white/90 shadow-xl"} relative overflow-hidden rounded-[1.65rem] border p-5 backdrop-blur-md`}>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.14),transparent_28%),radial-gradient(circle_at_85%_25%,rgba(59,130,246,0.12),transparent_26%)]" />
+          <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full border border-yellow-400/20 bg-yellow-400/5 blur-sm" />
+          <div className="relative z-10 flex items-center justify-between gap-4">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-400">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.8)]" /> BEX AI DESK
+              </div>
+              <h2 className="text-2xl font-black tracking-tight sm:text-3xl">Risk Command Tools</h2>
+              <p className={`${darkMode ? "text-gray-400" : "text-gray-600"} mt-1 text-sm`}>Lot size, pip value, bridge and risk controls</p>
+            </div>
+            <div className="hidden rounded-2xl border border-yellow-500/20 bg-black/20 px-4 py-3 text-right sm:block">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-gray-500">BEX MODE</p>
+              <p className="mt-1 text-lg font-black text-yellow-400">LUXURY</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
 
       <main className="px-4 space-y-5 max-w-7xl mx-auto mt-5">
         <div className={cardClass}>
@@ -133,7 +154,7 @@ export function Tools() {
                   key={item}
                   type="button"
                   onClick={() => setSymbol(item)}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${symbol === item ? "bg-gradient-to-r from-yellow-500 to-yellow-600 text-black" : darkMode ? "bg-[#1a2332] text-gray-400 border border-gray-800" : "bg-gray-100 text-gray-600 border border-gray-300"}`}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${symbol === item ? "bg-gradient-to-r from-yellow-500 to-yellow-600 text-black" : darkMode ? "bg-[#111a2a] text-gray-400 border border-yellow-500/20" : "bg-gray-100 text-gray-600 border border-gray-300"}`}
                 >
                   {item.replace("USD", "")}
                 </button>
@@ -141,7 +162,7 @@ export function Tools() {
             </div>
           </div>
 
-          <div className={`${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl p-3 text-xs ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+          <div className={`${darkMode ? "bg-[#111a2a]/50" : "bg-gray-50"} rounded-xl p-3 text-xs ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
             {tr(lang, "These tools are for planning only. Always match final lot size with your broker contract specs.", "این ابزارها فقط برای برنامه‌ریزی هستند. حجم نهایی را با مشخصات بروکر خودت چک کن.", "هذه الأدوات للتخطيط فقط. طابق حجم اللوت النهائي مع مواصفات وسيطك.")}
           </div>
         </div>
@@ -168,11 +189,11 @@ export function Tools() {
           </div>
 
           <div className="grid grid-cols-2 gap-3 mt-4">
-            <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800" : "bg-gray-50 border-gray-200"} rounded-xl p-4 border`}>
+            <div className={`${darkMode ? "bg-[#111a2a]/50 border-yellow-500/20" : "bg-gray-50 border-gray-200"} rounded-2xl p-4 border`}>
               <p className={labelClass}>{tr(lang, "Risk Amount", "مقدار ریسک", "مبلغ المخاطرة")}</p>
               <p className="text-2xl font-bold mt-1">{riskAmount ? `$${riskAmount.toFixed(2)}` : "—"}</p>
             </div>
-            <div className={`${darkMode ? "bg-yellow-500/10 border-yellow-500/30" : "bg-yellow-50 border-yellow-300"} rounded-xl p-4 border`}>
+            <div className={`${darkMode ? "bg-yellow-500/10 border-yellow-500/30" : "bg-yellow-50 border-yellow-300"} rounded-2xl p-4 border`}>
               <p className="text-yellow-400 text-xs font-bold tracking-widest">{tr(lang, "Suggested Lot", "لات پیشنهادی", "اللوت المقترح")}</p>
               <p className="text-2xl font-bold mt-1 text-yellow-400">{suggestedLot ? suggestedLot.toFixed(2) : "—"}</p>
             </div>
@@ -197,11 +218,11 @@ export function Tools() {
           </div>
 
           <div className="grid grid-cols-2 gap-3 mt-4">
-            <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800" : "bg-gray-50 border-gray-200"} rounded-xl p-4 border`}>
+            <div className={`${darkMode ? "bg-[#111a2a]/50 border-yellow-500/20" : "bg-gray-50 border-gray-200"} rounded-2xl p-4 border`}>
               <p className={labelClass}>{tr(lang, "Value per pip", "ارزش هر پیپ", "قيمة النقطة")}</p>
               <p className="text-2xl font-bold mt-1">{pipValue ? `$${pipValue.toFixed(2)}` : "—"}</p>
             </div>
-            <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800" : "bg-gray-50 border-gray-200"} rounded-xl p-4 border`}>
+            <div className={`${darkMode ? "bg-[#111a2a]/50 border-yellow-500/20" : "bg-gray-50 border-gray-200"} rounded-2xl p-4 border`}>
               <p className={labelClass}>{tr(lang, "P/L Estimate", "برآورد سود/ضرر", "تقدير الربح/الخسارة")}</p>
               <p className="text-2xl font-bold mt-1">{profitLossEstimate ? `$${profitLossEstimate.toFixed(2)}` : "—"}</p>
             </div>
@@ -237,7 +258,7 @@ export function Tools() {
             </label>
           </div>
 
-          <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800" : "bg-gray-50 border-gray-200"} rounded-xl p-4 border mt-3`}>
+          <div className={`${darkMode ? "bg-[#111a2a]/50 border-yellow-500/20" : "bg-gray-50 border-gray-200"} rounded-2xl p-4 border mt-3`}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className={labelClass}>{tr(lang, { en: "Bridge Token", fa: "توکن اتصال بریج", ar: "رمز جسر الاتصال", es: "Token del puente", "pt-BR": "Token da ponte", hi: "ब्रिज टोकन", tr: "Bridge Token", de: "Bridge-Token", fr: "Token bridge", zh: "桥接令牌", ko: "브리지 토큰" })}</p>
@@ -254,7 +275,7 @@ export function Tools() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-            <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800" : "bg-gray-50 border-gray-200"} rounded-xl p-4 border`}>
+            <div className={`${darkMode ? "bg-[#111a2a]/50 border-yellow-500/20" : "bg-gray-50 border-gray-200"} rounded-2xl p-4 border`}>
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className={labelClass}>{tr(lang, { en: "Auto Trading", fa: "اتو ترید", ar: "التداول الآلي", es: "Trading automático", "pt-BR": "Auto trading", hi: "ऑटो ट्रेडिंग", tr: "Otomatik İşlem", de: "Auto-Trading", fr: "Trading auto", zh: "自动交易", ko: "자동매매" })}</p>
@@ -270,7 +291,7 @@ export function Tools() {
               </div>
             </div>
 
-            <div className={`${darkMode ? "bg-[#1a2332]/50 border-gray-800" : "bg-gray-50 border-gray-200"} rounded-xl p-4 border`}>
+            <div className={`${darkMode ? "bg-[#111a2a]/50 border-yellow-500/20" : "bg-gray-50 border-gray-200"} rounded-2xl p-4 border`}>
               <p className={labelClass}>{tr(lang, { en: "Volume Mode", fa: "حالت حجم", ar: "وضع الحجم", es: "Modo de volumen", "pt-BR": "Modo de volume", hi: "वॉल्यूम मोड", tr: "Hacim Modu", de: "Volumenmodus", fr: "Mode volume", zh: "手数模式", ko: "거래량 모드" })}</p>
               <div className="grid grid-cols-2 gap-2 mt-3">
                 {(["AUTO", "MANUAL"] as VolumeMode[]).map((mode) => (
@@ -278,7 +299,7 @@ export function Tools() {
                     key={mode}
                     type="button"
                     onClick={() => setVolumeMode(mode)}
-                    className={`py-2 rounded-xl text-xs font-bold border ${volumeMode === mode ? "bg-yellow-500 text-black border-yellow-500" : darkMode ? "bg-[#0f1623] text-gray-400 border-gray-800" : "bg-white text-gray-600 border-gray-200"}`}
+                    className={`py-2 rounded-xl text-xs font-bold border ${volumeMode === mode ? "bg-yellow-500 text-black border-yellow-500" : darkMode ? "bg-[#0b1220] text-gray-400 border-yellow-500/20" : "bg-white text-gray-600 border-gray-200"}`}
                   >
                     {mode === "AUTO" ? tr(lang, { en: "Auto", fa: "خودکار", ar: "تلقائي", es: "Auto", "pt-BR": "Auto", hi: "ऑटो", tr: "Otomatik", de: "Auto", fr: "Auto", zh: "自动", ko: "자동" }) : tr(lang, { en: "Manual", fa: "دستی", ar: "يدوي", es: "Manual", "pt-BR": "Manual", hi: "मैनुअल", tr: "Manuel", de: "Manuell", fr: "Manuel", zh: "手动", ko: "수동" })}
                   </button>
@@ -296,7 +317,7 @@ export function Tools() {
               <span className={labelClass}>{tr(lang, { en: "Max Lot", fa: "حداکثر لات", ar: "أقصى لوت", es: "Lote máximo", "pt-BR": "Lote máximo", hi: "अधिकतम लॉट", tr: "Maks Lot", de: "Max. Lot", fr: "Lot max", zh: "最大手数", ko: "최대 랏" })}</span>
               <input className={inputClass} inputMode="decimal" value={maxLot} onChange={(e) => setMaxLot(e.target.value)} placeholder="0.05" />
             </label>
-            <div className={`${darkMode ? "bg-yellow-500/10 border-yellow-500/30" : "bg-yellow-50 border-yellow-300"} rounded-xl p-4 border`}>
+            <div className={`${darkMode ? "bg-yellow-500/10 border-yellow-500/30" : "bg-yellow-50 border-yellow-300"} rounded-2xl p-4 border`}>
               <p className="text-yellow-400 text-xs font-bold tracking-widest">{tr(lang, { en: "Final Volume Preview", fa: "نمایش حجم نهایی", ar: "معاينة الحجم النهائي", es: "Vista del volumen final", "pt-BR": "Prévia do volume final", hi: "अंतिम वॉल्यूम", tr: "Son Hacim Önizleme", de: "Finale Volumen-Vorschau", fr: "Aperçu volume final", zh: "最终手数预览", ko: "최종 거래량 미리보기" })}</p>
               <p className="text-2xl font-bold mt-1 text-yellow-400">{finalVolumePreview ? finalVolumePreview.toFixed(2) : "—"}</p>
             </div>

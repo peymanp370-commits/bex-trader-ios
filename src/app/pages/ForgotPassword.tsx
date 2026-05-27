@@ -55,7 +55,7 @@ export function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-[#050812] text-white flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-md" {...markRTL(lang)}>
         <div className="text-center mb-6">
           <img
@@ -78,7 +78,7 @@ export function ForgotPassword() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#1a2332] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
+              className="w-full bg-[#111a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
               placeholder={tr(lang, "Enter your email", "ایمیل خود را وارد کنید", "أدخل بريدك الإلكتروني")}
               autoComplete="email"
               required
@@ -86,13 +86,13 @@ export function ForgotPassword() {
           </div>
 
           {error ? (
-            <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
               {error}
             </div>
           ) : null}
 
           {success ? (
-            <div className="rounded-xl border border-green-400/20 bg-green-500/10 px-4 py-3 text-sm text-green-300">
+            <div className="rounded-2xl border border-green-400/20 bg-green-500/10 px-4 py-3 text-sm text-green-300">
               {success}
             </div>
           ) : null}

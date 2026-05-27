@@ -17,7 +17,7 @@ export function VerifyEmail() {
   }, [flow, navigate]);
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-[#050812] text-white flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-md text-center">
         <img
           src={logoImage}
@@ -41,7 +41,7 @@ export function VerifyEmail() {
 
           <Link
             to="/register"
-            className="block w-full bg-[#1a2332] border border-gray-700 text-white py-4 rounded-xl font-bold text-lg"
+            className="block w-full bg-[#111a2a] border border-gray-700 text-white py-4 rounded-xl font-bold text-lg"
           >
             Go to Register
           </Link>

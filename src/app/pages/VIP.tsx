@@ -347,7 +347,7 @@ export function VIP() {
     });
 
   return (
-    <div className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}>
+    <div className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[#050812] text-white" : "bg-[#f6f4ee] text-gray-950"} pb-24`}>
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
 <AppHeader
         title="VIP"
@@ -359,8 +359,29 @@ export function VIP() {
         showThemeToggle={true}
       />
 
-      <div className="p-4 space-y-5">
-        <div className={`flex items-center justify-center gap-3 ${darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200"} rounded-2xl p-2 border`}>
+      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
+        <div className={`${darkMode ? "border-yellow-500/20 bg-gradient-to-br from-[#111a2a]/95 via-[#08101c]/95 to-[#050812]/95 shadow-[0_0_45px_rgba(234,179,8,0.08)]" : "border-yellow-500/20 bg-white/90 shadow-xl"} relative overflow-hidden rounded-[1.65rem] border p-5 backdrop-blur-md`}>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.14),transparent_28%),radial-gradient(circle_at_85%_25%,rgba(59,130,246,0.12),transparent_26%)]" />
+          <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full border border-yellow-400/20 bg-yellow-400/5 blur-sm" />
+          <div className="relative z-10 flex items-center justify-between gap-4">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-400">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.8)]" /> BEX AI DESK
+              </div>
+              <h2 className="text-2xl font-black tracking-tight sm:text-3xl">VIP Auto Desk</h2>
+              <p className={`${darkMode ? "text-gray-400" : "text-gray-600"} mt-1 text-sm`}>Premium automation, priority signals and execution access</p>
+            </div>
+            <div className="hidden rounded-2xl border border-yellow-500/20 bg-black/20 px-4 py-3 text-right sm:block">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-gray-500">BEX MODE</p>
+              <p className="mt-1 text-lg font-black text-yellow-400">LUXURY</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
+        <div className={`flex items-center justify-center gap-3 ${darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"} rounded-2xl p-2 border`}>
           <button
             onClick={() => setBillingCycle("monthly")}
             className={`flex-1 py-3 rounded-xl font-bold transition-all ${
@@ -447,7 +468,7 @@ export function VIP() {
           </div>
         ))}
 
-        <div className={`${darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200"} rounded-2xl p-5 border`}>
+        <div className={`${darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"} rounded-[1.35rem] p-5 border backdrop-blur-md`}>
           <h3 className="text-yellow-400 text-sm font-bold mb-4">💎 {t({ en: "Why Subscribe?", fa: "چرا اشتراک بگیریم؟", ar: "لماذا الاشتراك؟", es: "¿Por qué suscribirse?", "pt-BR": "Por que assinar?", hi: "सब्सक्राइब क्यों करें?", tr: "Neden abone olmalı?", de: "Warum abonnieren?", fr: "Pourquoi s’abonner ?", zh: "为什么订阅？", ko: "왜 구독해야 하나요?" })}</h3>
           <div className={`space-y-3 text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
             <p>• {t({ en: "Get access to institutional-grade trading signals powered by AI", fa: "به سیگنال‌های معاملاتی سطح حرفه‌ای با هوش مصنوعی دسترسی بگیر", ar: "احصل على إشارات تداول احترافية مدعومة بالذكاء الاصطناعي", es: "Accede a señales de trading de nivel institucional impulsadas por IA", "pt-BR": "Tenha acesso a sinais de trading de nível institucional com IA", hi: "AI द्वारा संचालित प्रोफेशनल स्तर के ट्रेडिंग सिग्नल पाएं", tr: "Yapay zekâ destekli kurumsal düzey işlem sinyallerine eriş", de: "Erhalte Zugang zu institutionellen Trading-Signalen mit KI", fr: "Accédez à des signaux de trading de niveau institutionnel propulsés par l’IA", zh: "获取AI驱动的机构级交易信号", ko: "AI 기반 기관급 트레이딩 신호에 접근하세요" })}</p>

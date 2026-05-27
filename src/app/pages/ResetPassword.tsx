@@ -416,7 +416,7 @@ export function ResetPassword() {
   const iconSide = rtl(lang) ? "left-0" : "right-0";
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-[#050812] text-white flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-md" {...markRTL(lang as any)}>
         <div className="flex justify-end mb-4">
           <div className="relative w-full sm:w-64">
@@ -424,7 +424,7 @@ export function ResetPassword() {
             <select
               value={lang}
               onChange={(e) => handleLanguageChange(e.target.value)}
-              className={`w-full max-h-48 bg-[#1a2332] border border-gray-700 rounded-xl py-3 ${rtl(lang) ? "pr-10 pl-4" : "pl-10 pr-4"} text-sm text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20`}
+              className={`w-full max-h-48 bg-[#111a2a] border border-gray-700 rounded-xl py-3 ${rtl(lang) ? "pr-10 pl-4" : "pl-10 pr-4"} text-sm text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20`}
               aria-label={tt(lang, TEXT.language)}
             >
               {LANGUAGES.map((item) => (
@@ -448,7 +448,7 @@ export function ResetPassword() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {!token ? (
-            <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
               {tt(lang, TEXT.tokenInvalidBox)}
             </div>
           ) : null}
@@ -463,7 +463,7 @@ export function ResetPassword() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className={`w-full bg-[#1a2332] border border-gray-700 rounded-xl py-3 ${inputPadding} text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20`}
+                className={`w-full bg-[#111a2a] border border-gray-700 rounded-xl py-3 ${inputPadding} text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20`}
                 placeholder={tt(lang, TEXT.enterNewPassword)}
                 autoComplete="new-password"
                 required
@@ -489,7 +489,7 @@ export function ResetPassword() {
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className={`w-full bg-[#1a2332] border border-gray-700 rounded-xl py-3 ${inputPadding} text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20`}
+                className={`w-full bg-[#111a2a] border border-gray-700 rounded-xl py-3 ${inputPadding} text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20`}
                 placeholder={tt(lang, TEXT.confirmPlaceholder)}
                 autoComplete="new-password"
                 required
@@ -506,13 +506,13 @@ export function ResetPassword() {
           </div>
 
           {error ? (
-            <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
               {error}
             </div>
           ) : null}
 
           {success ? (
-            <div className="rounded-xl border border-green-400/20 bg-green-500/10 px-4 py-3 text-sm text-green-300">
+            <div className="rounded-2xl border border-green-400/20 bg-green-500/10 px-4 py-3 text-sm text-green-300">
               {success}
             </div>
           ) : null}

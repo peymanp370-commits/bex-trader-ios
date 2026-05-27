@@ -158,12 +158,12 @@ export function Signal() {
   const chartPadding = priceRange * 0.1;
 
   return (
-    <div className={`min-h-screen ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}>
+    <div className={`min-h-screen ${darkMode ? "bg-[#050812] text-white" : "bg-[#f6f4ee] text-gray-950"} pb-24`}>
       <SideMenu isOpen={showMenu} onClose={() => setShowMenu(false)} />
 
-      <header className={`${darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200"} p-4 border-b sticky top-0 z-10`}>
+      <header className={`${darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"} p-4 border-b sticky top-0 z-10`}>
         <div className="flex items-center justify-between mb-3">
-          <button onClick={() => setShowMenu(true)} className={`p-2 rounded-lg ${darkMode ? "hover:bg-[#1a2332]" : "hover:bg-gray-100"}`}>
+          <button onClick={() => setShowMenu(true)} className={`p-2 rounded-lg ${darkMode ? "hover:bg-[#111a2a]" : "hover:bg-gray-100"}`}>
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-3">
@@ -184,7 +184,7 @@ export function Signal() {
               {localStorage.getItem("userPlan") || "PRO"}
             </div>
             <Link to="/app/settings">
-              <button className={`p-2 rounded-lg ${darkMode ? "hover:bg-[#1a2332]" : "hover:bg-gray-100"}`}>
+              <button className={`p-2 rounded-lg ${darkMode ? "hover:bg-[#111a2a]" : "hover:bg-gray-100"}`}>
                 <Settings className="w-5 h-5" />
               </button>
             </Link>
@@ -197,7 +197,7 @@ export function Signal() {
             className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${
               symbol === "XAUUSD"
                 ? "bg-yellow-500 text-black shadow-lg"
-                : darkMode ? "bg-[#1a2332] text-gray-400 border border-gray-700" : "bg-gray-100 text-gray-600 border border-gray-300"
+                : darkMode ? "bg-[#111a2a] text-gray-400 border border-gray-700" : "bg-gray-100 text-gray-600 border border-gray-300"
             }`}
           >
             XAUUSD
@@ -207,14 +207,14 @@ export function Signal() {
             className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${
               symbol === "XAGUSD"
                 ? "bg-yellow-500 text-black shadow-lg"
-                : darkMode ? "bg-[#1a2332] text-gray-400 border border-gray-700" : "bg-gray-100 text-gray-600 border border-gray-300"
+                : darkMode ? "bg-[#111a2a] text-gray-400 border border-gray-700" : "bg-gray-100 text-gray-600 border border-gray-300"
             }`}
           >
             XAGUSD
           </button>
         </div>
 
-        <div className={`flex gap-1 ${darkMode ? "bg-[#1a2332]" : "bg-gray-200"} rounded-lg p-1`}>
+        <div className={`flex gap-1 ${darkMode ? "bg-[#111a2a]" : "bg-gray-200"} rounded-lg p-1`}>
           {timeframes.map((tf) => (
             <button
               key={tf}
@@ -230,10 +230,21 @@ export function Signal() {
           ))}
         </div>
       </header>
+      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
+        <section className="relative overflow-hidden rounded-[1.65rem] border border-yellow-500/20 bg-gradient-to-br from-[#111a2a]/95 via-[#08101c]/95 to-[#050812]/95 p-5 shadow-[0_0_45px_rgba(234,179,8,0.08)]">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.14),transparent_30%),radial-gradient(circle_at_85%_20%,rgba(59,130,246,0.12),transparent_28%)]" />
+          <div className="relative z-10">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-400"><span className="h-2 w-2 rounded-full bg-emerald-400" /> BEX AI DESK</span>
+            <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">Signal Desk</h1>
+            <p className="mt-1 text-sm text-gray-400">Execution-ready BEX signal workspace</p>
+          </div>
+        </section>
+      </div>
 
-      <div className="p-4 space-y-4 pb-20">
+
+      <div className="mx-auto max-w-6xl space-y-5 p-4 pb-24 sm:p-6">
         {loading ? (
-          <div className={`${darkMode ? "bg-[#0f1623]" : "bg-white"} rounded-2xl p-8 text-center min-h-[200px] flex items-center justify-center`}>
+          <div className={`${darkMode ? "bg-[#0b1220]" : "bg-white"} rounded-2xl p-8 text-center min-h-[200px] flex items-center justify-center`}>
             <div>
               <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
               <p className={darkMode ? "text-gray-400" : "text-gray-600"}>Loading signal data...</p>
@@ -260,39 +271,39 @@ export function Signal() {
               </p>
 
               <div className="grid grid-cols-3 gap-2 mb-2">
-                <div className={`${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-lg p-2`}>
+                <div className={`${darkMode ? "bg-[#111a2a]/50" : "bg-gray-50"} rounded-lg p-2`}>
                   <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Entry</p>
                   <p className="font-bold text-sm">{formatPrice(currentEntry)}</p>
                 </div>
-                <div className={`${darkMode ? "bg-[#1a2332]/50" : "bg-red-50"} rounded-lg p-2`}>
+                <div className={`${darkMode ? "bg-[#111a2a]/50" : "bg-red-50"} rounded-lg p-2`}>
                   <p className={`text-xs ${darkMode ? "text-red-400" : "text-red-600"}`}>SL</p>
                   <p className="font-bold text-sm">{formatPrice(currentSl)}</p>
                 </div>
-                <div className={`${darkMode ? "bg-[#1a2332]/50" : "bg-green-50"} rounded-lg p-2`}>
+                <div className={`${darkMode ? "bg-[#111a2a]/50" : "bg-green-50"} rounded-lg p-2`}>
                   <p className={`text-xs ${darkMode ? "text-green-400" : "text-green-600"}`}>TP</p>
                   <p className="font-bold text-sm">{formatPrice(currentTp)}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-2">
-                <div className={`${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-lg p-2`}>
+                <div className={`${darkMode ? "bg-[#111a2a]/50" : "bg-gray-50"} rounded-lg p-2`}>
                   <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>R:R</p>
                   <p className="font-bold text-teal-400 text-sm">{signal.rr || "—"}</p>
                 </div>
-                <div className={`${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-lg p-2`}>
+                <div className={`${darkMode ? "bg-[#111a2a]/50" : "bg-gray-50"} rounded-lg p-2`}>
                   <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Confidence</p>
                   <p className="font-bold text-sm">
                     {signal.confidence === null || signal.confidence === undefined ? "—" : `${Math.round(Number(signal.confidence))}%`}
                   </p>
                 </div>
-                <div className={`${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-lg p-2`}>
+                <div className={`${darkMode ? "bg-[#111a2a]/50" : "bg-gray-50"} rounded-lg p-2`}>
                   <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Status</p>
                   <p className="font-bold text-teal-400 text-xs">{currentStatus}</p>
                 </div>
               </div>
             </div>
 
-            <div className={`${darkMode ? "bg-[#0f1623] border-gray-800/50" : "bg-white border-gray-200"} rounded-2xl p-4 border`}>
+            <div className={`${darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"} rounded-2xl p-4 border`}>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-yellow-400 text-xs font-bold tracking-widest">📈 LIVE CHART</h3>
                 {!chartLoading && candles.length > 0 && (
@@ -328,7 +339,7 @@ export function Signal() {
             </div>
           </>
         ) : (
-          <div className={`${darkMode ? "bg-[#0f1623]" : "bg-white"} rounded-2xl p-8 text-center min-h-[220px] flex items-center justify-center`}>
+          <div className={`${darkMode ? "bg-[#0b1220]" : "bg-white"} rounded-2xl p-8 text-center min-h-[220px] flex items-center justify-center`}>
             <div>
               <p className="text-lg font-bold mb-2">No live signal yet</p>
               <p className={darkMode ? "text-gray-400" : "text-gray-600"}>

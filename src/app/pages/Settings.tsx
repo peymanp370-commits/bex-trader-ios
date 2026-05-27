@@ -256,7 +256,7 @@ export function Settings() {
   const selectedTimezone = TIMEZONES.find((t) => t.value === userTimezone);
 
   return (
-    <div dir={rtl ? "rtl" : "ltr"} className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-8`}>
+    <div dir={rtl ? "rtl" : "ltr"} className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[#050812] text-white" : "bg-[#f6f4ee] text-gray-950"} pb-8`}>
       <AppHeader
         title="Settings"
         subtitle="BEX Trader"
@@ -282,9 +282,30 @@ export function Settings() {
         }
       />
 
-      <div className="p-4 space-y-4">
+      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
+        <div className={`${darkMode ? "border-yellow-500/20 bg-gradient-to-br from-[#111a2a]/95 via-[#08101c]/95 to-[#050812]/95 shadow-[0_0_45px_rgba(234,179,8,0.08)]" : "border-yellow-500/20 bg-white/90 shadow-xl"} relative overflow-hidden rounded-[1.65rem] border p-5 backdrop-blur-md`}>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.14),transparent_28%),radial-gradient(circle_at_85%_25%,rgba(59,130,246,0.12),transparent_26%)]" />
+          <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full border border-yellow-400/20 bg-yellow-400/5 blur-sm" />
+          <div className="relative z-10 flex items-center justify-between gap-4">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-400">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.8)]" /> BEX AI DESK
+              </div>
+              <h2 className="text-2xl font-black tracking-tight sm:text-3xl">Control Center</h2>
+              <p className={`${darkMode ? "text-gray-400" : "text-gray-600"} mt-1 text-sm`}>Account, theme, language and trading preferences</p>
+            </div>
+            <div className="hidden rounded-2xl border border-yellow-500/20 bg-black/20 px-4 py-3 text-right sm:block">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-gray-500">BEX MODE</p>
+              <p className="mt-1 text-lg font-black text-yellow-400">LUXURY</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
         <Link to="/app/vip">
-          <div className="bg-gradient-to-r from-teal-600 to-blue-600 rounded-2xl p-5 border border-teal-500/30 shadow-lg shadow-teal-500/20">
+          <div className="bg-gradient-to-r from-teal-600 to-blue-600 rounded-[1.35rem] p-5 border backdrop-blur-md border-teal-500/30 shadow-lg shadow-teal-500/20">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-2">
@@ -299,10 +320,10 @@ export function Settings() {
           </div>
         </Link>
 
-        <div className={`${darkMode ? "bg-[#0f1623] border-gray-800/50" : "bg-white border-gray-200"} rounded-2xl p-5 border`}>
+        <div className={`${darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"} rounded-[1.35rem] p-5 border backdrop-blur-md`}>
           <h2 className="text-teal-400 text-xs font-bold tracking-widest mb-4">{T(lang, TXT.preferences)}</h2>
 
-          <div className={`flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3`}>
+          <div className={`flex items-center justify-between p-4 ${darkMode ? "bg-[#111a2a]/50" : "bg-gray-50"} rounded-xl mb-3`}>
             <div className="flex items-center gap-3">
               <Bell className="w-5 h-5 text-teal-400" />
               <div className={rtl ? "text-right" : "text-left"}>
@@ -326,12 +347,12 @@ export function Settings() {
           </div>
 
           {notificationsEnabled && (
-            <div className={`p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3`}>
+            <div className={`p-4 ${darkMode ? "bg-[#111a2a]/50" : "bg-gray-50"} rounded-xl mb-3`}>
               <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-600"} mb-2`}>{T(lang, TXT.notificationFrequency)}</p>
               <select
                 value={notificationTime}
                 onChange={(e) => setNotificationTime(e.target.value)}
-                className={`w-full ${darkMode ? "bg-[#0f1623] border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"} border rounded-lg px-3 py-2`}
+                className={`w-full ${darkMode ? "bg-[#0b1220] border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"} border rounded-lg px-3 py-2`}
               >
                 {notificationTimes.map((time) => (
                   <option key={time.value} value={time.value}>
@@ -365,10 +386,10 @@ export function Settings() {
           </div>
         </div>
 
-        <div className={`${darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200"} rounded-2xl p-1 border`}>
+        <div className={`${darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"} rounded-2xl p-1 border`}>
           <h3 className="px-4 py-3 text-xs font-bold text-yellow-400 tracking-widest">{T(lang, TXT.account)}</h3>
 
-          <button onClick={() => setShowCountryModal(true)} className={`w-full flex items-center justify-between px-4 py-3.5 ${darkMode ? "hover:bg-[#1a2332]" : "hover:bg-gray-100"} transition-colors`}>
+          <button onClick={() => setShowCountryModal(true)} className={`w-full flex items-center justify-between px-4 py-3.5 ${darkMode ? "hover:bg-[#111a2a]" : "hover:bg-gray-100"} transition-colors`}>
             <div className="flex items-center gap-3">
               <Globe className="w-5 h-5 text-teal-400" />
               <div className={rtl ? "text-right" : "text-left"}>
@@ -379,7 +400,7 @@ export function Settings() {
             <ChevronRight className={`w-5 h-5 text-gray-400 ${rtl ? "rotate-180" : ""}`} />
           </button>
 
-          <button onClick={() => setShowLanguageModal(true)} className={`w-full flex items-center justify-between px-4 py-3.5 ${darkMode ? "hover:bg-[#1a2332]" : "hover:bg-gray-100"} transition-colors border-t ${darkMode ? "border-gray-800" : "border-gray-200"}`}>
+          <button onClick={() => setShowLanguageModal(true)} className={`w-full flex items-center justify-between px-4 py-3.5 ${darkMode ? "hover:bg-[#111a2a]" : "hover:bg-gray-100"} transition-colors border-t ${darkMode ? "border-yellow-500/20" : "border-gray-200"}`}>
             <div className="flex items-center gap-3">
               <Globe className="w-5 h-5 text-blue-400" />
               <div className={rtl ? "text-right" : "text-left"}>
@@ -390,7 +411,7 @@ export function Settings() {
             <ChevronRight className={`w-5 h-5 text-gray-400 ${rtl ? "rotate-180" : ""}`} />
           </button>
 
-          <button onClick={() => setShowTimezoneModal(true)} className={`w-full flex items-center justify-between px-4 py-3.5 ${darkMode ? "hover:bg-[#1a2332]" : "hover:bg-gray-100"} transition-colors border-t ${darkMode ? "border-gray-800" : "border-gray-200"}`}>
+          <button onClick={() => setShowTimezoneModal(true)} className={`w-full flex items-center justify-between px-4 py-3.5 ${darkMode ? "hover:bg-[#111a2a]" : "hover:bg-gray-100"} transition-colors border-t ${darkMode ? "border-yellow-500/20" : "border-gray-200"}`}>
             <div className="flex items-center gap-3">
               <Clock className="w-5 h-5 text-purple-400" />
               <div className={rtl ? "text-right" : "text-left"}>
@@ -402,7 +423,7 @@ export function Settings() {
           </button>
 
           {isIOSNativeApp && (
-            <button onClick={() => navigate("/app/delete-account")} className={`w-full flex items-center justify-between px-4 py-3.5 ${darkMode ? "hover:bg-red-900/20" : "hover:bg-red-50"} transition-colors border-t ${darkMode ? "border-gray-800" : "border-gray-200"}`}>
+            <button onClick={() => navigate("/app/delete-account")} className={`w-full flex items-center justify-between px-4 py-3.5 ${darkMode ? "hover:bg-red-900/20" : "hover:bg-red-50"} transition-colors border-t ${darkMode ? "border-yellow-500/20" : "border-gray-200"}`}>
               <div className="flex items-center gap-3">
                 <Trash2 className="w-5 h-5 text-red-400" />
                 <div className={rtl ? "text-right" : "text-left"}>
@@ -414,7 +435,7 @@ export function Settings() {
             </button>
           )}
 
-          <button onClick={handleLogout} disabled={loggingOut} className={`w-full flex items-center justify-between px-4 py-3.5 ${darkMode ? "hover:bg-red-900/20" : "hover:bg-red-50"} transition-colors border-t ${darkMode ? "border-gray-800" : "border-gray-200"} disabled:opacity-50`}>
+          <button onClick={handleLogout} disabled={loggingOut} className={`w-full flex items-center justify-between px-4 py-3.5 ${darkMode ? "hover:bg-red-900/20" : "hover:bg-red-50"} transition-colors border-t ${darkMode ? "border-yellow-500/20" : "border-gray-200"} disabled:opacity-50`}>
             <div className="flex items-center gap-3">
               <User className="w-5 h-5 text-red-400" />
               <p className="font-medium text-red-400">{loggingOut ? T(lang, TXT.loggingOut) : T(lang, TXT.logout)}</p>
@@ -423,10 +444,10 @@ export function Settings() {
           </button>
         </div>
 
-        <div className={`${darkMode ? "bg-[#0f1623] border-gray-800/50" : "bg-white border-gray-200"} rounded-2xl p-5 border`}>
+        <div className={`${darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"} rounded-[1.35rem] p-5 border backdrop-blur-md`}>
           <h2 className="text-yellow-400 text-xs font-bold tracking-widest mb-4">{T(lang, TXT.information)}</h2>
 
-          <button className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}>
+          <button className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#111a2a]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}>
             <div className="flex items-center gap-3">
               <HelpCircle className="w-5 h-5 text-teal-400" />
               <span className="font-medium">{T(lang, TXT.economicCalendar)}</span>
@@ -434,7 +455,7 @@ export function Settings() {
             <ChevronRight className={`w-5 h-5 ${darkMode ? "text-gray-400" : "text-gray-600"} ${rtl ? "rotate-180" : ""}`} />
           </button>
 
-          <button onClick={() => navigate("/app/help")} className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}>
+          <button onClick={() => navigate("/app/help")} className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#111a2a]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}>
             <div className="flex items-center gap-3">
               <HelpCircle className="w-5 h-5 text-teal-400" />
               <span className="font-medium">{T(lang, TXT.howToUse)}</span>
@@ -442,7 +463,7 @@ export function Settings() {
             <ChevronRight className={`w-5 h-5 ${darkMode ? "text-gray-400" : "text-gray-600"} ${rtl ? "rotate-180" : ""}`} />
           </button>
 
-          <button onClick={() => navigate("/app/help")} className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl transition-colors`}>
+          <button onClick={() => navigate("/app/help")} className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#111a2a]/50" : "bg-gray-50"} rounded-xl transition-colors`}>
             <div className="flex items-center gap-3">
               <Shield className="w-5 h-5 text-red-400" />
               <span className="font-medium">{T(lang, TXT.riskDisclaimer)}</span>
@@ -451,11 +472,11 @@ export function Settings() {
           </button>
         </div>
 
-        <div className={`${darkMode ? "bg-[#0f1623] border-gray-800/50" : "bg-white border-gray-200"} rounded-2xl p-5 border`}>
+        <div className={`${darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"} rounded-[1.35rem] p-5 border backdrop-blur-md`}>
           <h2 className="text-teal-400 text-xs font-bold tracking-widest mb-4">{T(lang, TXT.support)}</h2>
 
           <a href="mailto:support@bextrader.com">
-            <button className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}>
+            <button className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#111a2a]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}>
               <div className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-teal-400" />
                 <span className="font-medium">{T(lang, TXT.emailSupport)}</span>
@@ -465,7 +486,7 @@ export function Settings() {
           </a>
 
           <a href="https://t.me/bextraderbot" target="_blank" rel="noopener noreferrer">
-            <button className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl transition-colors`}>
+            <button className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#111a2a]/50" : "bg-gray-50"} rounded-xl transition-colors`}>
               <div className="flex items-center gap-3">
                 <MessageCircle className="w-5 h-5 text-teal-400" />
                 <span className="font-medium">@bextraderbot</span>
@@ -475,12 +496,12 @@ export function Settings() {
           </a>
         </div>
 
-        <div className={`${darkMode ? "bg-[#0f1623] border-gray-800/50" : "bg-white border-gray-200"} rounded-2xl p-5 border`}>
+        <div className={`${darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"} rounded-[1.35rem] p-5 border backdrop-blur-md`}>
           <h2 className="text-yellow-400 text-xs font-bold tracking-widest mb-4">{T(lang, TXT.legal)}</h2>
 
           <Link
             to="/app/terms"
-            className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}
+            className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#111a2a]/50" : "bg-gray-50"} rounded-xl mb-3 transition-colors`}
           >
             <div className="flex items-center gap-3">
               <FileText className="w-5 h-5 text-teal-400" />
@@ -491,7 +512,7 @@ export function Settings() {
 
           <Link
             to="/app/privacy"
-            className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#1a2332]/50" : "bg-gray-50"} rounded-xl transition-colors`}
+            className={`w-full flex items-center justify-between p-4 ${darkMode ? "bg-[#111a2a]/50" : "bg-gray-50"} rounded-xl transition-colors`}
           >
             <div className="flex items-center gap-3">
               <Lock className="w-5 h-5 text-teal-400" />
@@ -504,14 +525,14 @@ export function Settings() {
 
       {showTimezoneModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end">
-          <div className={`w-full ${darkMode ? "bg-[#0f1623]" : "bg-white"} rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto`}>
+          <div className={`w-full ${darkMode ? "bg-[#0b1220]" : "bg-white"} rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className={`text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>{T(lang, TXT.selectTimezone)}</h2>
               <button onClick={() => setShowTimezoneModal(false)} className="p-2 rounded-lg"><span className="text-2xl">×</span></button>
             </div>
             <div className="space-y-2">
               {TIMEZONES.map((tz) => (
-                <button key={tz.value} onClick={() => handleTimezoneChange(tz.value)} className={`w-full p-4 ${rtl ? "text-right" : "text-left"} rounded-xl transition-colors ${userTimezone === tz.value ? "bg-teal-500 text-white" : darkMode ? "bg-[#1a2332]/50 hover:bg-[#1a2332] text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-900"}`}>
+                <button key={tz.value} onClick={() => handleTimezoneChange(tz.value)} className={`w-full p-4 ${rtl ? "text-right" : "text-left"} rounded-xl transition-colors ${userTimezone === tz.value ? "bg-teal-500 text-white" : darkMode ? "bg-[#111a2a]/50 hover:bg-[#111a2a] text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-900"}`}>
                   <p className="font-medium">{tz.label}</p>
                   <p className={`text-xs ${userTimezone === tz.value ? "text-white/80" : darkMode ? "text-gray-400" : "text-gray-600"}`}>{tz.offset}</p>
                 </button>
@@ -523,14 +544,14 @@ export function Settings() {
 
       {showCountryModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end">
-          <div className={`w-full ${darkMode ? "bg-[#0f1623]" : "bg-white"} rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto`}>
+          <div className={`w-full ${darkMode ? "bg-[#0b1220]" : "bg-white"} rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className={`text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>{T(lang, TXT.selectCountry)}</h2>
               <button onClick={() => setShowCountryModal(false)} className="p-2 rounded-lg"><span className="text-2xl">×</span></button>
             </div>
             <div className="space-y-2">
               {COUNTRIES.map((country) => (
-                <button key={country.code} onClick={() => handleCountryChange(country.name)} className={`w-full p-4 ${rtl ? "text-right" : "text-left"} rounded-xl transition-colors ${userCountry === country.name ? "bg-teal-500 text-white" : darkMode ? "bg-[#1a2332]/50 hover:bg-[#1a2332] text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-900"}`}>
+                <button key={country.code} onClick={() => handleCountryChange(country.name)} className={`w-full p-4 ${rtl ? "text-right" : "text-left"} rounded-xl transition-colors ${userCountry === country.name ? "bg-teal-500 text-white" : darkMode ? "bg-[#111a2a]/50 hover:bg-[#111a2a] text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-900"}`}>
                   <p className="font-medium">{country.flag} {countryLabel(country, lang)}</p>
                   <p className={`text-xs ${userCountry === country.name ? "text-white/80" : darkMode ? "text-gray-400" : "text-gray-600"}`}>{country.code}</p>
                 </button>
@@ -542,14 +563,14 @@ export function Settings() {
 
       {showLanguageModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end">
-          <div className={`w-full ${darkMode ? "bg-[#0f1623]" : "bg-white"} rounded-t-3xl p-6 max-h-[82vh] overflow-hidden flex flex-col`}>
+          <div className={`w-full ${darkMode ? "bg-[#0b1220]" : "bg-white"} rounded-t-3xl p-6 max-h-[82vh] overflow-hidden flex flex-col`}>
             <div className="flex items-center justify-between mb-6 shrink-0">
               <h2 className={`text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>{T(lang, TXT.selectLanguage)}</h2>
               <button onClick={() => setShowLanguageModal(false)} className="p-2 rounded-lg"><span className="text-2xl">×</span></button>
             </div>
             <div className="space-y-2 overflow-y-auto pr-1 max-h-[58vh] overscroll-contain pb-3">
               {LANGUAGES.map((language) => (
-                <button key={language.code} onClick={() => handleLanguageChange(language.code)} className={`w-full p-4 ${rtl ? "text-right" : "text-left"} rounded-xl transition-colors ${userLanguage === language.code ? "bg-teal-500 text-white" : darkMode ? "bg-[#1a2332]/50 hover:bg-[#1a2332] text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-900"}`}>
+                <button key={language.code} onClick={() => handleLanguageChange(language.code)} className={`w-full p-4 ${rtl ? "text-right" : "text-left"} rounded-xl transition-colors ${userLanguage === language.code ? "bg-teal-500 text-white" : darkMode ? "bg-[#111a2a]/50 hover:bg-[#111a2a] text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-900"}`}>
                   <p className="font-medium">{language.flag} {language.name}</p>
                   <p className={`text-xs ${userLanguage === language.code ? "text-white/80" : darkMode ? "text-gray-400" : "text-gray-600"}`}>{language.englishName} • {language.code.toUpperCase()}</p>
                 </button>

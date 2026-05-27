@@ -26,7 +26,7 @@ type HomeSymbol = typeof HOME_SYMBOLS[number];
 const getHomeCacheKey = (symbol: "XAUUSD" | "XAGUSD") =>
   `bex_home_cache_v2_signal_lock_${symbol}`;
 
-const SIGNAL_TTL_MS = 5 * 60 * 1000;
+const SIGNAL_TTL_MS = 10 * 60 * 1000;
 const HOME_REFRESH_MS = 10 * 60 * 1000;
 const CLOCK_REFRESH_MS = 1 * 1000;
 
@@ -57,6 +57,8 @@ const BEX_ASSET_VERSION = "v=999";
 const BEX_GOLD_BARS_IMAGE = `/assets/bex-gold-bars.png?${BEX_ASSET_VERSION}`;
 const BEX_GOLD_SIGNAL_BARS_IMAGE = `/assets/bex-gold-signal-bars.png?${BEX_ASSET_VERSION}`;
 const BEX_SILVER_BARS_IMAGE = `/assets/bex-silver-bars.png?${BEX_ASSET_VERSION}`;
+const BEX_HERO_CONCEPT_IMAGE = `/assets/bex-first-page-concept.png?${BEX_ASSET_VERSION}`;
+const BEX_ROBOT_ADVISOR_IMAGE = `/assets/bex-robot-advisor.png?${BEX_ASSET_VERSION}`;
 
 function getCommodityImage(symbol: "XAUUSD" | "XAGUSD"): string {
   return symbol === "XAUUSD" ? BEX_GOLD_BARS_IMAGE : BEX_SILVER_BARS_IMAGE;
@@ -202,11 +204,9 @@ function pickPrimaryMt5Item(status: Mt5StatusResponse | null): Mt5ExecutionItem 
 }
 
 function formatMt5Time(value?: number | string | null): string {
-  if (value === null || value === undefined || value === "") return "—";
-  const numeric = Number(value);
-  const ts = Number.isFinite(numeric) && numeric > 0 ? numeric : new Date(String(value)).getTime();
-  if (!Number.isFinite(ts) || ts <= 0) return "—";
-  try { return new Date(ts).toLocaleString(); } catch { return "—"; }
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  try { return new Date(n).toLocaleString(); } catch { return "—"; }
 }
 
 function getTradeNumber(value: unknown): number | null {
@@ -221,10 +221,9 @@ function getTradePriceNumber(value: unknown): number | null {
 
 function getMt5ItemAgeMs(item: Mt5ExecutionItem | null): number | null {
   if (!item) return null;
-  const numeric = Number(item.created_at);
-  const ts = Number.isFinite(numeric) && numeric > 0 ? numeric : new Date(String(item.created_at || "")).getTime();
-  if (!Number.isFinite(ts) || ts <= 0) return null;
-  return Math.max(0, Date.now() - ts);
+  const n = Number(item.created_at);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.max(0, Date.now() - n);
 }
 
 function isRecentMt5Item(item: Mt5ExecutionItem | null, ttlMs = 5 * 60 * 1000): boolean {
@@ -263,24 +262,6 @@ function shouldShowMt5ItemOnHome(item: Mt5ExecutionItem | null): boolean {
   if (isClosedMt5ExecutionItem(item)) return isRecentMt5Item(item, MT5_LAST_CLOSED_VISIBLE_MS);
   if (isCancelledMt5ExecutionItem(item)) return isRecentMt5Item(item, MT5_LAST_CANCELLED_VISIBLE_MS);
   return isRecentMt5Item(item, 5 * 60 * 1000);
-}
-
-function getHomeTradeAgeMs(item: Mt5ExecutionItem | null, fallbackTimestamp?: Date | null): number | null {
-  const itemAge = getMt5ItemAgeMs(item);
-  if (itemAge !== null) return itemAge;
-  if (fallbackTimestamp) return Math.max(0, Date.now() - fallbackTimestamp.getTime());
-  return null;
-}
-
-function getHomeTradeRemainingMs(item: Mt5ExecutionItem | null, fallbackTimestamp?: Date | null): number | null {
-  const ageMs = getHomeTradeAgeMs(item, fallbackTimestamp);
-  if (ageMs === null) return null;
-  return Math.max(0, SIGNAL_TTL_MS - ageMs);
-}
-
-function isHomeTradeExpired(item: Mt5ExecutionItem | null, fallbackTimestamp?: Date | null): boolean {
-  const ageMs = getHomeTradeAgeMs(item, fallbackTimestamp);
-  return ageMs !== null && ageMs > SIGNAL_TTL_MS;
 }
 
 function parseSetupFromSignalId(signalId?: string | null): string | null {
@@ -868,7 +849,7 @@ export function Home() {
       let activeSignalTimestampIso: string | null = null;
 
       // SIGNAL LOCK RULE:
-      // - A valid/executable signal is locked on the Home page for 5 minutes from the moment the app receives it.
+      // - A valid/executable signal is locked on the Home page for 10 minutes from the moment the app receives it.
       // - Empty/WAIT/timeout responses from the backend must NOT clear the visible signal.
       // - A different valid signal can replace the old one and starts a fresh 10 minute lock.
       const incomingSignalIsBetter = isIncomingSignalBetter(incomingSignal, currentSignal);
@@ -1033,13 +1014,6 @@ export function Home() {
 
   const currentPrice = selectedSymbol === "XAUUSD" ? prices?.XAUUSD : prices?.XAGUSD;
 
-
-  const quickStats = [
-    { label: tr(lang, "Active Symbol", "نماد فعال", "الرمز النشط"), value: selectedSymbol },
-    { label: tr(lang, "Active Trades", "معاملات فعال", "الصفقات النشطة"), value: formatNumber(positionsCount, lang) },
-    { label: tr(lang, "Market State", "وضعیت بازار", "حالة السوق"), value: signal?.side ? translateSide(signal.side, lang) : translateMarketPhase(signal?.status || "WAIT", lang) },
-  ];
-
   const signalRemainingMs = signal && signalTimestamp ? Math.max(0, SIGNAL_TTL_MS - (currentTime.getTime() - signalTimestamp.getTime())) : 0;
   const signalExpiresIn = signalRemainingMs > 0 ? formatExpiresIn(signalRemainingMs) : null;
 
@@ -1090,18 +1064,10 @@ export function Home() {
   const getSymbolVisibleSignal = (symbol: HomeSymbol): DashboardSignal | null =>
     selectedSymbol === symbol ? signal : null;
 
-  const getSymbolVisibleSignalTimestamp = (symbol: HomeSymbol): Date | null =>
-    selectedSymbol === symbol ? signalTimestamp : null;
-
   const getSymbolExecutionView = (symbol: HomeSymbol) => {
     const item = getSymbolPrimaryMt5Item(symbol);
-    // Keep the last real trade/report visible on Home instead of clearing the card.
-    // After 5 minutes the same data stays on the card but is marked EXPIRED until a newer trade arrives.
-    const mt5Item = item || null;
+    const mt5Item = shouldShowMt5ItemOnHome(item) ? item : null;
     const fallbackSignal = getSymbolVisibleSignal(symbol);
-    const fallbackSignalTimestamp = getSymbolVisibleSignalTimestamp(symbol);
-    const timerRemainingMs = getHomeTradeRemainingMs(mt5Item, fallbackSignal ? fallbackSignalTimestamp : null);
-    const isExpired = (!!mt5Item || !!fallbackSignal) && isHomeTradeExpired(mt5Item, fallbackSignal ? fallbackSignalTimestamp : null);
     const decimals = getSymbolDecimals(symbol);
     const state = normalizeTradeState(mt5Item?.trade_state || mt5Item?.status);
     const isClosed = isClosedMt5ExecutionItem(mt5Item);
@@ -1113,9 +1079,7 @@ export function Home() {
     const lot = getTradeNumber(mt5Item?.lot);
     const profit = getTradeNumber(mt5Item?.profit);
     const rrValue = fallbackSignal?.rr !== null && fallbackSignal?.rr !== undefined ? fallbackSignal.rr : null;
-    const statusText = isExpired
-      ? tr(lang, "EXPIRED", "منقضی", "منتهية")
-      : mt5Item
+    const statusText = mt5Item
       ? (state === "OPEN"
         ? tr(lang, "POSITION OPENED", "پوزیشن باز", "صفقة مفتوحة")
         : state === "PENDING"
@@ -1129,9 +1093,7 @@ export function Home() {
       ? (fallbackSignal.status ? translateMarketPhase(fallbackSignal.status, lang) : tr(lang, "LIVE", "زنده", "زنده"))
       : tr(lang, "WAITING", "در انتظار", "بانتظار");
 
-    const sourceLabel = isExpired
-      ? tr(lang, "EXPIRED", "منقضی", "منتهية")
-      : mt5Item
+    const sourceLabel = mt5Item
       ? (state === "OPEN"
         ? tr(lang, "MT5 OPEN", "باز MT5", "MT5 مفتوح")
         : state === "PENDING"
@@ -1162,10 +1124,8 @@ export function Home() {
       isCancelled,
       hasTradeData: !!mt5Item || !!fallbackSignal,
       sourceLabel,
-      updatedAt: mt5Item?.created_at || (fallbackSignalTimestamp ? fallbackSignalTimestamp.toISOString() : null),
+      updatedAt: mt5Item?.created_at || null,
       setupLabel: getMt5SetupLabel(mt5Item, fallbackSignal),
-      timerRemainingMs,
-      isExpired,
     };
   };
 
@@ -1193,7 +1153,7 @@ export function Home() {
   };
 
   return (
-    <div className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[radial-gradient(circle_at_top_left,#142033_0%,#05070d_38%,#02040a_100%)] text-white" : "bg-gray-50 text-gray-900"} pb-8`}>
+    <div dir="ltr" className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[radial-gradient(circle_at_top_left,#142033_0%,#05070d_38%,#02040a_100%)] text-white" : "bg-[#f6f4ee] text-gray-950"} pb-8`}>
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
 
       <AppHeader
@@ -1221,7 +1181,7 @@ export function Home() {
       )}
 
       <div className="mx-auto w-full max-w-7xl space-y-4 overflow-hidden px-4 pt-3">
-        <div className={`${darkMode ? "border-white/10 bg-[#0b1220]/95 shadow-[0_0_35px_rgba(234,179,8,0.05)]" : "border-gray-200 bg-white"} rounded-2xl border p-3 shadow-lg`}> 
+        <div className={`${darkMode ? "border-yellow-500/20 bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 shadow-[0_0_35px_rgba(234,179,8,0.05)]" : "border-gray-200 bg-white"} rounded-2xl border p-3 shadow-lg`}> 
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-yellow-400">📅</span>
@@ -1234,7 +1194,7 @@ export function Home() {
           </div>
         </div>
 
-        <div className={`${darkMode ? "border-white/10 bg-[#0b1220]/95" : "border-gray-200 bg-white"} rounded-2xl border p-2 shadow-lg`}> 
+        <div className={`${darkMode ? "border-yellow-500/20 bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95" : "border-gray-200 bg-white"} rounded-2xl border p-2 shadow-lg`}> 
           <div className="flex items-center justify-between gap-3">
             <button
               type="button"
@@ -1248,7 +1208,7 @@ export function Home() {
             <select
               value={lang}
               onChange={(e) => changeHomeLanguage(e.target.value)}
-              className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-xs font-bold outline-none ${darkMode ? "border-white/10 bg-[#111827] text-white" : "border-gray-200 bg-white text-gray-900"}`}
+              className={`min-w-0 flex-1 rounded-2xl border px-3 py-2 text-xs font-bold outline-none ${darkMode ? "border-yellow-500/20 bg-[#111827] text-white" : "border-gray-200 bg-white text-gray-900"}`}
               aria-label={tr(lang, "Select language", "انتخاب زبان", "اختيار اللغة")}
             >
               {LANGUAGE_OPTIONS.map((option) => (
@@ -1264,92 +1224,124 @@ export function Home() {
             const decimals = getSymbolDecimals(symbol);
             const symbolName = getCommodityName(symbol, lang);
             const theme = getCommodityTheme(symbol);
+            const sparkTone = symbol === "XAUUSD" ? "from-yellow-400/30 via-yellow-400/10 to-transparent" : "from-slate-200/25 via-slate-200/10 to-transparent";
             return (
               <div
                 key={symbol}
                 onClick={() => setSelectedSymbol(symbol)}
-                className={`${darkMode ? "border-white/10 bg-[#0b1220]/95 text-gray-200" : "border-gray-200 bg-white text-gray-800"} relative min-h-[90px] cursor-pointer overflow-hidden rounded-2xl border p-3 shadow-lg transition hover:-translate-y-0.5 hover:border-yellow-400/50`}
+                className={`${darkMode ? "border-yellow-500/20 bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 text-gray-200" : "border-gray-200 bg-white text-gray-800"} group relative min-h-[92px] cursor-pointer overflow-hidden rounded-2xl border p-4 shadow-lg transition hover:-translate-y-0.5 hover:border-yellow-400/40`}
               >
-                <span className="pointer-events-none absolute inset-y-0 right-0 w-36 opacity-20">
-                  <img src={getCommodityImage(symbol)} alt="" className="h-full w-full object-cover object-center" />
-                </span>
-                <div className="relative z-10 flex min-h-[64px] items-center justify-between gap-3">
+                <div className={`pointer-events-none absolute inset-y-0 right-0 w-40 bg-gradient-to-l ${sparkTone}`} />
+                <div className="pointer-events-none absolute right-4 top-1/2 hidden h-10 w-28 -translate-y-1/2 opacity-40 md:block">
+                  <svg viewBox="0 0 120 40" className="h-full w-full">
+                    <path d="M2 30 C18 28, 18 18, 34 20 S50 32, 64 16 S88 8, 118 10" fill="none" stroke="currentColor" strokeWidth="2.2" className={symbol === "XAUUSD" ? "text-yellow-400/70" : "text-slate-200/70"} />
+                  </svg>
+                </div>
+                <div className="relative z-10 flex min-h-[60px] items-center justify-between gap-4">
                   <div className="flex min-w-0 items-center gap-3">
-                    <img src={getCommodityImage(symbol)} alt="" className="h-9 w-12 shrink-0 rounded-xl object-cover shadow-md ring-1 ring-white/20" />
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${darkMode ? "border-yellow-500/20 bg-white/5" : "border-gray-200 bg-gray-50"}`}>
+                      <img src={getCommodityImage(symbol)} alt="" className="h-8 w-8 rounded-lg object-cover" />
+                    </div>
                     <div className="min-w-0">
-                      <p className={`text-base font-black ${theme.text}`}>{symbol}</p>
-                      <p className="truncate text-xs text-gray-400">{symbolName} / US Dollar</p>
+                      <p dir="ltr" style={{ unicodeBidi: "isolate" }} className={`text-lg font-black ${theme.text}`}>{symbol}</p>
+                      <p dir={lang === "fa" || lang === "ar" ? "rtl" : "ltr"} className="truncate text-xs text-gray-400">{symbolName} / US Dollar</p>
                     </div>
                   </div>
-                  <div className="w-[120px] shrink-0 text-right sm:w-[138px]">
+                  <div className="shrink-0 text-right">
                     <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Live Price", "قیمت زنده", "السعر المباشر")}</p>
-                    <p className="text-xl font-black tabular-nums sm:text-2xl">{livePrice ? formatNumber(Number(livePrice), lang, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : "—"}</p>
+                    <p dir="ltr" style={{ unicodeBidi: "isolate" }} className="text-2xl font-black tabular-nums">{livePrice ? formatNumber(Number(livePrice), lang, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : "—"}</p>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
-
-        <section className={`${darkMode ? "border-yellow-500/35 bg-gradient-to-br from-[#0d1728] via-[#09111f] to-[#03050b] shadow-[0_0_55px_rgba(234,179,8,0.12)]" : "border-yellow-500/30 bg-white"} relative overflow-hidden rounded-[1.6rem] border p-4 shadow-xl`}>
-          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-yellow-500/15 blur-3xl" />
-          <div className={`pointer-events-none absolute bottom-0 left-0 h-32 w-32 rounded-full ${commodityTheme.glow} blur-3xl`} />
-          <img
-            src={commodityImage}
-            alt=""
-            className="pointer-events-none absolute bottom-0 right-0 h-full w-[52%] max-w-[560px] object-cover object-center opacity-90"
-          />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#050812] via-[#050812]/82 to-[#050812]/18" />
+        <section className={`${darkMode ? "border-yellow-500/35 bg-gradient-to-br from-[#0b1321] via-[#08101b] to-[#04070d] shadow-[0_0_55px_rgba(234,179,8,0.10)]" : "border-yellow-500/30 bg-white"} relative overflow-hidden rounded-[1.6rem] border p-4 shadow-xl sm:p-5`}>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(250,204,21,0.12),transparent_28%),radial-gradient(circle_at_80%_15%,rgba(59,130,246,0.15),transparent_24%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.045)_0%,transparent_22%,transparent_76%,rgba(255,255,255,0.03)_100%)]" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent" />
 
-          <div className="relative flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="rounded-2xl border border-yellow-400/20 bg-black/35 p-1.5 shadow-lg shadow-yellow-500/10">
-                  <img src={commodityImage} alt="" className="h-10 w-14 rounded-xl object-cover ring-1 ring-white/10" />
-                </span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-black tracking-wide sm:text-2xl">{selectedSymbol}</h2>
-                    <span className="text-yellow-400">★</span>
-                  </div>
-                  <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{selectedAssetName}</p>
-                </div>
-              </div>
-
-              <p className="text-[11px] uppercase tracking-[0.22em] text-gray-500">{tr(lang, "Live Price", "قیمت زنده", "السعر المباشر")}</p>
-              <p className="mt-1 text-4xl font-black tracking-tight drop-shadow-[0_0_18px_rgba(250,204,21,0.20)] sm:text-5xl">{formattedCurrentPrice}</p>
-              <p className="mt-1 text-sm font-bold text-green-400">{tr(lang, "Real-time market feed", "داده زنده بازار", "بيانات السوق المباشرة")}</p>
-            </div>
-
-            <div className="hidden w-[168px] shrink-0 rounded-2xl border border-white/10 bg-black/30 p-3 text-right shadow-xl sm:block">
-              <div className="mb-2 flex items-center justify-end gap-2">
-                <span className="text-xs font-black text-gray-400">{oppositeSymbol}</span>
-                <img src={getCommodityImage(oppositeSymbol)} alt="" className="h-8 w-12 rounded-lg object-cover" />
-              </div>
-              <p className="text-2xl font-black tabular-nums">{oppositePrice ? formatNumber(Number(oppositePrice), lang, { minimumFractionDigits: oppositeSymbol === "XAGUSD" ? 3 : 2, maximumFractionDigits: oppositeSymbol === "XAGUSD" ? 3 : 2 }) : "—"}</p>
-              <p className="mt-1 text-xs font-bold text-green-400">{getCommodityName(oppositeSymbol, lang)}</p>
-            </div>
-
-            <div className="shrink-0 text-right">
-              <span className="inline-flex items-center gap-2 rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1 text-sm font-bold text-green-400">
-                <span className="h-2 w-2 rounded-full bg-green-400" /> {tr(lang, "Open", "باز", "مفتوح")}
-              </span>
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-[62%] overflow-hidden sm:w-[56%] lg:w-[54%]">
+            <img src={BEX_HERO_CONCEPT_IMAGE} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.10] sm:opacity-[0.13]" />
+            <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#050812]/35 to-[#050812]/82" />
+            <div className="absolute -right-16 top-10 h-52 w-52 rounded-full bg-yellow-400/10 blur-3xl sm:h-72 sm:w-72" />
+            <div className="absolute bottom-0 right-[-34px] h-[280px] w-[220px] sm:right-0 sm:h-[350px] sm:w-[270px] lg:right-6 lg:h-[96%] lg:w-auto">
+              <img src={BEX_ROBOT_ADVISOR_IMAGE} alt="" className="h-full w-full object-contain object-bottom opacity-95 drop-shadow-[0_26px_50px_rgba(0,0,0,0.75)]" />
             </div>
           </div>
 
-          <div className="relative mt-5 grid grid-cols-3 gap-2 border-t border-white/10 pt-4">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Daily Bias", "بایاس روزانه", "الاتجاه اليومي")}</p>
-              <p className={`mt-1 text-sm font-black ${biasIsBullish ? "text-green-400" : biasIsBearish ? "text-red-400" : "text-yellow-400"}`}>{translateBias(marketContext.bias, lang)}</p>
+          <div className="relative z-10 grid gap-5 lg:grid-cols-[minmax(0,1.08fr)_minmax(280px,0.92fr)] lg:items-end">
+            <div className="max-w-2xl pr-[28%] sm:pr-[22%] lg:pr-0">
+              <div dir={lang === "fa" || lang === "ar" ? "rtl" : "ltr"} className="mb-4 inline-flex items-center gap-2 rounded-full border border-yellow-400/20 bg-black/35 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.20em] text-yellow-300 backdrop-blur-md sm:text-[11px]">
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.8)]" />
+                {tr(lang, "BEX AI DESK", "دسک هوشمند BEX", "مكتب BEX الذكي")}
+              </div>
+
+              <div className="space-y-1.5">
+                <h2 dir={lang === "fa" || lang === "ar" ? "rtl" : "ltr"} className="text-[2.45rem] font-black leading-[0.95] tracking-tight text-white sm:text-5xl xl:text-[3.65rem]">
+                  {tr(lang, "Trade Smarter.", "هوشمندتر معامله کن.", "تداول بذكاء.")}
+                </h2>
+                <h3 dir={lang === "fa" || lang === "ar" ? "rtl" : "ltr"} className="text-[2.25rem] font-black leading-[0.95] tracking-tight text-yellow-400 sm:text-5xl xl:text-[3.65rem]">
+                  {tr(lang, "BEX Is Ready.", "BEX آماده است.", "BEX جاهز.")}
+                </h3>
+              </div>
+
+              <p dir={lang === "fa" || lang === "ar" ? "rtl" : "ltr"} className={`mt-4 max-w-xl text-sm leading-7 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+                {tr(lang, "One premium command center for live context, signal timing, and gold/silver execution.", "یک مرکز فرماندهی حرفه‌ای برای کانتکست زنده، زمان‌بندی سیگنال و اجرای طلا و نقره.", "مركز قيادة احترافي واحد للسياق المباشر وتوقيت الإشارات وتنفيذ الذهب والفضة.")}
+              </p>
+
+              <div className="mt-5 grid max-w-xl gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <div className={`${darkMode ? "border-yellow-500/20 bg-black/30" : "border-gray-200 bg-white/90"} rounded-[1.25rem] border p-3 backdrop-blur-md sm:p-4`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[9px] uppercase tracking-[0.22em] text-gray-500 sm:text-[10px]">{tr(lang, "Selected Market", "بازار انتخاب‌شده", "السوق المحدد")}</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className={`h-2.5 w-2.5 rounded-full ${selectedSymbol === "XAUUSD" ? "bg-yellow-400" : "bg-slate-200"}`} />
+                        <p dir="ltr" style={{ unicodeBidi: "isolate" }} className="text-lg font-black tracking-wide sm:text-xl">{selectedSymbol}</p>
+                      </div>
+                      <p dir={lang === "fa" || lang === "ar" ? "rtl" : "ltr"} className={`mt-1 truncate text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{selectedAssetName}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-[9px] uppercase tracking-[0.20em] text-gray-500 sm:text-[10px]">{tr(lang, "Live Price", "قیمت زنده", "السعر المباشر")}</p>
+                      <p dir="ltr" style={{ unicodeBidi: "isolate" }} className="mt-1 text-3xl font-black tabular-nums sm:text-4xl">{formattedCurrentPrice}</p>
+                      <p className="mt-1 text-[11px] font-bold text-emerald-400 sm:text-xs">{tr(lang, "Real-time feed", "داده زنده", "بيانات مباشرة")}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="inline-flex justify-start sm:justify-end">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.12)]">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" /> {tr(lang, "Open", "باز", "مفتوح")}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Session", "سشن", "الجلسة")}</p>
-              <p className="mt-1 text-sm font-black text-yellow-400">{translateMarketPhase(marketContext.session, lang)}</p>
+
+            <div className="relative hidden min-h-[300px] lg:block">
+              <div className="absolute left-0 top-12 w-48 rounded-3xl border border-yellow-500/20 bg-black/25 p-4 backdrop-blur-md shadow-2xl">
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,0.8)]" />
+                  {tr(lang, "AI Pilot", "خلبان AI", "طيار AI")}
+                </div>
+                <p className="mt-3 text-lg font-black leading-tight text-white">{tr(lang, "Precision. Timing. Structure.", "دقت. زمان‌بندی. ساختار.", "الدقة. التوقيت. البنية.")}</p>
+                <div className="mt-4 h-px bg-white/10" />
+                <p className="mt-4 text-sm leading-6 text-gray-300">{tr(lang, "Premium AI-guided workflow for gold and silver traders.", "گردش‌کار هوشمند و حرفه‌ای برای معامله‌گران طلا و نقره.", "سير عمل ذكي احترافي لمتداولي الذهب والفضة.")}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Volatility", "نوسان", "التذبذب")}</p>
-              <p className="mt-1 text-sm font-black">{translateRisk(marketContext.volatility, lang)}</p>
+          </div>
+
+          <div className="relative z-10 mt-5 grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="rounded-2xl border border-red-500/25 bg-red-500/10 px-3 py-3 backdrop-blur-md sm:rounded-[1.15rem] sm:px-4">
+              <p className="text-[9px] uppercase tracking-[0.16em] text-gray-500 sm:text-[10px] sm:tracking-[0.20em]">{tr(lang, "Bias", "بایاس", "الاتجاه")}</p>
+              <p dir={lang === "fa" || lang === "ar" ? "rtl" : "ltr"} className={`mt-1 truncate text-sm font-black sm:text-xl ${biasIsBullish ? "text-green-400" : biasIsBearish ? "text-red-400" : "text-yellow-400"}`}>{translateBias(marketContext.bias, lang)}</p>
+            </div>
+            <div className="rounded-2xl border border-yellow-500/25 bg-yellow-500/10 px-3 py-3 backdrop-blur-md sm:rounded-[1.15rem] sm:px-4">
+              <p className="text-[9px] uppercase tracking-[0.16em] text-gray-500 sm:text-[10px] sm:tracking-[0.20em]">{tr(lang, "Session", "سشن", "الجلسة")}</p>
+              <p dir={lang === "fa" || lang === "ar" ? "rtl" : "ltr"} className="mt-1 truncate text-sm font-black text-yellow-400 sm:text-xl">{translateMarketPhase(marketContext.session, lang)}</p>
+            </div>
+            <div className="rounded-2xl border border-blue-500/25 bg-blue-500/10 px-3 py-3 backdrop-blur-md sm:rounded-[1.15rem] sm:px-4">
+              <p className="text-[9px] uppercase tracking-[0.16em] text-gray-500 sm:text-[10px] sm:tracking-[0.20em]">{tr(lang, "Volatility", "نوسان", "التذبذب")}</p>
+              <p dir={lang === "fa" || lang === "ar" ? "rtl" : "ltr"} className="mt-1 truncate text-sm font-black text-blue-200 sm:text-xl">{translateRisk(marketContext.volatility, lang)}</p>
             </div>
           </div>
         </section>
@@ -1378,9 +1370,7 @@ export function Home() {
                 ? tr(lang, "Gold / US Dollar", "طلا / دلار آمریکا", "الذهب / الدولار الأمريكي")
                 : tr(lang, "Silver / US Dollar", "نقره / دلار آمریکا", "الفضة / الدولار الأمريكي");
               const cardPrice = prices?.[symbol] ?? null;
-              const sourcePillClass = view.isExpired
-                ? "bg-red-500/15 text-red-300"
-                : view.item
+              const sourcePillClass = view.item
                 ? view.isClosed
                   ? "bg-slate-500/15 text-slate-200"
                   : view.isCancelled
@@ -1389,18 +1379,14 @@ export function Home() {
                 : view.signal
                 ? "bg-blue-500/15 text-blue-300"
                 : "bg-yellow-500/15 text-yellow-400";
-              const statusTextClass = view.isExpired
-                ? "text-red-300"
-                : view.item
+              const statusTextClass = view.item
                 ? view.isClosed
                   ? "text-slate-200"
                   : view.isCancelled
                   ? "text-red-300"
                   : "text-green-400"
                 : "text-yellow-400";
-              const reportBoxClass = view.isExpired
-                ? "border-red-500/20 bg-red-500/10 text-red-100"
-                : view.item
+              const reportBoxClass = view.item
                 ? view.isClosed
                   ? "border-slate-400/20 bg-slate-400/10 text-slate-100"
                   : view.isCancelled
@@ -1409,9 +1395,7 @@ export function Home() {
                 : darkMode
                 ? "border-yellow-500/20 bg-yellow-500/10 text-yellow-100"
                 : "border-yellow-500/30 bg-yellow-50 text-yellow-800";
-              const reportText = view.isExpired
-                ? tr(lang, "This trade window is expired. It stays visible until a newer BEX trade replaces it.", "پنجره این معامله منقضی شده؛ تا وقتی معامله جدید BEX بیاید همین‌جا می‌ماند.", "انتهت نافذة هذه الصفقة وتبقى ظاهرة حتى تستبدلها صفقة BEX أحدث.")
-                : view.item
+              const reportText = view.item
                 ? view.isClosed
                   ? tr(lang, "Last MT5 trade is closed. The result stays visible briefly so Home matches the notification.", "آخرین معامله MT5 بسته شده و نتیجه موقتاً می‌ماند تا Home با نوتیفیکیشن یکی باشد.", "آخر صفقة MT5 مغلقة وتبقى النتيجة ظاهرة مؤقتًا حتى تتطابق الصفحة مع الإشعار.")
                   : view.isCancelled
@@ -1420,11 +1404,11 @@ export function Home() {
                 : tr(lang, "Waiting for the next executable BEX signal. Entry, SL and TP will appear when the setup is ready.", "در انتظار سیگنال اجرایی بعدی BEX. ورود، حد ضرر و حد سود وقتی ستاپ آماده شد نمایش داده می‌شوند.", "بانتظار إشارة BEX التنفيذية التالية. سيظهر الدخول ووقف الخسارة والهدف عند جاهزية الإعداد.");
 
               return (
-                <div key={symbol} className={`${darkMode ? "border-white/10 bg-[#0b1220]/95" : "border-gray-200 bg-white"} relative overflow-hidden rounded-[1.25rem] border shadow-lg`}>
+                <div key={symbol} className={`${darkMode ? "border-yellow-500/20 bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95" : "border-gray-200 bg-white"} relative overflow-hidden rounded-[1.25rem] border shadow-lg`}>
                   <img src={getSignalCommodityImage(symbol)} alt="" className="pointer-events-none absolute right-0 top-0 h-28 w-48 object-cover opacity-[0.22]" />
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/20" />
 
-                  <div className="relative border-b border-white/10 p-3">
+                  <div className="relative border-b border-yellow-500/20 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className={`text-[11px] font-black uppercase tracking-[0.22em] ${theme.text}`}>{symbol}</p>
@@ -1434,11 +1418,6 @@ export function Home() {
                       <div className="flex shrink-0 items-center gap-2">
                         <img src={getCommodityImage(symbol)} alt="" className="hidden h-10 w-16 rounded-xl object-cover shadow-lg ring-1 ring-yellow-400/20 sm:block" />
                         <span className={`rounded-xl px-3 py-1 text-xs font-black ${sourcePillClass}`}>{view.sourceLabel}</span>
-                        {view.hasTradeData && (
-                          <span className={`rounded-xl px-3 py-1 font-mono text-xs font-black ${view.isExpired ? "bg-red-500/15 text-red-300" : "bg-yellow-500/15 text-yellow-300"}`}>
-                            ⏱ {view.isExpired ? tr(lang, "EXPIRED", "منقضی", "منتهية") : formatExpiresIn(view.timerRemainingMs ?? 0)}
-                          </span>
-                        )}
                       </div>
                     </div>
 
@@ -1448,12 +1427,12 @@ export function Home() {
                         <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">{view.setupLabel}</p>
                       </div>
                       <div className="col-span-2 grid grid-cols-2 gap-2">
-                        <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-xl p-2`}>
+                        <div className={`${darkMode ? "bg-[#111a2a]" : "bg-gray-50"} rounded-xl p-2`}>
                           <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Status", "وضعیت", "الحالة")}</p>
                           <p className={`mt-1 text-base font-black ${statusTextClass}`}>{view.statusText}</p>
                           <p className="mt-1 text-[11px] text-gray-400">{view.updatedAt ? `${tr(lang, "Updated", "آپدیت", "تحديث")}: ${formatMt5Time(view.updatedAt)}` : tr(lang, "Waiting for setup", "در انتظار ستاپ", "بانتظار الإعداد")}</p>
                         </div>
-                        <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-xl p-2`}>
+                        <div className={`${darkMode ? "bg-[#111a2a]" : "bg-gray-50"} rounded-xl p-2`}>
                           <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">Lot / P/L</p>
                           <p className="mt-1 text-base font-black">{view.lot !== null ? formatNumber(view.lot, lang, { maximumFractionDigits: 2 }) : "—"}</p>
                           <p className={`mt-1 text-[11px] font-bold ${view.profit !== null && view.profit < 0 ? "text-red-400" : "text-green-400"}`}>{view.profit !== null ? formatNumber(view.profit, lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</p>
@@ -1463,32 +1442,32 @@ export function Home() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-px bg-white/10 sm:grid-cols-4">
-                    <div className={`${darkMode ? "bg-[#0b1220]" : "bg-white"} p-3 text-center`}>
+                    <div className={`${darkMode ? "bg-[#070d18]" : "bg-white"} p-3 text-center`}>
                       <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Entry", "ورود", "الدخول")}</p>
                       <p className="mt-1 text-base font-black text-green-400">{view.entry !== null ? formatNumber(view.entry, lang, { minimumFractionDigits: view.decimals, maximumFractionDigits: view.decimals }) : "—"}</p>
                     </div>
-                    <div className={`${darkMode ? "bg-[#0b1220]" : "bg-white"} p-3 text-center`}>
+                    <div className={`${darkMode ? "bg-[#070d18]" : "bg-white"} p-3 text-center`}>
                       <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Stop Loss", "حد ضرر", "وقف الخسارة")}</p>
                       <p className="mt-1 text-base font-black text-red-400">{view.sl !== null ? formatNumber(view.sl, lang, { minimumFractionDigits: view.decimals, maximumFractionDigits: view.decimals }) : "—"}</p>
                     </div>
-                    <div className={`${darkMode ? "bg-[#0b1220]" : "bg-white"} p-3 text-center`}>
+                    <div className={`${darkMode ? "bg-[#070d18]" : "bg-white"} p-3 text-center`}>
                       <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Take Profit", "حد سود", "جني الربح")}</p>
                       <p className="mt-1 text-base font-black text-green-400">{view.tp !== null ? formatNumber(view.tp, lang, { minimumFractionDigits: view.decimals, maximumFractionDigits: view.decimals }) : "—"}</p>
                     </div>
-                    <div className={`${darkMode ? "bg-[#0b1220]" : "bg-white"} p-3 text-center`}>
+                    <div className={`${darkMode ? "bg-[#070d18]" : "bg-white"} p-3 text-center`}>
                       <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Risk/Reward", "ریسک/ریوارد", "المخاطرة/العائد")}</p>
                       <p className="mt-1 text-base font-black text-teal-400">{view.rrValue !== null && view.rrValue !== undefined ? String(view.rrValue) : "—"}</p>
                     </div>
                   </div>
 
                   <div className="p-3">
-                    <div className={`rounded-xl border px-3 py-2 text-xs ${reportBoxClass}`}>
+                    <div className={`rounded-2xl border px-3 py-2 text-xs ${reportBoxClass}`}>
                       {reportText}
                     </div>
                     <div className="mt-2 flex justify-end">
                       <button
                         onClick={() => copySymbolSignal(symbol)}
-                        className={`rounded-xl border px-4 py-2 ${darkMode ? "border-white/10 bg-[#121b2b]" : "border-gray-200 bg-gray-50"} flex items-center justify-center`}
+                        className={`rounded-2xl border px-4 py-2 ${darkMode ? "border-yellow-500/20 bg-[#111a2a]" : "border-gray-200 bg-gray-50"} flex items-center justify-center`}
                         aria-label={tr(lang, "Copy signal", "کپی سیگنال", "نسخ الإشارة")}
                       >
                         <Copy className="h-5 w-5" />
@@ -1501,8 +1480,28 @@ export function Home() {
           </div>
         </section>
 
+        <div className={`${darkMode ? "border-yellow-500/20 bg-[#070d18]/80" : "border-gray-200 bg-white"} rounded-2xl border px-3 py-3 shadow-lg`}>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="mr-1 text-[10px] font-black uppercase tracking-[0.22em] text-yellow-400">
+              {tr(lang, "Market Pulse", "نبض بازار", "نبض السوق")}
+            </span>
+            <span className={`rounded-full px-3 py-1 font-black ${biasIsBullish ? "bg-green-500/15 text-green-400" : biasIsBearish ? "bg-red-500/15 text-red-400" : "bg-yellow-500/15 text-yellow-400"}`}>
+              {tr(lang, "Bias", "بایاس", "الاتجاه")}: {translateBias(marketContext.bias, lang)}
+            </span>
+            <span className="rounded-full bg-blue-500/10 px-3 py-1 font-black text-blue-300">
+              {tr(lang, "Session", "سشن", "الجلسة")}: {translateMarketPhase(marketContext.session, lang)}
+            </span>
+            <span className="rounded-full bg-purple-500/10 px-3 py-1 font-black text-purple-300">
+              {tr(lang, "Phase", "فاز", "المرحلة")}: {translateMarketPhase(marketContext.marketPhase, lang)}
+            </span>
+            <span className={`rounded-full px-3 py-1 font-black ${marketContext.news === "SAFE" ? "bg-green-500/15 text-green-400" : "bg-yellow-500/15 text-yellow-400"}`}>
+              {tr(lang, "Event Risk", "ریسک رویداد", "مخاطر الأحداث")}: {translateNews(marketContext.news, lang)}
+            </span>
+          </div>
+        </div>
+
         {showMt5Card && (
-          <div className={`${darkMode ? "border-yellow-500/30 bg-gradient-to-br from-[#0b1220] via-[#09111f] to-[#03050b]" : "border-yellow-500/30 bg-white"} relative overflow-hidden rounded-3xl border p-5 shadow-xl`}>
+          <div className={`${darkMode ? "border-yellow-500/30 bg-gradient-to-br from-[#0b1220] via-[#09111f] to-[#03050b]" : "border-yellow-500/30 bg-white"} relative overflow-hidden rounded-[1.6rem] border p-5 backdrop-blur-md shadow-xl`}>
             <img src={BEX_GOLD_BARS_IMAGE} alt="" className="pointer-events-none absolute -right-8 -top-4 h-32 w-56 object-cover opacity-[0.18]" />
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -1515,7 +1514,7 @@ export function Home() {
             </div>
 
             {!hasVipAutoContext() ? (
-              <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-yellow-500/20 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>{tr(lang, "Connect your MT5 account to show auto-trade status here.", "حساب MT5 را وصل کن تا وضعیت معامله خودکار اینجا نمایش داده شود.", "اربط حساب MT5 لعرض حالة التداول الآلي هنا.")}</p>
                 <button type="button" onClick={() => navigate("/app/vip-auto")} className="rounded-2xl bg-yellow-500 px-5 py-3 text-sm font-black text-black">
                   {tr(lang, "Connect MT5 Account", "اتصال حساب MT5", "ربط حساب MT5")}
@@ -1528,20 +1527,20 @@ export function Home() {
             ) : activeMt5Item ? (
               <>
                 <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-xl p-2`}><p className="text-xs text-gray-400">Symbol</p><p className="font-black">{activeMt5Item.symbol || selectedSymbol}</p></div>
-                  <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-xl p-2`}><p className="text-xs text-gray-400">Side</p><p className={`font-black ${String(activeMt5Item.side).toUpperCase() === "SELL" ? "text-red-400" : "text-green-400"}`}>{translateSide(activeMt5Item.side || "WAIT", lang)}</p></div>
-                  <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-xl p-2`}><p className="text-xs text-gray-400">Lot</p><p className="font-black">{activeMt5Lot !== null ? formatNumber(activeMt5Lot, lang, { maximumFractionDigits: 2 }) : "—"}</p></div>
-                  <div className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-xl p-2`}><p className="text-xs text-gray-400">P/L</p><p className={`font-black ${activeMt5Profit !== null && activeMt5Profit < 0 ? "text-red-400" : "text-green-400"}`}>{activeMt5Profit !== null ? formatNumber(activeMt5Profit, lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</p></div>
+                  <div className={`${darkMode ? "bg-[#111a2a]" : "bg-gray-50"} rounded-xl p-2`}><p className="text-xs text-gray-400">Symbol</p><p className="font-black">{activeMt5Item.symbol || selectedSymbol}</p></div>
+                  <div className={`${darkMode ? "bg-[#111a2a]" : "bg-gray-50"} rounded-xl p-2`}><p className="text-xs text-gray-400">Side</p><p className={`font-black ${String(activeMt5Item.side).toUpperCase() === "SELL" ? "text-red-400" : "text-green-400"}`}>{translateSide(activeMt5Item.side || "WAIT", lang)}</p></div>
+                  <div className={`${darkMode ? "bg-[#111a2a]" : "bg-gray-50"} rounded-xl p-2`}><p className="text-xs text-gray-400">Lot</p><p className="font-black">{activeMt5Lot !== null ? formatNumber(activeMt5Lot, lang, { maximumFractionDigits: 2 }) : "—"}</p></div>
+                  <div className={`${darkMode ? "bg-[#111a2a]" : "bg-gray-50"} rounded-xl p-2`}><p className="text-xs text-gray-400">P/L</p><p className={`font-black ${activeMt5Profit !== null && activeMt5Profit < 0 ? "text-red-400" : "text-green-400"}`}>{activeMt5Profit !== null ? formatNumber(activeMt5Profit, lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</p></div>
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
-                  <div className={`${darkMode ? "bg-[#121b2b] border-white/10" : "bg-gray-50 border-gray-200"} rounded-2xl border p-3`}><p className="text-xs text-gray-400">Entry</p><p className="text-lg font-black">{activeMt5Entry !== null ? formatNumber(activeMt5Entry, lang, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals }) : "—"}</p></div>
-                  <div className={`${darkMode ? "bg-[#121b2b] border-red-900/30" : "bg-red-50 border-red-200"} rounded-2xl border p-3`}><p className="text-xs text-red-400">SL</p><p className="text-lg font-black">{activeMt5Sl !== null ? formatNumber(activeMt5Sl, lang, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals }) : "—"}</p></div>
-                  <div className={`${darkMode ? "bg-[#121b2b] border-green-900/30" : "bg-green-50 border-green-200"} rounded-2xl border p-3`}><p className="text-xs text-green-400">TP</p><p className="text-lg font-black">{activeMt5Tp !== null ? formatNumber(activeMt5Tp, lang, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals }) : "—"}</p></div>
+                  <div className={`${darkMode ? "bg-[#111a2a] border-yellow-500/20" : "bg-gray-50 border-gray-200"} rounded-2xl border p-3`}><p className="text-xs text-gray-400">Entry</p><p className="text-lg font-black">{activeMt5Entry !== null ? formatNumber(activeMt5Entry, lang, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals }) : "—"}</p></div>
+                  <div className={`${darkMode ? "bg-[#111a2a] border-red-900/30" : "bg-red-50 border-red-200"} rounded-2xl border p-3`}><p className="text-xs text-red-400">SL</p><p className="text-lg font-black">{activeMt5Sl !== null ? formatNumber(activeMt5Sl, lang, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals }) : "—"}</p></div>
+                  <div className={`${darkMode ? "bg-[#111a2a] border-green-900/30" : "bg-green-50 border-green-200"} rounded-2xl border p-3`}><p className="text-xs text-green-400">TP</p><p className="text-lg font-black">{activeMt5Tp !== null ? formatNumber(activeMt5Tp, lang, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals }) : "—"}</p></div>
                 </div>
                 <p className="mt-3 text-xs text-gray-500">{tr(lang, "Last EA report", "آخرین گزارش EA", "آخر تقرير EA")}: {formatMt5Time(activeMt5Item.created_at)}{activeMt5Item.signal_id ? ` • ${activeMt5Item.signal_id}` : ""}</p>
               </>
             ) : (
-              <div className={`${darkMode ? "bg-[#121b2b] border-white/10" : "bg-gray-50 border-gray-200"} mt-4 rounded-2xl border p-4 text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+              <div className={`${darkMode ? "bg-[#111a2a] border-yellow-500/20" : "bg-gray-50 border-gray-200"} mt-4 rounded-2xl border p-4 text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
                 {mt5StatusLoading ? tr(lang, "Loading MT5 status...", "در حال خواندن وضعیت MT5...", "جاري تحميل حالة MT5...") : tr(lang, "No pending order or open position has been reported yet.", "هنوز سفارش در انتظار یا پوزیشن باز گزارش نشده است.", "لم يتم الإبلاغ عن أمر معلق أو صفقة مفتوحة بعد.")}
               </div>
             )}
@@ -1549,7 +1548,7 @@ export function Home() {
         )}
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className={`${darkMode ? "border-white/10 bg-[#0b1220]/95 shadow-[0_0_35px_rgba(148,163,184,0.06)]" : "border-gray-200 bg-white"} relative overflow-hidden rounded-3xl border p-5`}>
+          <div className={`${darkMode ? "border-yellow-500/20 bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 shadow-[0_0_35px_rgba(148,163,184,0.06)]" : "border-gray-200 bg-white"} relative overflow-hidden rounded-[1.6rem] border p-5 backdrop-blur-md`}>
             <img src={selectedSymbol === "XAUUSD" ? BEX_GOLD_BARS_IMAGE : BEX_SILVER_BARS_IMAGE} alt="" className="pointer-events-none absolute -right-8 bottom-0 h-24 w-40 object-cover opacity-20 mix-blend-screen" />
             <div className="relative mb-3 flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-yellow-400" />
@@ -1559,13 +1558,13 @@ export function Home() {
               <select
                 value={selectedCurrency}
                 onChange={(e) => setSelectedCurrency(e.target.value as CurrencyCode)}
-                className={`min-w-0 flex-1 rounded-2xl border px-3 py-3 text-sm font-bold ${darkMode ? "border-white/10 bg-[#121b2b] text-white" : "border-gray-200 bg-gray-50 text-gray-900"}`}
+                className={`min-w-0 flex-1 rounded-2xl border px-3 py-3 text-sm font-bold ${darkMode ? "border-yellow-500/20 bg-[#111a2a] text-white" : "border-gray-200 bg-[#f6f4ee] text-gray-950"}`}
               >
                 {ALL_CURRENCIES.map((currency) => (
                   <option key={currency} value={currency}>{currency}</option>
                 ))}
               </select>
-              <div className="rounded-2xl border border-white/10 px-3 py-2 text-right">
+              <div className="rounded-2xl border border-yellow-500/20 px-3 py-2 text-right">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">{tr(lang, "Current", "فعلی", "الحالي")}</p>
                 <p className="font-black">{convertPrice(currentPrice || null)}</p>
               </div>
@@ -1576,7 +1575,7 @@ export function Home() {
           <button
             type="button"
             onClick={() => navigate("/app/tools")}
-            className={`relative overflow-hidden rounded-3xl border p-5 text-left transition-all hover:scale-[1.01] ${darkMode ? "border-white/10 bg-[#0b1220]/95 hover:bg-[#111827] shadow-[0_0_35px_rgba(234,179,8,0.06)]" : "border-gray-200 bg-white hover:bg-gray-50"}`}
+            className={`relative overflow-hidden rounded-[1.6rem] border p-5 backdrop-blur-md text-left transition-all hover:scale-[1.01] ${darkMode ? "border-yellow-500/20 bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 hover:bg-[#111827] shadow-[0_0_35px_rgba(234,179,8,0.06)]" : "border-gray-200 bg-white hover:bg-gray-50"}`}
             aria-label={tr(lang, "Open trading tools", "باز کردن ابزارهای معاملاتی", "فتح أدوات التداول")}
           >
             <img src={BEX_GOLD_BARS_IMAGE} alt="" className="pointer-events-none absolute -right-10 bottom-0 h-24 w-44 object-cover opacity-20 mix-blend-screen" />
@@ -1595,18 +1594,7 @@ export function Home() {
           </button>
         </div>
 
-        <div className={`${darkMode ? "border-white/10 bg-[#0b1220]" : "border-gray-200 bg-white"} relative mb-4 overflow-hidden rounded-3xl border p-5`}>
-          <img src={BEX_SILVER_BARS_IMAGE} alt="" className="pointer-events-none absolute right-0 top-0 h-24 w-40 object-cover opacity-20 mix-blend-screen" />
-          <h3 className="relative mb-4 text-xs font-black uppercase tracking-[0.22em] text-yellow-400">⚡ {tr(lang, "QUICK STATS", "آمار سریع", "إحصاءات سريعة")}</h3>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {quickStats.map((stat, index) => (
-              <div key={index} className={`${darkMode ? "bg-[#121b2b]" : "bg-gray-50"} rounded-2xl p-4`}>
-                <p className={`mb-1 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{stat.label}</p>
-                <p className="text-sm font-black">{stat.value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+
       </div>
     </div>
   );

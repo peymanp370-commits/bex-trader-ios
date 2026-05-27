@@ -670,7 +670,7 @@ export function Chart({
 
           <div
             className={cn(
-              "rounded-xl border",
+              "rounded-2xl border",
               isMobile ? "p-0.5" : "p-1.5 lg:p-2",
               darkMode
                 ? "border-[#17304d] bg-[linear-gradient(180deg,#08111f_0%,#0d1a2d_100%)]"

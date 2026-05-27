@@ -1252,13 +1252,13 @@ export function Login() {
   const rtl = isRTL(lang);
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.14),transparent_28%),linear-gradient(180deg,#050812_0%,#08101c_45%,#02040a_100%)] text-white flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-md" dir={rtl ? "rtl" : "ltr"} lang={lang}>
         <div className="mb-4 flex justify-end">
           <select
             value={lang}
             onChange={(e) => handleLanguageChange(e.target.value)}
-            className="max-h-48 rounded-xl border border-gray-700 bg-[#1a2332] px-3 py-2 text-sm text-white outline-none focus:border-yellow-500"
+            className="max-h-48 rounded-2xl border border-gray-700 bg-[#111a2a] px-3 py-2 text-sm text-white outline-none focus:border-yellow-500"
             aria-label={tx(lang, {
               en: "Language",
               fa: "زبان",
@@ -1354,7 +1354,7 @@ export function Login() {
               type="text"
               value={identity}
               onChange={(e) => setIdentity(e.target.value)}
-              className="w-full bg-[#1a2332] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
+              className="w-full bg-[#111a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
               placeholder={tx(lang, {
                 en: "Enter email or username",
                 fa: "ایمیل یا نام کاربری را وارد کنید",
@@ -1395,7 +1395,7 @@ export function Login() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className={`w-full bg-[#1a2332] border border-gray-700 rounded-xl px-4 py-3 ${rtl ? "pl-12" : "pr-12"} text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20`}
+                className={`w-full bg-[#111a2a] border border-gray-700 rounded-xl px-4 py-3 ${rtl ? "pl-12" : "pr-12"} text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20`}
                 placeholder={tx(lang, {
                   en: "Enter your password",
                   fa: "رمز عبور خود را وارد کنید",
@@ -1546,7 +1546,7 @@ export function Login() {
           </p>
 
           {error ? (
-            <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
               {error}
             </div>
           ) : null}

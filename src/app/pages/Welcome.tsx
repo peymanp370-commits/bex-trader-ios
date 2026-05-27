@@ -49,7 +49,7 @@ export function Welcome() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.14),transparent_28%),linear-gradient(180deg,#050812_0%,#08101c_45%,#02040a_100%)] text-white flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-md text-center">
         <div className="mb-6 flex justify-end">
           <div className="w-full max-w-[220px] text-left">
@@ -59,7 +59,7 @@ export function Welcome() {
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value)}
-              className="w-full rounded-xl border border-gray-700 bg-[#0f1623] px-4 py-3 text-sm text-white outline-none"
+              className="w-full rounded-2xl border border-gray-700 bg-[#0b1220]/90 px-4 py-3 text-sm text-white outline-none"
             >
               {LANGUAGE_OPTIONS.map((item) => (
                 <option key={item.value} value={item.value}>{item.label}</option>
@@ -90,7 +90,7 @@ export function Welcome() {
           </button>
         </div>
 
-        <div className="mt-8 space-y-3 text-left bg-[#0f1623] rounded-2xl p-5 border border-gray-800">
+        <div className="mt-8 space-y-3 text-left bg-[#0b1220]/90 rounded-[1.35rem] p-5 border backdrop-blur-md border-yellow-500/20">
           <p className="text-xs text-yellow-400 font-bold tracking-widest mb-3">
             {tr(lang, {
               en: "📬 YOU'LL RECEIVE:",

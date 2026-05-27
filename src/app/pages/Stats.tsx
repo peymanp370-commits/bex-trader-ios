@@ -1354,7 +1354,7 @@ export function Stats() {
   return (
     <div
       className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${
-        darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"
+        darkMode ? "bg-[#050812] text-white" : "bg-[#f6f4ee] text-gray-950"
       } pb-24`}
     >
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
@@ -1368,7 +1368,28 @@ export function Stats() {
         showThemeToggle={true}
       />
 
-      <div className="p-4 space-y-5">
+      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
+        <div className={`${darkMode ? "border-yellow-500/20 bg-gradient-to-br from-[#111a2a]/95 via-[#08101c]/95 to-[#050812]/95 shadow-[0_0_45px_rgba(234,179,8,0.08)]" : "border-yellow-500/20 bg-white/90 shadow-xl"} relative overflow-hidden rounded-[1.65rem] border p-5 backdrop-blur-md`}>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.14),transparent_28%),radial-gradient(circle_at_85%_25%,rgba(59,130,246,0.12),transparent_26%)]" />
+          <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full border border-yellow-400/20 bg-yellow-400/5 blur-sm" />
+          <div className="relative z-10 flex items-center justify-between gap-4">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-400">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.8)]" /> BEX AI DESK
+              </div>
+              <h2 className="text-2xl font-black tracking-tight sm:text-3xl">Performance Intelligence</h2>
+              <p className={`${darkMode ? "text-gray-400" : "text-gray-600"} mt-1 text-sm`}>Clean analytics with premium trading context</p>
+            </div>
+            <div className="hidden rounded-2xl border border-yellow-500/20 bg-black/20 px-4 py-3 text-right sm:block">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-gray-500">BEX MODE</p>
+              <p className="mt-1 text-lg font-black text-yellow-400">LUXURY</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
         <div
           className={`rounded-2xl border p-4 text-sm ${
             darkMode
@@ -1380,8 +1401,8 @@ export function Stats() {
         </div>
         <div
           className={`${
-            darkMode ? "bg-[#0f1623] border-gray-800/50" : "bg-white border-gray-200"
-          } rounded-2xl p-5 border`}
+            darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"
+          } rounded-[1.35rem] p-5 border backdrop-blur-md`}
         >
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
             <h2 className="text-yellow-400 text-xs font-bold tracking-widest">
@@ -1396,7 +1417,7 @@ export function Stats() {
                 }
                 className={`${
                   darkMode
-                    ? "bg-[#1a2332] border-gray-700 text-white"
+                    ? "bg-[#111a2a] border-gray-700 text-white"
                     : "bg-gray-100 border-gray-300 text-gray-900"
                 } border rounded-lg px-3 py-2 text-sm`}
               >
@@ -1410,7 +1431,7 @@ export function Stats() {
                 onChange={(e) => setSelectedScope(e.target.value as "7d" | "30d")}
                 className={`${
                   darkMode
-                    ? "bg-[#1a2332] border-gray-700 text-white"
+                    ? "bg-[#111a2a] border-gray-700 text-white"
                     : "bg-gray-100 border-gray-300 text-gray-900"
                 } border rounded-lg px-3 py-2 text-sm`}
               >
@@ -1426,9 +1447,9 @@ export function Stats() {
                 key={index}
                 className={`${
                   darkMode
-                    ? "bg-[#1a2332]/50 border-gray-800/50"
+                    ? "bg-[#111a2a]/50 border-yellow-500/20"
                     : "bg-gray-50 border-gray-200"
-                } rounded-xl p-4 border`}
+                } rounded-2xl p-4 border`}
               >
                 <p
                   className={`text-xs ${
@@ -1447,8 +1468,8 @@ export function Stats() {
 
         <div
           className={`${
-            darkMode ? "bg-[#0f1623] border-gray-800/50" : "bg-white border-gray-200"
-          } rounded-2xl p-5 border`}
+            darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"
+          } rounded-[1.35rem] p-5 border backdrop-blur-md`}
         >
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-yellow-400 text-xs font-bold tracking-widest">
@@ -1468,9 +1489,9 @@ export function Stats() {
                 key={index}
                 className={`${
                   darkMode
-                    ? "bg-[#1a2332]/50 border-gray-800/50"
+                    ? "bg-[#111a2a]/50 border-yellow-500/20"
                     : "bg-gray-50 border-gray-200"
-                } rounded-xl p-4 border`}
+                } rounded-2xl p-4 border`}
               >
                 <p
                   className={`text-xs ${
@@ -1497,9 +1518,9 @@ export function Stats() {
                   key={`${row.report_date}-${row.symbol}-${index}`}
                   className={`${
                     darkMode
-                      ? "bg-[#1a2332]/50 border-gray-800/50"
+                      ? "bg-[#111a2a]/50 border-yellow-500/20"
                       : "bg-gray-50 border-gray-200"
-                  } rounded-xl p-4 border`}
+                  } rounded-2xl p-4 border`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-bold text-lg">
@@ -1534,8 +1555,8 @@ export function Stats() {
 
         <div
           className={`${
-            darkMode ? "bg-[#0f1623] border-gray-800/50" : "bg-white border-gray-200"
-          } rounded-2xl p-5 border`}
+            darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"
+          } rounded-[1.35rem] p-5 border backdrop-blur-md`}
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-yellow-400 text-xs font-bold tracking-widest">
@@ -1555,9 +1576,9 @@ export function Stats() {
                   key={row.monthKey}
                   className={`${
                     darkMode
-                      ? "bg-[#1a2332]/50 border-gray-800/50"
+                      ? "bg-[#111a2a]/50 border-yellow-500/20"
                       : "bg-gray-50 border-gray-200"
-                  } rounded-xl p-4 border`}
+                  } rounded-2xl p-4 border`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-bold text-lg">{row.label}</h3>
@@ -1584,7 +1605,7 @@ export function Stats() {
         {lastError && (
           <div
             className={`${
-              darkMode ? "bg-[#0f1623]" : "bg-white"
+              darkMode ? "bg-[#0b1220]" : "bg-white"
             } rounded-2xl p-4 text-center border ${
               darkMode ? "border-red-900/30" : "border-red-200"
             }`}
@@ -1595,8 +1616,8 @@ export function Stats() {
 
         <div
           className={`${
-            darkMode ? "bg-[#0f1623] border-gray-800/50" : "bg-white border-gray-200"
-          } rounded-2xl p-5 border`}
+            darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"
+          } rounded-[1.35rem] p-5 border backdrop-blur-md`}
         >
           <h2 className="text-yellow-400 text-xs font-bold tracking-widest mb-4">
             📈 SYMBOL PERFORMANCE
@@ -1613,9 +1634,9 @@ export function Stats() {
                   key={item.symbol}
                   className={`${
                     darkMode
-                      ? "bg-[#1a2332]/50 border-gray-800/50"
+                      ? "bg-[#111a2a]/50 border-yellow-500/20"
                       : "bg-gray-50 border-gray-200"
-                  } rounded-xl p-4 border`}
+                  } rounded-2xl p-4 border`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-bold text-lg">{item.symbol}</h3>

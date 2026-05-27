@@ -42,7 +42,7 @@ const articles: Article[] = [
         <p>BEX Trader is an AI-powered trading assistant built for gold and supported markets.</p>
         <p>It scans the market, studies price action, checks risk, and shows trading signals when conditions are strong enough.</p>
         <p>BEX can also help with automated execution when you connect a supported trading platform.</p>
-        <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
+        <div className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4">
           <p className="font-bold text-yellow-300">Important</p>
           <p className="text-sm text-gray-300">BEX Trader does not guarantee profit. Trading always has risk.</p>
         </div>
@@ -63,7 +63,7 @@ const articles: Article[] = [
           <li><b className="text-white">4.</b> The order includes entry direction, stop loss, take profit, and risk controls.</li>
           <li><b className="text-white">5.</b> If the market is weak or unsafe, BEX may send no trade. That is normal.</li>
         </ol>
-        <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
+        <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4">
           <p className="font-bold text-blue-300">Auto Trade means:</p>
           <p className="text-sm text-gray-300">BEX can execute through a connected platform only when that platform or broker allows automated trading.</p>
         </div>
@@ -78,9 +78,9 @@ const articles: Article[] = [
     body: (
       <div className="space-y-4">
         <p>To use Auto Trade, you need a broker account connected to a platform that supports automated execution.</p>
-        <div className="overflow-hidden rounded-xl border border-gray-800">
+        <div className="overflow-hidden rounded-2xl border border-yellow-500/20">
           {supportedPlatforms.map((platform) => (
-            <div key={platform.short} className="border-b border-gray-800 bg-[#0f1623] p-4 last:border-b-0">
+            <div key={platform.short} className="border-b border-yellow-500/20 bg-[#0b1220] p-4 last:border-b-0">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="font-bold text-white">{platform.name}</p>
@@ -112,7 +112,7 @@ const articles: Article[] = [
           "Enable Auto Trading inside your platform.",
           "Keep your platform running, or use a VPS for 24/7 execution.",
         ].map((step, index) => (
-          <div key={step} className="flex gap-3 rounded-xl border border-gray-800 bg-[#0f1623] p-4">
+          <div key={step} className="flex gap-3 rounded-2xl border border-yellow-500/20 bg-[#0b1220] p-4">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-yellow-500 text-sm font-bold text-black">{index + 1}</span>
             <p className="text-sm text-gray-300">{step}</p>
           </div>
@@ -153,7 +153,7 @@ const articles: Article[] = [
     summary: "The most important safety information every user must read before trading.",
     body: (
       <div className="space-y-3">
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
           <p className="mb-2 font-bold text-red-300">Trading involves risk.</p>
           <p className="text-sm text-gray-300">You can lose money. BEX Trader does not promise guaranteed profit, fixed income, or financial results.</p>
         </div>
@@ -207,10 +207,10 @@ export function HelpCenter() {
   }, [activeCategory, query]);
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white pb-24">
-      <header className="sticky top-0 z-20 border-b border-gray-800 bg-[#0f1623]/95 p-4 backdrop-blur">
+    <div className="min-h-screen bg-[#050812] text-white pb-24">
+      <header className="sticky top-0 z-20 border-b border-yellow-500/20 bg-[#0b1220]/95 p-4 backdrop-blur">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="rounded-xl bg-[#1a2332] p-2 hover:bg-[#223047]" aria-label="Back">
+          <button onClick={() => navigate(-1)} className="rounded-xl bg-[#111a2a] p-2 hover:bg-[#223047]" aria-label="Back">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
@@ -219,8 +219,19 @@ export function HelpCenter() {
           </div>
         </div>
       </header>
+      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
+        <section className="relative overflow-hidden rounded-[1.65rem] border border-yellow-500/20 bg-gradient-to-br from-[#111a2a]/95 via-[#08101c]/95 to-[#050812]/95 p-5 shadow-[0_0_45px_rgba(234,179,8,0.08)]">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.14),transparent_30%),radial-gradient(circle_at_85%_20%,rgba(59,130,246,0.12),transparent_28%)]" />
+          <div className="relative z-10">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-400"><span className="h-2 w-2 rounded-full bg-emerald-400" /> BEX AI DESK</span>
+            <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">BEX Support Hub</h1>
+            <p className="mt-1 text-sm text-gray-400">Guides, setup help and product answers</p>
+          </div>
+        </section>
+      </div>
 
-      <main className="space-y-5 p-4">
+
+      <main className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
         <section className="rounded-2xl border border-yellow-500/20 bg-gradient-to-br from-yellow-500/10 to-transparent p-5">
           <p className="mb-2 text-xs font-bold uppercase tracking-widest text-yellow-400">Start Here</p>
           <h2 className="mb-2 text-2xl font-bold">New to trading or Auto Trade?</h2>
@@ -235,7 +246,7 @@ export function HelpCenter() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search help articles..."
-            className="w-full rounded-2xl border border-gray-800 bg-[#0f1623] py-4 pl-12 pr-4 text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/60"
+            className="w-full rounded-2xl border border-yellow-500/20 bg-[#0b1220] py-4 pl-12 pr-4 text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/60"
           />
         </div>
 
@@ -244,7 +255,7 @@ export function HelpCenter() {
             <button
               key={name}
               onClick={() => setActiveCategory(name)}
-              className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium ${activeCategory === name ? "border-yellow-500 bg-yellow-500 text-black" : "border-gray-800 bg-[#0f1623] text-gray-300"}`}
+              className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium ${activeCategory === name ? "border-yellow-500 bg-yellow-500 text-black" : "border-yellow-500/20 bg-[#0b1220] text-gray-300"}`}
             >
               <Icon className="h-4 w-4" />
               {name}
@@ -256,13 +267,13 @@ export function HelpCenter() {
           {filteredArticles.map((article) => {
             const isOpen = openArticle === article.id;
             return (
-              <article key={article.id} className="overflow-hidden rounded-2xl border border-gray-800 bg-[#0f1623]">
+              <article key={article.id} className="overflow-hidden rounded-2xl border border-yellow-500/20 bg-[#0b1220]">
                 <button onClick={() => setOpenArticle(isOpen ? "" : article.id)} className="w-full p-4 text-left">
                   <p className="mb-1 text-xs font-bold uppercase tracking-widest text-yellow-400">{article.category}</p>
                   <h3 className="text-lg font-bold">{article.title}</h3>
                   <p className="mt-1 text-sm text-gray-400">{article.summary}</p>
                 </button>
-                {isOpen && <div className="border-t border-gray-800 p-4 text-gray-300">{article.body}</div>}
+                {isOpen && <div className="border-t border-yellow-500/20 p-4 text-gray-300">{article.body}</div>}
               </article>
             );
           })}

@@ -114,7 +114,7 @@ export function SettingsDetail() {
                     ? 'bg-teal-500/20 border-2 border-teal-500'
                     : 'bg-teal-100 border-2 border-teal-500'
                   : darkMode
-                  ? 'bg-[#0f1623] border border-gray-800 hover:bg-[#1a2332]'
+                  ? 'bg-[#0b1220] border border-yellow-500/20 hover:bg-[#111a2a]'
                   : 'bg-white border border-gray-200 hover:bg-gray-50'
               }`}
             >
@@ -146,7 +146,7 @@ export function SettingsDetail() {
                     ? 'bg-blue-500/20 border-2 border-blue-500'
                     : 'bg-blue-100 border-2 border-blue-500'
                   : darkMode
-                  ? 'bg-[#0f1623] border border-gray-800 hover:bg-[#1a2332]'
+                  ? 'bg-[#0b1220] border border-yellow-500/20 hover:bg-[#111a2a]'
                   : 'bg-white border border-gray-200 hover:bg-gray-50'
               }`}
             >
@@ -178,7 +178,7 @@ export function SettingsDetail() {
                     ? 'bg-purple-500/20 border-2 border-purple-500'
                     : 'bg-purple-100 border-2 border-purple-500'
                   : darkMode
-                  ? 'bg-[#0f1623] border border-gray-800 hover:bg-[#1a2332]'
+                  ? 'bg-[#0b1220] border border-yellow-500/20 hover:bg-[#111a2a]'
                   : 'bg-white border border-gray-200 hover:bg-gray-50'
               }`}
             >
@@ -206,7 +206,7 @@ export function SettingsDetail() {
             Stay updated with major economic events that impact the market, including interest rates, 
             inflation data, and key announcements.
           </p>
-          <div className="bg-[#1a2332] rounded-xl p-4 border border-gray-800">
+          <div className="bg-[#111a2a] rounded-2xl p-4 border border-yellow-500/20">
             <p className="text-yellow-400 text-sm font-bold mb-2">Coming Soon</p>
             <p className="text-sm text-gray-400">
               Economic calendar integration is currently under development and will be available in the next update.
@@ -224,7 +224,7 @@ export function SettingsDetail() {
             are for informational purposes only and do not guarantee profit. You are fully responsible 
             for your trading decisions.
           </p>
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4">
             <p className="text-red-400 font-bold text-sm mb-2">⚠️ Important Warning</p>
             <p className="text-sm text-gray-300">
               Never invest money you cannot afford to lose. Past performance does not indicate future results.
@@ -240,7 +240,7 @@ export function SettingsDetail() {
           <p className="text-gray-300">
             BEX Trader provides AI-powered trading signals and analysis.
           </p>
-          <div className="bg-[#0f1623] rounded-xl p-4 border border-gray-800 space-y-3">
+          <div className="bg-[#0b1220] rounded-2xl p-4 border border-yellow-500/20 space-y-3">
             <p className="text-yellow-400 font-bold text-sm">To use:</p>
             <ol className="space-y-2 text-sm text-gray-300 list-decimal list-inside">
               <li>Connect your trading account (e.g. MetaTrader 5 or other supported platforms)</li>
@@ -248,7 +248,7 @@ export function SettingsDetail() {
               <li>Follow the provided Entry, Stop Loss, and Take Profit levels</li>
             </ol>
           </div>
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4">
             <p className="text-yellow-400 font-bold text-sm mb-2">📌 Important Note</p>
             <p className="text-sm text-gray-300 mb-2">
               The system does NOT execute trades automatically by itself.
@@ -265,7 +265,7 @@ export function SettingsDetail() {
       content: (
         <div className="space-y-4">
           {/* Basic */}
-          <div className="bg-[#0f1623] rounded-xl p-5 border border-gray-700">
+          <div className="bg-[#0b1220] rounded-xl p-5 border border-gray-700">
             <h3 className="text-lg font-bold mb-3">Basic</h3>
             <ul className="space-y-2 text-sm text-gray-300">
               <li>• Limited signals</li>
@@ -315,15 +315,15 @@ export function SettingsDetail() {
       title: "Contact Us",
       content: (
         <div className="space-y-4">
-          <div className="bg-[#0f1623] rounded-xl p-4 border border-gray-800">
+          <div className="bg-[#0b1220] rounded-2xl p-4 border border-yellow-500/20">
             <p className="text-gray-400 text-sm mb-1">Website</p>
             <p className="text-white font-medium">bextrader.com</p>
           </div>
-          <div className="bg-[#0f1623] rounded-xl p-4 border border-gray-800">
+          <div className="bg-[#0b1220] rounded-2xl p-4 border border-yellow-500/20">
             <p className="text-gray-400 text-sm mb-1">Address</p>
             <p className="text-white font-medium">41 McGurran Lane, Richmond Hill</p>
           </div>
-          <div className="bg-[#0f1623] rounded-xl p-4 border border-gray-800">
+          <div className="bg-[#0b1220] rounded-2xl p-4 border border-yellow-500/20">
             <p className="text-gray-400 text-sm mb-1">Telegram</p>
             <p className="text-white font-medium">@bextrader</p>
           </div>
@@ -337,19 +337,19 @@ export function SettingsDetail() {
           <p className="text-gray-300 mb-4">
             Find answers to common questions about signals, trading setup, and account usage.
           </p>
-          <details className="bg-[#0f1623] rounded-xl p-4 border border-gray-800">
+          <details className="bg-[#0b1220] rounded-2xl p-4 border border-yellow-500/20">
             <summary className="font-bold cursor-pointer">How do I receive signals?</summary>
             <p className="text-sm text-gray-300 mt-2">
               Signals are sent via push notifications and are available in the Signals section of the app.
             </p>
           </details>
-          <details className="bg-[#0f1623] rounded-xl p-4 border border-gray-800">
+          <details className="bg-[#0b1220] rounded-2xl p-4 border border-yellow-500/20">
             <summary className="font-bold cursor-pointer">Can I use this with any broker?</summary>
             <p className="text-sm text-gray-300 mt-2">
               Yes, BEX Trader works with most brokers that support MetaTrader 5 or manual trading.
             </p>
           </details>
-          <details className="bg-[#0f1623] rounded-xl p-4 border border-gray-800">
+          <details className="bg-[#0b1220] rounded-2xl p-4 border border-yellow-500/20">
             <summary className="font-bold cursor-pointer">What's the difference between plans?</summary>
             <p className="text-sm text-gray-300 mt-2">
               Higher plans offer more signals, real-time alerts, and advanced AI analysis. Check the Plans section for details.
@@ -366,7 +366,7 @@ export function SettingsDetail() {
             BEX Trader is an AI-driven trading platform focused on delivering high-quality signals, 
             market insights, and decision support for traders.
           </p>
-          <div className="bg-[#0f1623] rounded-xl p-5 border border-gray-800">
+          <div className="bg-[#0b1220] rounded-xl p-5 border border-yellow-500/20">
             <h3 className="text-yellow-400 font-bold mb-3">Our Mission</h3>
             <p className="text-sm text-gray-300">
               To empower traders with institutional-grade analysis and AI-powered insights, making 
@@ -397,7 +397,7 @@ export function SettingsDetail() {
               Signal updates (entry, TP, SL changes)
             </li>
           </ul>
-          <div className="bg-[#0f1623] rounded-xl p-5 border border-gray-800">
+          <div className="bg-[#0b1220] rounded-xl p-5 border border-yellow-500/20">
             <h3 className="text-yellow-400 font-bold text-sm mb-3">To receive notifications:</h3>
             <ol className="space-y-2 text-sm text-gray-300 list-decimal list-inside">
               <li>Enable notifications in your device settings</li>
@@ -416,7 +416,7 @@ export function SettingsDetail() {
             We respect your privacy. Your data is securely stored and never shared with third parties 
             without your consent.
           </p>
-          <div className="bg-[#0f1623] rounded-xl p-4 border border-gray-800 space-y-3">
+          <div className="bg-[#0b1220] rounded-2xl p-4 border border-yellow-500/20 space-y-3">
             <h3 className="text-yellow-400 font-bold text-sm">Data We Collect:</h3>
             <ul className="space-y-2 text-sm text-gray-300">
               <li>• Account information (email, name)</li>
@@ -424,7 +424,7 @@ export function SettingsDetail() {
               <li>• App usage analytics</li>
             </ul>
           </div>
-          <div className="bg-[#0f1623] rounded-xl p-4 border border-gray-800 space-y-3">
+          <div className="bg-[#0b1220] rounded-2xl p-4 border border-yellow-500/20 space-y-3">
             <h3 className="text-yellow-400 font-bold text-sm">Your Rights:</h3>
             <ul className="space-y-2 text-sm text-gray-300">
               <li>• Request data deletion</li>
@@ -456,7 +456,7 @@ export function SettingsDetail() {
               The platform is a decision-support tool only
             </li>
           </ul>
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4">
             <p className="text-red-400 font-bold text-sm mb-2">⚠️ Disclaimer</p>
             <p className="text-sm text-gray-300">
               BEX Trader is not responsible for any financial losses incurred from using the signals 
@@ -474,17 +474,28 @@ export function SettingsDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white pb-20">
-      <header className="bg-[#0f1623] p-4 border-b border-gray-800">
+    <div className="min-h-screen bg-[#050812] text-white pb-20">
+      <header className="bg-[#0b1220] p-4 border-b border-yellow-500/20">
         <div className="flex items-center gap-4">
           <Link to="/app/settings">
-            <button className="p-2 rounded-lg hover:bg-[#1a2332]">
+            <button className="p-2 rounded-lg hover:bg-[#111a2a]">
               <ArrowLeft className="w-5 h-5" />
             </button>
           </Link>
           <h1 className="font-bold text-xl">{currentContent.title}</h1>
         </div>
       </header>
+      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
+        <section className="relative overflow-hidden rounded-[1.65rem] border border-yellow-500/20 bg-gradient-to-br from-[#111a2a]/95 via-[#08101c]/95 to-[#050812]/95 p-5 shadow-[0_0_45px_rgba(234,179,8,0.08)]">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.14),transparent_30%),radial-gradient(circle_at_85%_20%,rgba(59,130,246,0.12),transparent_28%)]" />
+          <div className="relative z-10">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-400"><span className="h-2 w-2 rounded-full bg-emerald-400" /> BEX AI DESK</span>
+            <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">Preference Detail</h1>
+            <p className="mt-1 text-sm text-gray-400">Fine tune your BEX experience</p>
+          </div>
+        </section>
+      </div>
+
 
       <div className="p-4">{currentContent.content}</div>
     </div>

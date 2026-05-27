@@ -86,12 +86,12 @@ export function DeleteAccount() {
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
             autoCapitalize="characters"
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-red-400"
+            className="mt-2 w-full rounded-2xl border border-yellow-500/20 bg-black/30 px-4 py-3 text-white outline-none focus:border-red-400"
             placeholder="DELETE"
           />
 
           {error && (
-            <div className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+            <div className="mt-4 flex items-center gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
               <XCircle className="h-5 w-5" />
               {error}
             </div>

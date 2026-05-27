@@ -99,7 +99,7 @@ export function Checkout() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-black text-white px-4 py-6">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.14),transparent_28%),linear-gradient(180deg,#050812_0%,#08101c_45%,#02040a_100%)] text-white px-4 py-6">
       <div className="max-w-xl mx-auto">
         <Link to="/app/vip" className="inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white mb-6">
           <ArrowLeft className="w-4 h-4" />
@@ -117,7 +117,7 @@ export function Checkout() {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-black/30 border border-white/10 p-4 mb-5">
+          <div className="rounded-2xl bg-black/30 border border-yellow-500/20 p-4 mb-5">
             <div className="flex justify-between items-center mb-2">
               <span className="text-slate-400">{tf("Selected plan", "پلن انتخاب‌شده")}</span>
               <span className="font-bold">{planName}</span>
@@ -174,7 +174,7 @@ export function Checkout() {
               <Link to="/app/vip-auto" className="w-full rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black font-black py-3 text-center">
                 {tf("Go to VIP Auto Trading", "رفتن به VIP Auto Trading")}
               </Link>
-              <Link to="/app" className="w-full rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold py-3 text-center border border-white/10">
+              <Link to="/app" className="w-full rounded-xl bg-white/5 hover:bg-white/15 text-white font-bold py-3 text-center border border-yellow-500/20">
                 {tf("Go to Dashboard", "رفتن به داشبورد")}
               </Link>
             </div>

@@ -333,7 +333,7 @@ export function Privacy() {
         </section>
 
         {sections.map((section, index) => (
-          <section key={index} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <section key={index} className="rounded-2xl border border-yellow-500/20 bg-white/[0.03] p-5">
             <h2 className="text-xl font-black text-yellow-300">{tr(lang, section.title)}</h2>
             <div className="mt-3 space-y-3 text-sm leading-7 text-gray-300">
               {section.body.map((item, i) => <p key={i}>{tr(lang, item)}</p>)}
@@ -341,7 +341,7 @@ export function Privacy() {
           </section>
         ))}
 
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-gray-300">
+        <section className="rounded-2xl border border-yellow-500/20 bg-white/[0.03] p-5 text-sm text-gray-300">
           <div className="flex items-center gap-2 font-bold text-white"><Mail className="h-4 w-4 text-yellow-400" /> BEX Trader</div>
           <p className="mt-2">support@bextrader.com · https://bextrader.com</p>
         </section>

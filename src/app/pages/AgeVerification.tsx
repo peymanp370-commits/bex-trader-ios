@@ -52,7 +52,7 @@ export function AgeVerification() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white flex flex-col items-center justify-center p-6" dir={isRtl ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-[#050812] text-white flex flex-col items-center justify-center p-6" dir={isRtl ? "rtl" : "ltr"}>
       <div className="w-full max-w-md text-center">
 
         <div className="mb-8">
@@ -101,7 +101,7 @@ export function AgeVerification() {
             className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
               selectedAge === "yes"
                 ? "bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg shadow-yellow-500/30"
-                : "bg-[#1a2332] text-white border-2 border-gray-700 hover:border-yellow-500"
+                : "bg-[#111a2a] text-white border-2 border-gray-700 hover:border-yellow-500"
             }`}
           >
             ✓ {tr(lang, {
@@ -124,7 +124,7 @@ export function AgeVerification() {
             className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
               selectedAge === "no"
                 ? "bg-red-500/20 text-red-400 border-2 border-red-500"
-                : "bg-[#1a2332] text-white border-2 border-gray-700 hover:border-red-500"
+                : "bg-[#111a2a] text-white border-2 border-gray-700 hover:border-red-500"
             }`}
           >
             ✗ {tr(lang, {
@@ -164,7 +164,7 @@ export function AgeVerification() {
           </button>
         )}
 
-        <div className={`mt-8 bg-[#0f1623] rounded-2xl p-5 border border-gray-800 ${isRtl ? "text-right" : "text-left"}`}>
+        <div className={`mt-8 bg-[#0b1220] rounded-[1.35rem] p-5 border backdrop-blur-md border-yellow-500/20 ${isRtl ? "text-right" : "text-left"}`}>
           <p className="text-xs text-yellow-400 font-bold tracking-widest mb-3">
             ⚠️ {tr(lang, {
               en: "IMPORTANT NOTICE",

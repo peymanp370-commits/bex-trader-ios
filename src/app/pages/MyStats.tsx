@@ -111,7 +111,7 @@ function Card({
 }) {
   const color = tone === "good" ? "text-emerald-400" : tone === "bad" ? "text-red-400" : darkMode ? "text-white" : "text-gray-900";
   return (
-    <div className={`${darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200"} rounded-2xl p-5 border shadow-lg`}>
+    <div className={`${darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"} rounded-[1.35rem] p-5 border backdrop-blur-md shadow-lg`}>
       <div className="text-xs uppercase tracking-[0.18em] text-yellow-400 font-bold">{title}</div>
       <div className={`mt-2 text-2xl font-bold ${color}`}>{value}</div>
     </div>
@@ -267,15 +267,15 @@ export function MyStats() {
   const rtl = isRTL(lang);
   const nextRefreshAt = lastUpdated ? lastUpdated + ACCOUNT_CACHE_TTL_MS : null;
 
-  const panelClass = darkMode ? "bg-[#0f1623] border-gray-800" : "bg-white border-gray-200";
-  const softPanelClass = darkMode ? "bg-[#1a2332]/50" : "bg-gray-50";
+  const panelClass = darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200";
+  const softPanelClass = darkMode ? "bg-[#111a2a]/50" : "bg-gray-50";
   const mutedText = darkMode ? "text-gray-400" : "text-gray-500";
   const mainText = darkMode ? "text-white" : "text-gray-900";
   const tableText = darkMode ? "text-gray-200" : "text-gray-700";
 
   return (
     <div
-      className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[#0a0e1a] text-white" : "bg-gray-50 text-gray-900"} pb-24`}
+      className={`min-h-screen w-full max-w-[100vw] overflow-x-hidden ${darkMode ? "bg-[#050812] text-white" : "bg-[#f6f4ee] text-gray-950"} pb-24`}
       {...markRTL(lang)}
     >
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
@@ -294,7 +294,28 @@ export function MyStats() {
         showThemeToggle={true}
       />
 
-      <div className="p-4 space-y-5">
+      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
+        <div className={`${darkMode ? "border-yellow-500/20 bg-gradient-to-br from-[#111a2a]/95 via-[#08101c]/95 to-[#050812]/95 shadow-[0_0_45px_rgba(234,179,8,0.08)]" : "border-yellow-500/20 bg-white/90 shadow-xl"} relative overflow-hidden rounded-[1.65rem] border p-5 backdrop-blur-md`}>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.14),transparent_28%),radial-gradient(circle_at_85%_25%,rgba(59,130,246,0.12),transparent_26%)]" />
+          <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full border border-yellow-400/20 bg-yellow-400/5 blur-sm" />
+          <div className="relative z-10 flex items-center justify-between gap-4">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-400">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.8)]" /> BEX AI DESK
+              </div>
+              <h2 className="text-2xl font-black tracking-tight sm:text-3xl">My Trading Studio</h2>
+              <p className={`${darkMode ? "text-gray-400" : "text-gray-600"} mt-1 text-sm`}>Personal trading performance and account insight</p>
+            </div>
+            <div className="hidden rounded-2xl border border-yellow-500/20 bg-black/20 px-4 py-3 text-right sm:block">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-gray-500">BEX MODE</p>
+              <p className="mt-1 text-lg font-black text-yellow-400">LUXURY</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
         <div className="flex flex-wrap items-center gap-2">
           {(["7D", "30D", "ALL"] as RangeKey[]).map((item) => (
             <button
@@ -311,13 +332,13 @@ export function MyStats() {
           ))}
           <button
             onClick={() => load(true)}
-            className={`${panelClass} ${mutedText} rounded-xl border px-4 py-3 text-sm font-bold transition-all hover:opacity-80`}
+            className={`${panelClass} ${mutedText} rounded-2xl border px-4 py-3 text-sm font-bold transition-all hover:opacity-80`}
           >
             {t("refresh", lang)}
           </button>
         </div>
 
-        <div className={`${panelClass} rounded-2xl p-5 border`}>
+        <div className={`${panelClass} rounded-[1.35rem] p-5 border backdrop-blur-md`}>
           <div className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <span className={mutedText}>{t("account", lang)}: </span>
@@ -358,7 +379,7 @@ export function MyStats() {
             </section>
 
             <section className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr]">
-              <div className={`${panelClass} rounded-2xl p-5 border`}>
+              <div className={`${panelClass} rounded-[1.35rem] p-5 border backdrop-blur-md`}>
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
                     <h2 className={`text-lg font-bold ${mainText}`}>{t("trade_pnl_chart", lang)}</h2>
@@ -385,7 +406,7 @@ export function MyStats() {
                 </div>
               </div>
 
-              <div className={`${panelClass} rounded-2xl p-5 border`}>
+              <div className={`${panelClass} rounded-[1.35rem] p-5 border backdrop-blur-md`}>
                 <h2 className={`mb-4 text-lg font-bold ${mainText}`}>{t("symbol_breakdown", lang)}</h2>
                 <div className="space-y-3">
                   {stats.symbols.length === 0 ? (
@@ -409,7 +430,7 @@ export function MyStats() {
               </div>
             </section>
 
-            <section className={`${panelClass} rounded-2xl p-5 border`}>
+            <section className={`${panelClass} rounded-[1.35rem] p-5 border backdrop-blur-md`}>
               <h2 className={`mb-4 text-lg font-bold ${mainText}`}>{t("latest_trades_title", lang)}</h2>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[620px] text-sm">

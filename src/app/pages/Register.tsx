@@ -346,14 +346,14 @@ export function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white flex flex-col items-center justify-center p-6" dir={rtl ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.14),transparent_28%),linear-gradient(180deg,#050812_0%,#08101c_45%,#02040a_100%)] text-white flex flex-col items-center justify-center p-6" dir={rtl ? "rtl" : "ltr"}>
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <div className="flex justify-end mb-4">
             <select
               value={lang}
               onChange={(e) => changeLanguage(e.target.value as AppLang)}
-              className="max-w-full bg-[#1a2332] border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 max-h-60 overflow-y-auto"
+              className="max-w-full bg-[#111a2a] border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 max-h-60 overflow-y-auto"
             >
               {LANGUAGES.map((item) => (
                 <option key={item.code} value={item.code}>
@@ -410,7 +410,7 @@ export function Register() {
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="w-full bg-[#1a2332] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
+                className="w-full bg-[#111a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
                 placeholder={tr(lang, { en: "First name", fa: "نام", ar: "الاسم الأول", es: "Nombre", "pt-BR": "Nome", hi: "पहला नाम", tr: "Ad", de: "Vorname", fr: "Prénom", zh: "名字", ko: "이름" })}
                 required
               />
@@ -424,7 +424,7 @@ export function Register() {
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="w-full bg-[#1a2332] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
+                className="w-full bg-[#111a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
                 placeholder={tr(lang, { en: "Last name", fa: "نام خانوادگی", ar: "اسم العائلة", es: "Apellido", "pt-BR": "Sobrenome", hi: "अंतिम नाम", tr: "Soyad", de: "Nachname", fr: "Nom", zh: "姓氏", ko: "성" })}
                 required
               />
@@ -439,7 +439,7 @@ export function Register() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#1a2332] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
+              className="w-full bg-[#111a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
               placeholder={tr(lang, { en: "Enter your email", fa: "ایمیل خود را وارد کنید", ar: "أدخل بريدك الإلكتروني", es: "Ingresa tu correo", "pt-BR": "Digite seu e-mail", hi: "अपना ईमेल दर्ज करें", tr: "E-postanızı girin", de: "E-Mail eingeben", fr: "Entrez votre e-mail", zh: "输入您的邮箱", ko: "이메일을 입력하세요" })}
               required
             />
@@ -453,7 +453,7 @@ export function Register() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-[#1a2332] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
+              className="w-full bg-[#111a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
               placeholder={tr(lang, { en: "Choose a username", fa: "یک نام کاربری انتخاب کنید", ar: "اختر اسم مستخدم", es: "Elige un nombre de usuario", "pt-BR": "Escolha um nome de usuário", hi: "उपयोगकर्ता नाम चुनें", tr: "Bir kullanıcı adı seçin", de: "Benutzernamen wählen", fr: "Choisissez un nom d'utilisateur", zh: "选择用户名", ko: "사용자 이름 선택" })}
             />
           </div>
@@ -465,7 +465,7 @@ export function Register() {
             <select
               value={countryIso}
               onChange={(e) => setCountryIso(e.target.value)}
-              className="w-full bg-[#1a2332] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
+              className="w-full bg-[#111a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
             >
               {COUNTRIES.map((item) => (
                 <option key={item.iso2} value={item.iso2}>
@@ -490,7 +490,7 @@ export function Register() {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="flex-1 bg-[#1a2332] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
+                className="flex-1 bg-[#111a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
                 placeholder={tr(lang, { en: "Phone number", fa: "شماره تلفن", ar: "رقم الهاتف", es: "Número de teléfono", "pt-BR": "Número de telefone", hi: "फ़ोन नंबर", tr: "Telefon numarası", de: "Telefonnummer", fr: "Numéro de téléphone", zh: "电话号码", ko: "전화번호" })}
               />
             </div>
@@ -503,7 +503,7 @@ export function Register() {
             <select
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
-              className="w-full bg-[#1a2332] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
+              className="w-full bg-[#111a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
             >
               {timezones.map((tz) => (
                 <option key={tz} value={tz}>
@@ -522,7 +522,7 @@ export function Register() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[#1a2332] border border-gray-700 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
+                className="w-full bg-[#111a2a] border border-gray-700 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
                 placeholder={tr(lang, { en: "Create password", fa: "رمز عبور بسازید", ar: "أنشئ كلمة مرور", es: "Crea una contraseña", "pt-BR": "Crie uma senha", hi: "पासवर्ड बनाएं", tr: "Şifre oluştur", de: "Passwort erstellen", fr: "Créer un mot de passe", zh: "创建密码", ko: "비밀번호 만들기" })}
                 required
               />
@@ -546,7 +546,7 @@ export function Register() {
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-[#1a2332] border border-gray-700 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
+                className="w-full bg-[#111a2a] border border-gray-700 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
                 placeholder={tr(lang, { en: "Confirm password", fa: "رمز عبور را تکرار کنید", ar: "أكد كلمة المرور", es: "Confirma la contraseña", "pt-BR": "Confirme a senha", hi: "पासवर्ड की पुष्टि करें", tr: "Şifreyi onayla", de: "Passwort bestätigen", fr: "Confirmer le mot de passe", zh: "确认密码", ko: "비밀번호 확인" })}
                 required
               />
@@ -586,7 +586,7 @@ export function Register() {
           </p>
 
           {error ? (
-            <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
               {error}
             </div>
           ) : null}

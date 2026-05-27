@@ -252,12 +252,12 @@ export function Results() {
   const groupedTrades = groupTradesByDay();
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-[#0a0e1a] text-white' : 'bg-gray-50 text-gray-900'} pb-24`}>
+    <div className={`min-h-screen ${darkMode ? 'bg-[#050812] text-white' : 'bg-[#f6f4ee] text-gray-950'} pb-24`}>
       <SideMenu isOpen={showMenu} onClose={() => setShowMenu(false)} />
 
-      <header className={`${darkMode ? 'bg-[#0f1623] border-gray-800' : 'bg-white border-gray-200'} p-4 border-b`}>
+      <header className={`${darkMode ? 'bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]' : 'bg-white border-gray-200'} p-4 border-b`}>
         <div className="flex items-center justify-between">
-          <button onClick={() => setShowMenu(true)} className={`p-2 rounded-lg ${darkMode ? 'hover:bg-[#1a2332]' : 'hover:bg-gray-100'}`}>
+          <button onClick={() => setShowMenu(true)} className={`p-2 rounded-lg ${darkMode ? 'hover:bg-[#111a2a]' : 'hover:bg-gray-100'}`}>
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-3">
@@ -278,20 +278,31 @@ export function Results() {
               {localStorage.getItem('userPlan') || 'PRO'}
             </div>
             <Link to="/app/settings">
-              <button className={`p-2 rounded-lg ${darkMode ? 'hover:bg-[#1a2332]' : 'hover:bg-gray-100'}`}>
+              <button className={`p-2 rounded-lg ${darkMode ? 'hover:bg-[#111a2a]' : 'hover:bg-gray-100'}`}>
                 <Settings className="w-5 h-5" />
               </button>
             </Link>
           </div>
         </div>
       </header>
+      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
+        <section className="relative overflow-hidden rounded-[1.65rem] border border-yellow-500/20 bg-gradient-to-br from-[#111a2a]/95 via-[#08101c]/95 to-[#050812]/95 p-5 shadow-[0_0_45px_rgba(234,179,8,0.08)]">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.14),transparent_30%),radial-gradient(circle_at_85%_20%,rgba(59,130,246,0.12),transparent_28%)]" />
+          <div className="relative z-10">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-400"><span className="h-2 w-2 rounded-full bg-emerald-400" /> BEX AI DESK</span>
+            <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">BEX Results</h1>
+            <p className="mt-1 text-sm text-gray-400">Outcome tracking with a luxury trading dashboard</p>
+          </div>
+        </section>
+      </div>
 
-      <div className="p-4 space-y-5">
+
+      <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
         {/* Live Positions */}
         <LivePositions darkMode={darkMode} />
 
         {/* Summary Stats */}
-        <div className={`${darkMode ? 'bg-gradient-to-br from-[#0f1623] to-[#0a0e1a] border-yellow-500/20' : 'bg-white border-yellow-500/30'} rounded-2xl p-5 border`}>
+        <div className={`${darkMode ? 'bg-gradient-to-br from-[#0f1623] to-[#0a0e1a] border-yellow-500/20' : 'bg-white border-yellow-500/30'} rounded-[1.35rem] p-5 border backdrop-blur-md`}>
           <h2 className="text-yellow-400 text-xs font-bold tracking-widest mb-4">📊 SUMMARY</h2>
           {initialLoad || !stats ? (
             <div className="text-center py-8">
@@ -299,25 +310,25 @@ export function Results() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              <div className={`${darkMode ? 'bg-[#1a2332]/50 border-gray-800/50' : 'bg-gray-50 border-gray-200'} rounded-xl p-4 border`}>
+              <div className={`${darkMode ? 'bg-[#111a2a]/50 border-yellow-500/20' : 'bg-gray-50 border-gray-200'} rounded-2xl p-4 border`}>
                 <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>Total Trades</p>
                 <p className="text-2xl font-bold">{stats.total_trades || 0}</p>
               </div>
-              <div className={`${darkMode ? 'bg-[#1a2332]/50 border-gray-800/50' : 'bg-gray-50 border-gray-200'} rounded-xl p-4 border`}>
+              <div className={`${darkMode ? 'bg-[#111a2a]/50 border-yellow-500/20' : 'bg-gray-50 border-gray-200'} rounded-2xl p-4 border`}>
                 <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>Wins</p>
                 <p className="text-2xl font-bold text-green-400">{stats.wins || 0}</p>
               </div>
-              <div className={`${darkMode ? 'bg-[#1a2332]/50 border-gray-800/50' : 'bg-gray-50 border-gray-200'} rounded-xl p-4 border`}>
+              <div className={`${darkMode ? 'bg-[#111a2a]/50 border-yellow-500/20' : 'bg-gray-50 border-gray-200'} rounded-2xl p-4 border`}>
                 <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>Losses</p>
                 <p className="text-2xl font-bold text-red-400">{stats.losses || 0}</p>
               </div>
-              <div className={`${darkMode ? 'bg-[#1a2332]/50 border-gray-800/50' : 'bg-gray-50 border-gray-200'} rounded-xl p-4 border`}>
+              <div className={`${darkMode ? 'bg-[#111a2a]/50 border-yellow-500/20' : 'bg-gray-50 border-gray-200'} rounded-2xl p-4 border`}>
                 <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>Avg PnL</p>
                 <p className={`text-2xl font-bold ${(stats.average_pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {(stats.average_pnl || 0).toFixed(2)}
                 </p>
               </div>
-              <div className={`${darkMode ? 'bg-[#1a2332]/50 border-gray-800/50' : 'bg-gray-50 border-gray-200'} rounded-xl p-4 border col-span-2`}>
+              <div className={`${darkMode ? 'bg-[#111a2a]/50 border-yellow-500/20' : 'bg-gray-50 border-gray-200'} rounded-2xl p-4 border col-span-2`}>
                 <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>Total PnL</p>
                 <p className={`text-3xl font-bold ${(stats.total_pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {(stats.total_pnl || 0) >= 0 ? '+' : ''}{(stats.total_pnl || 0).toFixed(2)} USD
@@ -339,7 +350,7 @@ export function Results() {
                 return (
                   <div
                     key={session.session}
-                    className={`${darkMode ? 'bg-[#0f1623] border-gray-800' : 'bg-white border-gray-200'} rounded-2xl p-4 border`}
+                    className={`${darkMode ? 'bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]' : 'bg-white border-gray-200'} rounded-2xl p-4 border`}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
@@ -359,19 +370,19 @@ export function Results() {
                     </div>
 
                     <div className="grid grid-cols-4 gap-2">
-                      <div className={`${darkMode ? 'bg-[#1a2332]/50 border-gray-800/50' : 'bg-gray-50 border-gray-200'} rounded-lg p-2 border text-center`}>
+                      <div className={`${darkMode ? 'bg-[#111a2a]/50 border-yellow-500/20' : 'bg-gray-50 border-gray-200'} rounded-lg p-2 border text-center`}>
                         <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>BUY</p>
                         <p className="text-sm font-bold">{session.buyCount}</p>
                       </div>
-                      <div className={`${darkMode ? 'bg-[#1a2332]/50 border-gray-800/50' : 'bg-gray-50 border-gray-200'} rounded-lg p-2 border text-center`}>
+                      <div className={`${darkMode ? 'bg-[#111a2a]/50 border-yellow-500/20' : 'bg-gray-50 border-gray-200'} rounded-lg p-2 border text-center`}>
                         <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>SELL</p>
                         <p className="text-sm font-bold">{session.sellCount}</p>
                       </div>
-                      <div className={`${darkMode ? 'bg-[#1a2332]/50 border-gray-800/50' : 'bg-gray-50 border-gray-200'} rounded-lg p-2 border text-center`}>
+                      <div className={`${darkMode ? 'bg-[#111a2a]/50 border-yellow-500/20' : 'bg-gray-50 border-gray-200'} rounded-lg p-2 border text-center`}>
                         <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>WINS</p>
                         <p className="text-sm font-bold text-green-400">{session.wins}</p>
                       </div>
-                      <div className={`${darkMode ? 'bg-[#1a2332]/50 border-gray-800/50' : 'bg-gray-50 border-gray-200'} rounded-lg p-2 border text-center`}>
+                      <div className={`${darkMode ? 'bg-[#111a2a]/50 border-yellow-500/20' : 'bg-gray-50 border-gray-200'} rounded-lg p-2 border text-center`}>
                         <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>LOSS</p>
                         <p className="text-sm font-bold text-red-400">{session.losses}</p>
                       </div>
@@ -402,7 +413,7 @@ export function Results() {
               {last7Days.map((day, index) => (
                 <div
                   key={day.date}
-                  className={`${darkMode ? 'bg-[#0f1623] border-gray-800' : 'bg-white border-gray-200'} rounded-xl p-3 border`}
+                  className={`${darkMode ? 'bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]' : 'bg-white border-gray-200'} rounded-xl p-3 border`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
@@ -417,19 +428,19 @@ export function Results() {
                     </p>
                   </div>
                   <div className="grid grid-cols-4 gap-1.5">
-                    <div className={`${darkMode ? 'bg-[#1a2332]/30' : 'bg-gray-50'} rounded px-2 py-1 text-center`}>
+                    <div className={`${darkMode ? 'bg-[#111a2a]/30' : 'bg-gray-50'} rounded px-2 py-1 text-center`}>
                       <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>BUY</p>
                       <p className="text-xs font-bold">{day.buyCount}</p>
                     </div>
-                    <div className={`${darkMode ? 'bg-[#1a2332]/30' : 'bg-gray-50'} rounded px-2 py-1 text-center`}>
+                    <div className={`${darkMode ? 'bg-[#111a2a]/30' : 'bg-gray-50'} rounded px-2 py-1 text-center`}>
                       <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>SELL</p>
                       <p className="text-xs font-bold">{day.sellCount}</p>
                     </div>
-                    <div className={`${darkMode ? 'bg-[#1a2332]/30' : 'bg-gray-50'} rounded px-2 py-1 text-center`}>
+                    <div className={`${darkMode ? 'bg-[#111a2a]/30' : 'bg-gray-50'} rounded px-2 py-1 text-center`}>
                       <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>W</p>
                       <p className="text-xs font-bold text-green-400">{day.wins}</p>
                     </div>
-                    <div className={`${darkMode ? 'bg-[#1a2332]/30' : 'bg-gray-50'} rounded px-2 py-1 text-center`}>
+                    <div className={`${darkMode ? 'bg-[#111a2a]/30' : 'bg-gray-50'} rounded px-2 py-1 text-center`}>
                       <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>L</p>
                       <p className="text-xs font-bold text-red-400">{day.losses}</p>
                     </div>
@@ -444,11 +455,11 @@ export function Results() {
         <div>
           <h3 className="text-yellow-400 text-xs font-bold tracking-widest mb-3">📋 LAST 7 CLOSED TRADES</h3>
           {initialLoad ? (
-            <div className={`${darkMode ? 'bg-[#0f1623]' : 'bg-white'} rounded-2xl p-8 text-center`}>
+            <div className={`${darkMode ? 'bg-[#0b1220]' : 'bg-white'} rounded-2xl p-8 text-center`}>
               <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading trades...</p>
             </div>
           ) : trades.length === 0 ? (
-            <div className={`${darkMode ? 'bg-[#0f1623]' : 'bg-white'} rounded-2xl p-8 text-center border ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+            <div className={`${darkMode ? 'bg-[#0b1220]' : 'bg-white'} rounded-2xl p-8 text-center border ${darkMode ? 'border-yellow-500/20' : 'border-gray-200'}`}>
               <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>No recent results</p>
             </div>
           ) : (
@@ -460,7 +471,7 @@ export function Results() {
                 return (
                   <div
                     key={dateKey}
-                    className={`${darkMode ? 'bg-[#0f1623]' : 'bg-white'} rounded-2xl p-4 border ${
+                    className={`${darkMode ? 'bg-[#0b1220]' : 'bg-white'} rounded-2xl p-4 border ${
                       daySummary.totalPnL > 0
                         ? darkMode ? "border-green-500/30" : "border-green-300"
                         : daySummary.totalPnL < 0
@@ -509,15 +520,15 @@ export function Results() {
                     </div>
 
                     <div className="grid grid-cols-3 gap-2">
-                      <div className={`${darkMode ? 'bg-[#1a2332]/50 border-gray-800/50' : 'bg-gray-50 border-gray-200'} rounded-lg p-2 border`}>
+                      <div className={`${darkMode ? 'bg-[#111a2a]/50 border-yellow-500/20' : 'bg-gray-50 border-gray-200'} rounded-lg p-2 border`}>
                         <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Wins</p>
                         <p className="text-sm font-bold">{daySummary.wins}</p>
                       </div>
-                      <div className={`${darkMode ? 'bg-[#1a2332]/50 border-gray-800/50' : 'bg-gray-50 border-gray-200'} rounded-lg p-2 border`}>
+                      <div className={`${darkMode ? 'bg-[#111a2a]/50 border-yellow-500/20' : 'bg-gray-50 border-gray-200'} rounded-lg p-2 border`}>
                         <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Losses</p>
                         <p className="text-sm font-bold">{daySummary.losses}</p>
                       </div>
-                      <div className={`${darkMode ? 'bg-[#1a2332]/50 border-gray-800/50' : 'bg-gray-50 border-gray-200'} rounded-lg p-2 border`}>
+                      <div className={`${darkMode ? 'bg-[#111a2a]/50 border-yellow-500/20' : 'bg-gray-50 border-gray-200'} rounded-lg p-2 border`}>
                         <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Trades</p>
                         <p className="text-sm font-bold">{daySummary.totalTrades}</p>
                       </div>

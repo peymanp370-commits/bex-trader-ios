@@ -163,13 +163,13 @@ export function VIPAutoTrading() {
   const mt5Profit = asNumber(mt5Item?.profit);
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white pb-24">
+    <div className="min-h-screen bg-[#050812] text-white pb-24">
       <SideMenu open={showMenu} onClose={() => setShowMenu(false)} />
-      <header className="bg-[#0f1623] border-b border-gray-800 p-4">
+      <header className="bg-[#0b1220] border-b border-yellow-500/20 p-4">
         <div className="flex items-center justify-between">
-          <button onClick={() => setShowMenu(true)} className="p-2 rounded-lg hover:bg-[#1a2332]"><Menu className="w-5 h-5" /></button>
+          <button onClick={() => setShowMenu(true)} className="p-2 rounded-lg hover:bg-[#111a2a]"><Menu className="w-5 h-5" /></button>
           <h1 className="font-bold text-xl">VIP Auto Trading</h1>
-          <Link to="/app/settings"><button className="p-2 rounded-lg hover:bg-[#1a2332]"><Settings className="w-5 h-5" /></button></Link>
+          <Link to="/app/settings"><button className="p-2 rounded-lg hover:bg-[#111a2a]"><Settings className="w-5 h-5" /></button></Link>
         </div>
       </header>
 
@@ -187,7 +187,7 @@ export function VIPAutoTrading() {
         {loading ? <div className="text-gray-400 p-6">Loading...</div> : null}
 
         {!loading && !activeVip ? (
-          <section className="rounded-2xl border border-gray-800 bg-[#0f1623] p-5 space-y-3">
+          <section className="rounded-2xl border border-yellow-500/20 bg-[#0b1220] p-5 space-y-3">
             <h2 className="font-bold text-xl">VIP required</h2>
             <p className="text-gray-300">Your current plan is <b>{user?.plan || "free"}</b>. Upgrade to VIP Auto to receive a token and connect MetaTrader 5.</p>
             <Link to="/app/vip" className="inline-flex rounded-xl bg-yellow-500 px-4 py-3 font-bold text-black">Upgrade to VIP</Link>
@@ -196,13 +196,13 @@ export function VIPAutoTrading() {
 
         {!loading && activeVip ? (
           <>
-            <section className="rounded-2xl border border-gray-800 bg-[#0f1623] p-5 space-y-4">
+            <section className="rounded-2xl border border-yellow-500/20 bg-[#0b1220] p-5 space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="font-bold text-lg">My VIP License</h2>
                   <p className="text-xs text-gray-400">Email: {user?.email || "—"}</p>
                 </div>
-                <button onClick={load} className="rounded-xl border border-gray-700 p-2 hover:bg-white/5"><RefreshCw className="w-4 h-4" /></button>
+                <button onClick={load} className="rounded-2xl border border-gray-700 p-2 hover:bg-white/5"><RefreshCw className="w-4 h-4" /></button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -224,16 +224,16 @@ export function VIPAutoTrading() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-gray-800 bg-[#0f1623] p-5 space-y-4">
+            <section className="rounded-2xl border border-yellow-500/20 bg-[#0b1220] p-5 space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="font-bold text-lg">Live EA / MT5 Status</h2>
                   <p className="text-xs text-gray-400">Shows pending orders, open positions and execution reports from MT5.</p>
                 </div>
-                <button onClick={() => loadMt5Status(data)} className="rounded-xl border border-gray-700 p-2 hover:bg-white/5" disabled={mt5StatusLoading}><RefreshCw className={`w-4 h-4 ${mt5StatusLoading ? "animate-spin" : ""}`} /></button>
+                <button onClick={() => loadMt5Status(data)} className="rounded-2xl border border-gray-700 p-2 hover:bg-white/5" disabled={mt5StatusLoading}><RefreshCw className={`w-4 h-4 ${mt5StatusLoading ? "animate-spin" : ""}`} /></button>
               </div>
 
-              {mt5StatusError ? <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{mt5StatusError}</div> : null}
+              {mt5StatusError ? <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{mt5StatusError}</div> : null}
 
               {mt5Item ? (
                 <div className="space-y-3">
@@ -263,7 +263,7 @@ export function VIPAutoTrading() {
               )}
             </section>
 
-            <section className="rounded-2xl border border-gray-800 bg-[#0f1623] p-5 space-y-4">
+            <section className="rounded-2xl border border-yellow-500/20 bg-[#0b1220] p-5 space-y-4">
               <div className="flex items-center gap-2"><KeyRound className="w-5 h-5 text-yellow-400" /><h2 className="font-bold text-lg">Link MT5 Account</h2></div>
               <label className="block text-sm text-gray-300">MT5 account login</label>
               <input value={loginId} onChange={(e) => setLoginId(e.target.value)} placeholder="5049959887" className="w-full rounded-xl bg-[#0a0e1a] border border-gray-700 px-4 py-3 text-white" />
