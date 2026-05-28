@@ -4,6 +4,7 @@ import logoImage from "../../assets/bex-brand-logo.png";
 import { LANGUAGE_OPTIONS, tr } from "../utils/i18n";
 import { useLangState } from "../store/useLang";
 import { enableBexPushNotifications, registerBexServiceWorker } from "../utils/push";
+import { enableBexNativePushNotifications } from "../utils/nativePush";
 import { getCurrentUser } from "../utils/api";
 
 async function hasActiveBexSession() {
@@ -31,14 +32,24 @@ export function Welcome() {
   const handleAllowNotifications = async () => {
     setNotificationStatus(tr(lang, "Activating notifications...", "در حال فعال‌سازی اعلان‌ها...", "جارٍ تفعيل الإشعارات..."));
     try {
-      await registerBexServiceWorker();
-      const result = await enableBexPushNotifications();
+      const nativeResult = await enableBexNativePushNotifications();
 
-      if (result.ok) {
+      if (nativeResult.ok) {
         setNotificationStatus(tr(lang, "Notifications activated successfully", "اعلان‌ها با موفقیت فعال شد", "تم تفعيل الإشعارات بنجاح"));
+        console.log("BEX native push result:", nativeResult);
+      } else if (nativeResult.reason === "not_native_platform") {
+        await registerBexServiceWorker();
+        const result = await enableBexPushNotifications();
+
+        if (result.ok) {
+          setNotificationStatus(tr(lang, "Notifications activated successfully", "اعلان‌ها با موفقیت فعال شد", "تم تفعيل الإشعارات بنجاح"));
+        } else {
+          setNotificationStatus(tr(lang, "Notification setup failed. Check browser permission.", "فعال‌سازی اعلان ناموفق بود. اجازه مرورگر را چک کن.", "فشل تفعيل الإشعارات. تحقق من إذن المتصفح."));
+          console.warn("BEX web push enable failed:", result.reason);
+        }
       } else {
-        setNotificationStatus(tr(lang, "Notification setup failed. Check browser permission.", "فعال‌سازی اعلان ناموفق بود. اجازه مرورگر را چک کن.", "فشل تفعيل الإشعارات. تحقق من إذن المتصفح."));
-        console.warn("BEX push enable failed:", result.reason);
+        setNotificationStatus(tr(lang, "Notification setup failed. Check app permission.", "فعال‌سازی اعلان ناموفق بود. اجازه اپ را چک کن.", "فشل تفعيل الإشعارات. تحقق من إذن التطبيق."));
+        console.warn("BEX native push enable failed:", nativeResult.reason);
       }
     } catch (error) {
       console.error("Notification permission request failed:", error);
