@@ -5,6 +5,7 @@ import { SideMenu } from "../components/SideMenu";
 import { PlanBadge } from "../components/PlanBadge";
 import { AppHeader } from "../components/AppHeader";
 import { applyDocumentLanguage, formatDate, formatDateTime, formatNumber, getLanguage, LANGUAGE_OPTIONS, setLanguage, tr, translateBias, translateMarketPhase, translateNews, translateRisk, translateSide, type SupportedLanguage } from "../utils/i18n";
+import { enableBexNativePushNotifications } from "../utils/nativePush";
 import {
   fetchDashboard,
   DashboardPrices,
@@ -726,6 +727,32 @@ export function Home() {
 
   const userTimezone =
     localStorage.getItem("userTimezone") || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const registerNativePush = async () => {
+      try {
+        const result = await enableBexNativePushNotifications();
+        if (cancelled) return;
+        if (result?.ok) setMobilePushHint(null);
+      } catch (error) {
+        console.warn("BEX native push registration failed:", error);
+      }
+    };
+
+    registerNativePush();
+
+    const onFocus = () => registerNativePush();
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("bexPushPreferenceChanged", onFocus as EventListener);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("bexPushPreferenceChanged", onFocus as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
