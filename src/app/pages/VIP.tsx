@@ -52,13 +52,18 @@ export function VIP() {
     return "pro";
   };
 
+  const GOOGLE_PLAY_PRODUCT_IDS: Record<string, Record<"monthly" | "yearly", string>> = {
+    basic: { monthly: "basic_monthly", yearly: "basic_yearly" },
+    pro: { monthly: "pro_monthly", yearly: "pro_yearly_v2" },
+    vip: { monthly: "vip_monthly", yearly: "vip_yearly" },
+    lifetime: { monthly: "vip_lifetime", yearly: "vip_lifetime" },
+  };
+
   const googlePlayProductId = (planId: string, cycle: "monthly" | "yearly") => {
     // These IDs must match Google Play Console exactly.
-    if (planId === "basic") return cycle === "yearly" ? "basic_yearly" : "basic_monthly";
-    if (planId === "pro") return cycle === "yearly" ? "pro_yearly_v2" : "pro_monthly";
-    if (planId === "vip") return cycle === "yearly" ? "vip_yearly" : "vip_monthly";
-    if (planId === "lifetime") return "vip_lifetime";
-    return "";
+    // PRO monthly must always call pro_monthly. If Google Play still shows yearly price,
+    // the pro_monthly product/base-plan price is wrong inside Play Console.
+    return GOOGLE_PLAY_PRODUCT_IDS[planId]?.[cycle] || "";
   };
 
   const googleBillingDebug = (title: string, details: Record<string, unknown> = {}) => {

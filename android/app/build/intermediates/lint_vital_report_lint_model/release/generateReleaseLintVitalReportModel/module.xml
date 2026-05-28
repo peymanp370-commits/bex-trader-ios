@@ -6,7 +6,7 @@
     maven="BEX Trader:app:unspecified"
     agpVersion="8.13.2"
     buildFolder="build"
-    bootClassPath="C:\Users\peyma\AppData\Local\Android\Sdk\platforms\android-36\android.jar;C:\Users\peyma\AppData\Local\Android\Sdk\build-tools\35.0.0\core-lambda-stubs.jar"
+    bootClassPath="C:\Users\peyma\.bubblewrap\android_sdk\platforms\android-36\android.jar;C:\Users\peyma\.bubblewrap\android_sdk\build-tools\35.0.0\core-lambda-stubs.jar"
     javaSourceLevel="21"
     compileTarget="android-36"
     neverShrinking="true">

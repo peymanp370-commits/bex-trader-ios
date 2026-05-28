@@ -44,8 +44,8 @@ android {
         targetSdk = 36
 
         // Increase this every time you upload a new AAB to Google Play.
-        versionCode = 71
-        versionName = "1.7.1"
+        versionCode = 72
+        versionName = "1.7.2"
 
         resValue "string", "appName", twaManifest.name
         resValue "string", "launcherName", twaManifest.launcherName

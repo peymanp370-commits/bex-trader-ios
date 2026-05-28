@@ -1416,7 +1416,9 @@ export function Home() {
                         <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{cardAssetName}</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
-                        <img src={getCommodityImage(symbol)} alt="" className="hidden h-10 w-16 rounded-xl object-cover shadow-lg ring-1 ring-yellow-400/20 sm:block" />
+                        <div className={`hidden h-10 w-16 items-center justify-center rounded-xl shadow-lg ring-1 sm:flex ${symbol === "XAUUSD" ? "bg-yellow-500/15 ring-yellow-400/30" : "bg-slate-200/15 ring-slate-200/30"}`} aria-label={cardAssetName}>
+                          <span className="text-2xl" role="img" aria-hidden="true">{symbol === "XAUUSD" ? "🟡" : "🥈"}</span>
+                        </div>
                         <span className={`rounded-xl px-3 py-1 text-xs font-black ${sourcePillClass}`}>{view.sourceLabel}</span>
                       </div>
                     </div>
