@@ -130,8 +130,7 @@ export async function enableBexNativePushNotifications(): Promise<{
       return { ok: false, native: false, reason: "not_native_platform" };
     }
 
-    if (false && started) { return { ok: true, native: true, reason: "already_started_disabled" }; }
-
+    // Re-run registration on each app open/focus so iOS can refresh or re-emit the APNS token.
     started = true;
 
     const permission = await PushNotifications.requestPermissions();
