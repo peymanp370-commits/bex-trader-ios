@@ -1,4 +1,4 @@
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, CapacitorHttp } from "@capacitor/core";
 import {
   PushNotifications,
   Token,
@@ -9,26 +9,6 @@ import {
 const PUSH_API_BASE =
   import.meta.env.VITE_PUSH_API_BASE ||
   "https://bex-push.peymanp370.workers.dev";
-
-const DEBUG_NATIVE_PUSH = true;
-
-function debugNativePush(message: string) {
-  const text = `BEX PUSH DEBUG\n${message}`;
-  console.log(text);
-
-  try {
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem("bex_native_push_debug_last", text);
-      localStorage.setItem("bex_native_push_debug_last_at", String(Date.now()));
-    }
-  } catch (_) {
-    // ignore storage debug failures
-  }
-
-  if (DEBUG_NATIVE_PUSH && typeof window !== "undefined") {
-    window.alert(text);
-  }
-}
 
 function cleanBase(url: string): string {
   return String(url || "").replace(/\/+$/, "");
@@ -112,80 +92,33 @@ async function saveNativeToken(token: string) {
 
   for (const endpoint of endpoints) {
     try {
-      debugNativePush(`Saving token\nEndpoint=${endpoint}\nHead=${token.substring(0, 20)}`);
-
-      const res = await fetch(endpoint, {
-        method: "POST",
+      const res = await CapacitorHttp.post({
+        url: endpoint,
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify(payload),
+        data: payload,
       });
 
-      const text = await res.text();
-      let data: any = null;
-      try {
-        data = text ? JSON.parse(text) : null;
-      } catch (_) {
-        data = null;
-      }
+      const data: any = res.data;
+      const ok = Number(res.status) >= 200 && Number(res.status) < 300;
 
-      if (!res.ok || data?.ok === false) {
-        lastError = new Error(data?.error || data?.reason || `native_register_http_${res.status}: ${text.slice(0, 160)}`);
-        debugNativePush(`Save failed\nStatus=${res.status}\nBody=${text.slice(0, 220)}`);
+      if (!ok || data?.ok === false) {
+        lastError = new Error(data?.error || data?.reason || `native_register_http_${res.status}`);
         continue;
       }
 
-      debugNativePush(`Save OK\nStatus=${res.status}\nBody=${text.slice(0, 220)}`);
       return data;
-    } catch (error: any) {
+    } catch (error) {
       lastError = error;
-      debugNativePush(`Save exception\n${error?.message || String(error)}`);
     }
   }
 
   throw lastError || new Error("native_register_failed");
 }
 
-let listenersAttached = false;
-
-async function attachNativePushListeners() {
-  if (listenersAttached) return;
-  listenersAttached = true;
-
-  await PushNotifications.addListener("registration", async (token: Token) => {
-    try {
-      debugNativePush(`TOKEN RECEIVED\nHead=${token.value.substring(0, 24)}\nLength=${token.value.length}`);
-      const saved = await saveNativeToken(token.value);
-      console.log("BEX native push token saved:", saved);
-    } catch (error: any) {
-      console.warn("BEX native push token save failed:", error?.message || error);
-      debugNativePush(`SAVE FAILED\n${error?.message || String(error)}`);
-    }
-  });
-
-  await PushNotifications.addListener("registrationError", (error: any) => {
-    console.warn("BEX native push registration error:", error);
-    debugNativePush(`REG ERROR\n${JSON.stringify(error)}`);
-  });
-
-  await PushNotifications.addListener(
-    "pushNotificationReceived",
-    (notification: PushNotificationSchema) => {
-      console.log("BEX native push received:", notification);
-      debugNativePush(`PUSH RECEIVED\n${notification?.title || "No title"}`);
-    }
-  );
-
-  await PushNotifications.addListener(
-    "pushNotificationActionPerformed",
-    (action: ActionPerformed) => {
-      console.log("BEX native push action:", action);
-      debugNativePush(`PUSH ACTION\n${action?.notification?.title || "No title"}`);
-    }
-  );
-}
+let started = false;
 
 export async function enableBexNativePushNotifications(): Promise<{
   ok: boolean;
@@ -193,33 +126,56 @@ export async function enableBexNativePushNotifications(): Promise<{
   reason?: string;
 }> {
   try {
-    const platform = Capacitor.getPlatform();
-    const isNative = Capacitor.isNativePlatform();
-
-    debugNativePush(`Start\nPlatform=${platform}\nNative=${String(isNative)}`);
-
-    if (!isNative) {
+    if (!Capacitor.isNativePlatform()) {
       return { ok: false, native: false, reason: "not_native_platform" };
     }
 
-    await attachNativePushListeners();
+    if (false && started) { return { ok: true, native: true, reason: "already_started_disabled" }; }
+
+    started = true;
 
     const permission = await PushNotifications.requestPermissions();
-    debugNativePush(`Permission=${permission.receive}`);
 
     if (permission.receive !== "granted") {
       console.warn("BEX native push permission not granted:", permission.receive);
       return { ok: false, native: true, reason: `permission_${permission.receive}` };
     }
 
-    debugNativePush("Calling PushNotifications.register()");
-    await PushNotifications.register();
-    debugNativePush("Register called. Waiting for APNS token event...");
+    await PushNotifications.addListener("registration", async (token: Token) => {
+      try {
+        console.log("BEX native push token:", token.value);
+        const saved = await saveNativeToken(token.value);
+        console.log("BEX native push token saved:", saved);
+      } catch (error: any) {
+        console.warn("BEX native push token save failed:", error?.message || error);
+      }
+    });
 
-    return { ok: true, native: true, reason: "register_called" };
+    await PushNotifications.addListener("registrationError", (error: any) => {
+      console.warn("BEX native push registration error:", error);
+    });
+
+    await PushNotifications.addListener(
+      "pushNotificationReceived",
+      (notification: PushNotificationSchema) => {
+        console.log("BEX native push received:", notification);
+      }
+    );
+
+    await PushNotifications.addListener(
+      "pushNotificationActionPerformed",
+      (action: ActionPerformed) => {
+        console.log("BEX native push action:", action);
+      }
+    );
+
+    await PushNotifications.register();
+
+    return { ok: true, native: true };
   } catch (error: any) {
     console.warn("BEX native push failed:", error);
-    debugNativePush(`MAIN FAILED\n${error?.message || String(error)}`);
+    started = false;
     return { ok: false, native: true, reason: error?.message || "native_push_failed" };
   }
 }
+
