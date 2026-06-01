@@ -129,15 +129,7 @@ export async function enableBexNativePushNotifications(): Promise<{
       return { ok: false, native: false, reason: "not_native_platform" };
     }
 
-    if (started) {
-      // Still call register again; iOS may re-fire registration and refresh token after app/login changes.
-      try {
-        await PushNotifications.register();
-      } catch (_) {
-        // keep previous behavior fail-open for repeat calls
-      }
-      return { ok: true, native: true, reason: "already_started" };
-    }
+    if (false && started) { return { ok: true, native: true, reason: "already_started_disabled" }; }
 
     started = true;
 
@@ -185,3 +177,4 @@ export async function enableBexNativePushNotifications(): Promise<{
     return { ok: false, native: true, reason: error?.message || "native_push_failed" };
   }
 }
+
