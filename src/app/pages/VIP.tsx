@@ -4,20 +4,13 @@ import { useEffect, useState } from "react";
 import { SideMenu } from "../components/SideMenu";
 import { AppHeader } from "../components/AppHeader";
 import { getLanguage, tr, formatNumber } from "../utils/i18n";
-import {
-  appleProductIdForPlan,
-  applePlanFromProductId,
-  bestApplePlanFromProductIds,
-  getAppleActiveSubscriptions,
-  isNativeIOSApp,
-  restoreApplePurchases,
-  startAppleIapPurchase,
-} from "../utils/appleIap";
+import { appleProductIdForPlan, isNativeIOSApp, startAppleIapPurchase } from "../utils/appleIap";
+
+const AUTH_BASE = import.meta.env.VITE_API_URL || "https://auth.bextrader.com";
 
 export function VIP() {
   const [showMenu, setShowMenu] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
-  const [isRestoringApplePurchases, setIsRestoringApplePurchases] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("darkMode");
     return saved ? JSON.parse(saved) : true;
@@ -53,64 +46,6 @@ export function VIP() {
 
   const isIOSInstalledApp = () => isNativeIOSApp();
 
-
-  const activateAppleEntitlement = (planName: string, productId?: string, transactionId?: string) => {
-    localStorage.setItem("userPlan", planName);
-    localStorage.setItem("appleEntitlementActive", "true");
-    localStorage.setItem("subscriptionProvider", "apple");
-    if (productId) localStorage.setItem("appleProductId", productId);
-    if (transactionId) localStorage.setItem("appleTransactionId", transactionId);
-    window.dispatchEvent(new Event("storage"));
-    window.dispatchEvent(new Event("subscriptionChange"));
-  };
-
-  const resolveActiveApplePlan = async (fallbackProductId?: string) => {
-    const active = await getAppleActiveSubscriptions();
-    const productIds = [
-      ...(Array.isArray(active?.subscriptions) ? active.subscriptions : []),
-      ...(Array.isArray(active?.activeSubscriptions) ? active.activeSubscriptions : []),
-    ].filter(Boolean);
-
-    const planName = bestApplePlanFromProductIds(productIds) || applePlanFromProductId(fallbackProductId);
-    const productId = productIds[0] || fallbackProductId || "";
-
-    return { planName, productId, productIds };
-  };
-
-  const handleRestoreApplePurchases = async () => {
-    if (!isIOSInstalledApp()) {
-      alert("Restore Purchases is only available inside the iOS app.");
-      return;
-    }
-
-    setIsRestoringApplePurchases(true);
-    try {
-      const restored = await restoreApplePurchases();
-      const restoredIds = [
-        ...(Array.isArray(restored?.restored) ? restored.restored : []),
-        ...(Array.isArray(restored?.subscriptions) ? restored.subscriptions : []),
-        ...(Array.isArray(restored?.activeSubscriptions) ? restored.activeSubscriptions : []),
-      ].filter(Boolean);
-
-      const active = restoredIds.length
-        ? { planName: bestApplePlanFromProductIds(restoredIds), productId: restoredIds[0], productIds: restoredIds }
-        : await resolveActiveApplePlan();
-
-      if (!active.planName) {
-        alert("No active Apple subscription was found for this Apple ID.");
-        return;
-      }
-
-      activateAppleEntitlement(active.planName, active.productId);
-      alert(subscribedMessage(active.planName));
-      navigate("/app");
-    } catch (e: any) {
-      alert(String(e?.message || e?.error || e || "Restore purchases failed. Please try again."));
-    } finally {
-      setIsRestoringApplePurchases(false);
-    }
-  };
-
   const checkoutPlanId = (planId: string) => {
     // Stripe / web checkout IDs used by Checkout.tsx
     if (planId === "vip") return "vip_auto";
@@ -143,6 +78,53 @@ export function VIP() {
     ];
 
     alert(lines.join("\n"));
+  };
+
+  const activateApplePurchaseOnServer = async (input: {
+    planId: string;
+    planName: string;
+    billing: "monthly" | "yearly" | "lifetime";
+    productId: string;
+    transactionId?: string;
+    originalTransactionId?: string;
+    environment?: string;
+  }) => {
+    const refreshToken =
+      localStorage.getItem("bex_refresh_token") ||
+      localStorage.getItem("refresh_token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("auth_token") ||
+      "";
+
+    const res = await fetch(`${AUTH_BASE}/api/billing/apple-activate`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(refreshToken ? { Authorization: `Bearer ${refreshToken}` } : {}),
+      },
+      body: JSON.stringify({
+        plan: input.planId === "vip" ? "vip_auto" : input.planId,
+        billing: input.billing,
+        product_id: input.productId,
+        transaction_id: input.transactionId || "",
+        original_transaction_id: input.originalTransactionId || "",
+        environment: input.environment || "",
+      }),
+    });
+
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.ok || !data?.activated) {
+      throw new Error(data?.message || data?.error || data?.code || "apple_activation_failed");
+    }
+
+    if (data?.user?.plan) localStorage.setItem("userPlan", String(data.user.plan).toUpperCase());
+    else localStorage.setItem("userPlan", input.planName);
+
+    window.dispatchEvent(new Event("storage"));
+    return data;
   };
 
   const startGooglePlayBilling = async (plan: (typeof plans)[0]) => {
@@ -260,7 +242,7 @@ export function VIP() {
   };
 
   const startAppleInAppPurchase = async (plan: (typeof plans)[0]) => {
-    const productId = appleProductIdForPlan(plan.id, billingCycle);
+    const productId = appleProductIdForPlan(plan.id, plan.id === "lifetime" ? "monthly" : billingCycle);
     if (!productId) {
       alert("Apple product id is missing for this plan.");
       return;
@@ -273,25 +255,20 @@ export function VIP() {
         throw new Error(result?.message || result?.error || "Apple purchase failed");
       }
 
-      // Important: after a new purchase, trust the product the user just bought.
-      // StoreKit currentEntitlements can briefly return an older active subscription
-      // from the same subscription group (example: user taps VIP, but old PRO is still
-      // returned first). That caused the app to show "Successfully subscribed to PRO"
-      // even when the VIP button was tapped.
-      const purchasedProductId = String(result.productId || productId || "");
+      await activateApplePurchaseOnServer({
+        planId: plan.id,
+        planName: plan.name,
+        billing: plan.id === "lifetime" ? "lifetime" : billingCycle,
+        productId,
+        transactionId: result.transactionId || "",
+        originalTransactionId: result.originalTransactionId || "",
+        environment: result.environment || "",
+      });
 
-      // IMPORTANT FOR APPLE SANDBOX / SUBSCRIPTION GROUPS:
-      // StoreKit may return an older active entitlement when the tester already has
-      // BASIC/PRO and then taps VIP. The UI must unlock and message the plan that
-      // the user just selected, using the requested Apple product id for storage.
-      // Restore Purchases still uses currentEntitlements and chooses the best active tier.
-      const selectedPlanName = plan.name;
-
-      activateAppleEntitlement(selectedPlanName, productId, result.transactionId || "");
-      if (purchasedProductId && purchasedProductId !== productId) {
-        localStorage.setItem("appleReturnedProductId", purchasedProductId);
-      }
-      alert(subscribedMessage(selectedPlanName));
+      localStorage.setItem("userPlan", plan.name);
+      localStorage.setItem("appleProductId", productId);
+      localStorage.setItem("appleTransactionId", result.transactionId || "");
+      alert(`${subscribedMessage(plan.name)}\nYour Apple subscription is now synced to your BEX account.`);
       navigate("/app");
     } catch (e: any) {
       const rawMessage = String(e?.message || e?.error || e || "");
@@ -482,17 +459,6 @@ export function VIP() {
             {t({ en: "Yearly (Save up to 30%)", fa: "سالانه (تا ۳۰٪ صرفه‌جویی)", ar: "سنوي (وفر حتى 30%)", es: "Anual (ahorra hasta 30%)", "pt-BR": "Anual (economize até 30%)", hi: "वार्षिक (30% तक बचत)", tr: "Yıllık (%30’a kadar tasarruf)", de: "Jährlich (bis zu 30% sparen)", fr: "Annuel (économisez jusqu’à 30 %)", zh: "年付（最多节省30%）", ko: "연간 (최대 30% 절약)" })}
           </button>
         </div>
-
-        {isIOSInstalledApp() && (
-          <button
-            type="button"
-            onClick={handleRestoreApplePurchases}
-            disabled={isRestoringApplePurchases}
-            className={`${darkMode ? "bg-white/10 text-white border-white/15 hover:bg-white/15" : "bg-white text-gray-900 border-gray-200 hover:bg-gray-50"} w-full rounded-2xl border px-4 py-3 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-60`}
-          >
-            {isRestoringApplePurchases ? "Restoring Purchases..." : "Restore Purchases"}
-          </button>
-        )}
 
         {plans.map((plan) => (
           <div
