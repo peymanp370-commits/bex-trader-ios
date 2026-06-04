@@ -62,22 +62,15 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
                 case .success(let verification):
                     switch verification {
                     case .verified(let transaction):
+                        let payload = entitlementPayload(transaction)
                         await transaction.finish()
-                        call.resolve([
-                            "ok": true,
-                            "productId": transaction.productID,
-                            "transactionId": String(transaction.id),
-                            "originalTransactionId": String(transaction.originalID),
-                            "verification": "verified"
-                        ])
+                        call.resolve(payload.merging(["ok": true, "verification": "verified"]) { _, new in new })
                     case .unverified(let transaction, let error):
-                        call.resolve([
-                            "ok": false,
-                            "productId": transaction.productID,
-                            "transactionId": String(transaction.id),
-                            "verification": "unverified",
-                            "error": error.localizedDescription
-                        ])
+                        var payload = entitlementPayload(transaction)
+                        payload["ok"] = false
+                        payload["verification"] = "unverified"
+                        payload["error"] = error.localizedDescription
+                        call.resolve(payload)
                     }
                 case .userCancelled:
                     call.resolve(["ok": false, "reason": "user_cancelled"])
@@ -101,12 +94,12 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
         Task {
             do {
                 try await AppStore.sync()
-                let productIds = await currentVerifiedEntitlementProductIds()
+                let entitlements = await currentEntitlementPayloads()
                 call.resolve([
                     "ok": true,
-                    "productIds": productIds,
-                    "restored": productIds,
-                    "subscriptions": productIds
+                    "entitlements": entitlements,
+                    "productIds": entitlements.compactMap { $0["productId"] as? String },
+                    "restored": entitlements.compactMap { $0["productId"] as? String }
                 ])
             } catch {
                 call.reject("Restore purchases failed: \(error.localizedDescription)")
@@ -121,28 +114,47 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
         }
 
         Task {
-            let productIds = await currentVerifiedEntitlementProductIds()
+            let entitlements = await currentEntitlementPayloads()
             call.resolve([
                 "ok": true,
-                "productIds": productIds,
-                "subscriptions": productIds
+                "entitlements": entitlements,
+                "productIds": entitlements.compactMap { $0["productId"] as? String },
+                "subscriptions": entitlements.compactMap { $0["productId"] as? String }
             ])
         }
     }
 
     @available(iOS 15.0, *)
-    private func currentVerifiedEntitlementProductIds() async -> [String] {
-        var productIds: [String] = []
-
+    private func currentEntitlementPayloads() async -> [[String: Any]] {
+        var items: [[String: Any]] = []
         for await result in Transaction.currentEntitlements {
             switch result {
             case .verified(let transaction):
-                productIds.append(transaction.productID)
-            case .unverified(_, _):
-                continue
+                if transaction.isUpgraded { continue }
+                items.append(entitlementPayload(transaction))
+            default:
+                break
             }
         }
+        return items
+    }
 
-        return Array(Set(productIds)).sorted()
+    @available(iOS 15.0, *)
+    private func entitlementPayload(_ transaction: Transaction) -> [String: Any] {
+        var payload: [String: Any] = [
+            "productId": transaction.productID,
+            "transactionId": String(transaction.id),
+            "originalTransactionId": String(transaction.originalID),
+            "purchaseDateMs": Int(transaction.purchaseDate.timeIntervalSince1970 * 1000),
+            "isUpgraded": transaction.isUpgraded
+        ]
+
+        if let expirationDate = transaction.expirationDate {
+            payload["expirationDateMs"] = Int(expirationDate.timeIntervalSince1970 * 1000)
+        } else {
+            payload["expirationDateMs"] = NSNull()
+        }
+
+        return payload
     }
 }

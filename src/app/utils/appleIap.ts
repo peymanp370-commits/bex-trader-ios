@@ -7,11 +7,22 @@ type AppleProduct = {
   price?: string;
 };
 
+type AppleEntitlement = {
+  productId: string;
+  transactionId?: string;
+  originalTransactionId?: string;
+  purchaseDateMs?: number;
+  expirationDateMs?: number | null;
+  isUpgraded?: boolean;
+};
+
 type ApplePurchaseResult = {
   ok?: boolean;
   productId?: string;
   transactionId?: string;
   originalTransactionId?: string;
+  purchaseDateMs?: number;
+  expirationDateMs?: number | null;
   environment?: string;
   verification?: string;
   reason?: string;
@@ -19,20 +30,11 @@ type ApplePurchaseResult = {
   message?: string;
 };
 
-type AppleEntitlementsResult = {
-  ok?: boolean;
-  productIds?: string[];
-  subscriptions?: string[];
-  restored?: string[];
-  error?: string;
-  message?: string;
-};
-
 type AppleIAPPlugin = {
   getProducts(options: { productIds: string[] }): Promise<{ ok: boolean; products: AppleProduct[] }>;
   purchase(options: { productId: string }): Promise<ApplePurchaseResult>;
-  restorePurchases(): Promise<AppleEntitlementsResult>;
-  getActiveEntitlements(): Promise<AppleEntitlementsResult>;
+  restorePurchases(): Promise<{ ok: boolean; entitlements: AppleEntitlement[]; productIds: string[] }>;
+  getActiveEntitlements(): Promise<{ ok: boolean; entitlements: AppleEntitlement[]; productIds: string[] }>;
 };
 
 const AppleIAP = registerPlugin<AppleIAPPlugin>("AppleIAP");
@@ -83,7 +85,6 @@ export async function restoreApplePurchases() {
   if (!isNativeIOSApp()) {
     throw new Error("Restore Purchases is only available inside the iOS app.");
   }
-
   return AppleIAP.restorePurchases();
 }
 
@@ -91,6 +92,5 @@ export async function getAppleActiveEntitlements() {
   if (!isNativeIOSApp()) {
     throw new Error("Apple entitlements are only available inside the iOS app.");
   }
-
   return AppleIAP.getActiveEntitlements();
 }

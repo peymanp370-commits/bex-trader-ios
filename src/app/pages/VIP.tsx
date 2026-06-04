@@ -26,14 +26,13 @@ export function VIP() {
 
 
   type BillingCycle = "monthly" | "yearly" | "lifetime";
-
   type PlanId = "basic" | "pro" | "vip" | "lifetime";
-
-  type PlanMeta = {
-    id: PlanId;
-    name: string;
-    cycle: BillingCycle;
-    rank: number;
+  type PlanMeta = { id: PlanId; name: string; cycle: BillingCycle; rank: number };
+  type AppleEntitlementItem = {
+    productId: string;
+    purchaseDateMs?: number;
+    expirationDateMs?: number | null;
+    isUpgraded?: boolean;
   };
 
   const PLAN_META_BY_PRODUCT_ID: Record<string, PlanMeta> = {
@@ -64,11 +63,48 @@ export function VIP() {
     window.dispatchEvent(new Event("storage"));
   };
 
-  const bestEntitlementFromProductIds = (productIds: string[] = []) => {
-    return productIds
-      .map((productId) => ({ productId, meta: productMeta(productId) }))
-      .filter((item): item is { productId: string; meta: PlanMeta } => !!item.meta)
-      .sort((a, b) => b.meta.rank - a.meta.rank)[0] || null;
+  const normalizeAppleEntitlementItems = (payload: any): AppleEntitlementItem[] => {
+    const direct = Array.isArray(payload?.entitlements) ? payload.entitlements : [];
+    if (direct.length > 0) {
+      return direct
+        .map((item: any) => ({
+          productId: String(item?.productId || item?.productID || "").trim(),
+          purchaseDateMs: Number(item?.purchaseDateMs || 0) || 0,
+          expirationDateMs: item?.expirationDateMs == null ? null : Number(item.expirationDateMs),
+          isUpgraded: item?.isUpgraded === true,
+        }))
+        .filter((item: AppleEntitlementItem) => !!item.productId && !item.isUpgraded);
+    }
+
+    const ids = [
+      ...(Array.isArray(payload?.productIds) ? payload.productIds : []),
+      ...(Array.isArray(payload?.subscriptions) ? payload.subscriptions : []),
+      ...(Array.isArray(payload?.restored) ? payload.restored : []),
+    ];
+    return Array.from(new Set(ids.map((id: any) => String(id || "").trim()).filter(Boolean))).map((productId) => ({ productId }));
+  };
+
+  const bestEntitlementFromItems = (items: AppleEntitlementItem[] = []) => {
+    const mapped = items
+      .map((item) => ({ ...item, meta: productMeta(item.productId) }))
+      .filter((item): item is AppleEntitlementItem & { meta: PlanMeta } => !!item.meta);
+
+    if (!mapped.length) return null;
+
+    // Prefer the most recent StoreKit entitlement. This prevents an old lifetime sandbox
+    // purchase from overriding a newer active PRO/VIP subscription during Restore.
+    return mapped.sort((a, b) => {
+      const ap = Number(a.purchaseDateMs || 0);
+      const bp = Number(b.purchaseDateMs || 0);
+      if (bp !== ap) return bp - ap;
+      return b.meta.rank - a.meta.rank;
+    })[0];
+  };
+
+  const isRecentApplePurchase = (purchaseDateMs?: number | null) => {
+    const ts = Number(purchaseDateMs || 0);
+    if (!Number.isFinite(ts) || ts <= 0) return true; // Older plugin fallback.
+    return Math.abs(Date.now() - ts) <= 5 * 60 * 1000;
   };
 
   useEffect(() => {
@@ -254,12 +290,11 @@ export function VIP() {
       return;
     }
 
-    const expectedMeta: PlanMeta = {
-      id: plan.id as PlanId,
-      name: plan.name,
-      cycle: appleCycle,
-      rank: productMeta(productId)?.rank || 0,
-    };
+    const expectedMeta = productMeta(productId);
+    if (!expectedMeta) {
+      alert("Apple product id is not mapped in the app.");
+      return;
+    }
 
     try {
       const result = await startAppleIapPurchase(productId);
@@ -272,17 +307,21 @@ export function VIP() {
         throw new Error(result?.message || result?.error || "Apple purchase failed");
       }
 
-      const purchasedProductId = result.productId || productId;
-      const purchasedMeta = productMeta(purchasedProductId);
+      const purchasedProductId = String(result.productId || "").trim();
+      if (purchasedProductId !== productId) {
+        alert(
+          `Apple confirmed ${purchasedProductId || "another product"}, not ${productId}. Your plan was not changed. Please use Restore Purchases or try again.`
+        );
+        return;
+      }
 
-      // Use the selected product as source of truth for the purchase success message.
-      // This prevents an old BASIC/PRO entitlement from overwriting the VIP/Yearly plan
-      // the customer just tapped while Apple is processing an upgrade/crossgrade.
-      const finalMeta = purchasedMeta && purchasedMeta.rank >= expectedMeta.rank ? purchasedMeta : expectedMeta;
-      const finalProductId = purchasedMeta && purchasedMeta.rank >= expectedMeta.rank ? purchasedProductId : productId;
+      if (!isRecentApplePurchase(result.purchaseDateMs)) {
+        alert("Apple returned an older purchase record. Your plan was not changed. Please use Restore Purchases.");
+        return;
+      }
 
-      saveAppleEntitlement(finalMeta, finalProductId, result.transactionId || "");
-      alert(subscribedMessage(selectedPlanLabel(finalMeta.name, finalMeta.cycle)));
+      saveAppleEntitlement(expectedMeta, productId, result.transactionId || "");
+      alert(subscribedMessage(selectedPlanLabel(expectedMeta.name, expectedMeta.cycle)));
       navigate("/app");
     } catch (e: any) {
       const rawMessage = String(e?.message || e?.error || e || "");
@@ -308,14 +347,12 @@ export function VIP() {
       if (!restored?.ok) throw new Error(restored?.message || restored?.error || "Restore failed");
 
       const active = await getAppleActiveEntitlements();
-      const productIds = [
-        ...(Array.isArray(active?.productIds) ? active.productIds : []),
-        ...(Array.isArray(active?.subscriptions) ? active.subscriptions : []),
-        ...(Array.isArray(restored?.productIds) ? restored.productIds : []),
-        ...(Array.isArray(restored?.restored) ? restored.restored : []),
+      const items = [
+        ...normalizeAppleEntitlementItems(active),
+        ...normalizeAppleEntitlementItems(restored),
       ];
+      const best = bestEntitlementFromItems(items);
 
-      const best = bestEntitlementFromProductIds(Array.from(new Set(productIds)));
       if (!best) {
         alert("No active Apple purchase was found for this Apple ID.");
         return;
@@ -481,18 +518,6 @@ export function VIP() {
       </div>
 
 
-      {isIOSInstalledApp() && (
-        <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
-          <button
-            onClick={handleRestoreApplePurchases}
-            className={`${darkMode ? "border-yellow-500/25 bg-yellow-500/10 text-yellow-300" : "border-yellow-500/30 bg-yellow-50 text-yellow-700"} w-full rounded-2xl border px-4 py-3 text-sm font-bold transition-all`}
-          >
-            Restore Purchases
-          </button>
-        </div>
-      )}
-
-
       <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
         <div className={`flex items-center justify-center gap-3 ${darkMode ? "bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 border-yellow-500/20 shadow-[0_0_35px_rgba(234,179,8,0.08)]" : "bg-white border-gray-200"} rounded-2xl p-2 border`}>
           <button
@@ -513,6 +538,19 @@ export function VIP() {
             {t({ en: "Yearly (Save up to 30%)", fa: "سالانه (تا ۳۰٪ صرفه‌جویی)", ar: "سنوي (وفر حتى 30%)", es: "Anual (ahorra hasta 30%)", "pt-BR": "Anual (economize até 30%)", hi: "वार्षिक (30% तक बचत)", tr: "Yıllık (%30’a kadar tasarruf)", de: "Jährlich (bis zu 30% sparen)", fr: "Annuel (économisez jusqu’à 30 %)", zh: "年付（最多节省30%）", ko: "연간 (최대 30% 절약)" })}
           </button>
         </div>
+
+        {isIOSInstalledApp() && (
+          <button
+            onClick={handleRestoreApplePurchases}
+            className={`w-full rounded-xl border py-3 font-bold transition-all ${
+              darkMode
+                ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
+                : "border-yellow-500/40 bg-yellow-50 text-yellow-700"
+            }`}
+          >
+            Restore Purchases
+          </button>
+        )}
 
         {plans.map((plan) => (
           <div
@@ -573,7 +611,7 @@ export function VIP() {
               }`}
             >
               {plan.id === "basic"
-                ? t({ en: "Subscribe Now", fa: "اشتراک را فعال کن", ar: "اشترك الآن", es: "Suscribirse ahora", "pt-BR": "Assinar agora", hi: "अभी सब्सक्राइब करें", tr: "Şimdi abone ol", de: "Jetzt abonnieren", fr: "S’abonner", zh: "立即订阅", ko: "지금 구독" })
+                ? t({ en: "Subscribe Basic", fa: "خرید Basic", ar: "اشترك في Basic", es: "Suscribirse a Basic", "pt-BR": "Assinar Basic", hi: "Basic सब्सक्राइब करें", tr: "Basic aboneliği", de: "Basic abonnieren", fr: "S’abonner à Basic", zh: "订阅Basic", ko: "Basic 구독" })
                 : plan.id === "lifetime"
                 ? t({ en: "Buy Lifetime", fa: "خرید مادام‌العمر", ar: "شراء مدى الحياة", es: "Comprar Lifetime", "pt-BR": "Comprar Vitalício", hi: "लाइफटाइम खरीदें", tr: "Lifetime satın al", de: "Lifetime kaufen", fr: "Acheter Lifetime", zh: "购买终身版", ko: "라이프타임 구매" })
                 : t({ en: "Upgrade Now", fa: "ارتقا بده", ar: "قم بالترقية الآن", es: "Actualizar ahora", "pt-BR": "Fazer upgrade agora", hi: "अभी अपग्रेड करें", tr: "Şimdi yükselt", de: "Jetzt upgraden", fr: "Mettre à niveau", zh: "立即升级", ko: "지금 업그레이드" })}
