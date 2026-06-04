@@ -8,7 +8,9 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
     public let jsName = "AppleIAP"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "getProducts", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "purchase", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "purchase", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "restorePurchases", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getActiveSubscriptions", returnType: CAPPluginReturnPromise)
     ]
 
     @objc func getProducts(_ call: CAPPluginCall) {
@@ -61,12 +63,15 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
                     switch verification {
                     case .verified(let transaction):
                         await transaction.finish()
+                        let active = await activeSubscriptionProductIds()
                         call.resolve([
                             "ok": true,
                             "productId": transaction.productID,
                             "transactionId": String(transaction.id),
                             "originalTransactionId": String(transaction.originalID),
-                            "verification": "verified"
+                            "verification": "verified",
+                            "subscriptions": active,
+                            "activeSubscriptions": active
                         ])
                     case .unverified(let transaction, let error):
                         call.resolve([
@@ -88,5 +93,68 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("Apple purchase failed: \(error.localizedDescription)")
             }
         }
+    }
+
+    @objc func restorePurchases(_ call: CAPPluginCall) {
+        guard #available(iOS 15.0, *) else {
+            call.reject("Apple In-App Purchase requires iOS 15 or newer.")
+            return
+        }
+
+        Task {
+            do {
+                try await AppStore.sync()
+                let active = await activeSubscriptionProductIds()
+
+                call.resolve([
+                    "ok": true,
+                    "restored": active,
+                    "subscriptions": active,
+                    "activeSubscriptions": active
+                ])
+            } catch {
+                call.reject("Restore purchases failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    @objc func getActiveSubscriptions(_ call: CAPPluginCall) {
+        guard #available(iOS 15.0, *) else {
+            call.reject("Apple In-App Purchase requires iOS 15 or newer.")
+            return
+        }
+
+        Task {
+            let active = await activeSubscriptionProductIds()
+            call.resolve([
+                "ok": true,
+                "subscriptions": active,
+                "activeSubscriptions": active
+            ])
+        }
+    }
+
+    @available(iOS 15.0, *)
+    private func activeSubscriptionProductIds() async -> [String] {
+        var active: [String] = []
+
+        for await result in Transaction.currentEntitlements {
+            switch result {
+            case .verified(let transaction):
+                if transaction.revocationDate != nil { continue }
+
+                if let expirationDate = transaction.expirationDate, expirationDate <= Date() {
+                    continue
+                }
+
+                if !active.contains(transaction.productID) {
+                    active.append(transaction.productID)
+                }
+            case .unverified:
+                continue
+            }
+        }
+
+        return active
     }
 }
