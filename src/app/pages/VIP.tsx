@@ -260,11 +260,6 @@ export function VIP() {
   };
 
   const startAppleInAppPurchase = async (plan: (typeof plans)[0]) => {
-    if (plan.id === "lifetime") {
-      alert("Lifetime purchase is not available on iOS yet. Please choose a monthly or yearly plan.");
-      return;
-    }
-
     const productId = appleProductIdForPlan(plan.id, billingCycle);
     if (!productId) {
       alert("Apple product id is missing for this plan.");
@@ -278,10 +273,25 @@ export function VIP() {
         throw new Error(result?.message || result?.error || "Apple purchase failed");
       }
 
-      const active = await resolveActiveApplePlan(result.productId || productId);
-      const entitledPlanName = active.planName || plan.name;
-      activateAppleEntitlement(entitledPlanName, active.productId || result.productId || productId, result.transactionId || "");
-      alert(subscribedMessage(entitledPlanName));
+      // Important: after a new purchase, trust the product the user just bought.
+      // StoreKit currentEntitlements can briefly return an older active subscription
+      // from the same subscription group (example: user taps VIP, but old PRO is still
+      // returned first). That caused the app to show "Successfully subscribed to PRO"
+      // even when the VIP button was tapped.
+      const purchasedProductId = String(result.productId || productId || "");
+
+      // IMPORTANT FOR APPLE SANDBOX / SUBSCRIPTION GROUPS:
+      // StoreKit may return an older active entitlement when the tester already has
+      // BASIC/PRO and then taps VIP. The UI must unlock and message the plan that
+      // the user just selected, using the requested Apple product id for storage.
+      // Restore Purchases still uses currentEntitlements and chooses the best active tier.
+      const selectedPlanName = plan.name;
+
+      activateAppleEntitlement(selectedPlanName, productId, result.transactionId || "");
+      if (purchasedProductId && purchasedProductId !== productId) {
+        localStorage.setItem("appleReturnedProductId", purchasedProductId);
+      }
+      alert(subscribedMessage(selectedPlanName));
       navigate("/app");
     } catch (e: any) {
       const rawMessage = String(e?.message || e?.error || e || "");

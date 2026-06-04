@@ -62,6 +62,7 @@ export const APPLE_IAP_PRODUCT_IDS = {
     monthly: "vip_monthly_v4",
     yearly: "vip_yearly_v4",
   },
+  lifetime: "vip_lifetime",
 } as const;
 
 export function isNativeIOSApp() {
@@ -72,12 +73,17 @@ export function appleProductIdForPlan(planId: string, cycle: "monthly" | "yearly
   if (planId === "basic") return APPLE_IAP_PRODUCT_IDS.basic[cycle];
   if (planId === "pro") return APPLE_IAP_PRODUCT_IDS.pro[cycle];
   if (planId === "vip") return APPLE_IAP_PRODUCT_IDS.vip[cycle];
+  if (planId === "lifetime") return APPLE_IAP_PRODUCT_IDS.lifetime;
   return "";
 }
 
 export function applePlanFromProductId(productId?: string) {
   const id = String(productId || "").trim();
   if (!id) return null;
+
+  if (id === APPLE_IAP_PRODUCT_IDS.lifetime) {
+    return "LIFETIME";
+  }
 
   if (id === APPLE_IAP_PRODUCT_IDS.vip.monthly || id === APPLE_IAP_PRODUCT_IDS.vip.yearly) {
     return "VIP";
@@ -99,6 +105,7 @@ export function bestApplePlanFromProductIds(productIds: string[] = []) {
     .map((id) => applePlanFromProductId(id))
     .filter(Boolean) as string[];
 
+  if (plans.includes("LIFETIME")) return "LIFETIME";
   if (plans.includes("VIP")) return "VIP";
   if (plans.includes("PRO")) return "PRO";
   if (plans.includes("BASIC")) return "BASIC";
