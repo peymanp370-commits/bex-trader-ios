@@ -1,28 +1,24 @@
 import { Capacitor, registerPlugin } from "@capacitor/core";
 
-type AppleProduct = {
+export type AppleProduct = {
   productId: string;
   displayName?: string;
   description?: string;
   price?: string;
 };
 
-type AppleEntitlement = {
+export type AppleEntitlement = {
   productId: string;
   transactionId?: string;
   originalTransactionId?: string;
   purchaseDateMs?: number;
   expirationDateMs?: number | null;
   isUpgraded?: boolean;
+  signedTransactionInfo?: string;
 };
 
-type ApplePurchaseResult = {
+export type ApplePurchaseResult = AppleEntitlement & {
   ok?: boolean;
-  productId?: string;
-  transactionId?: string;
-  originalTransactionId?: string;
-  purchaseDateMs?: number;
-  expirationDateMs?: number | null;
   environment?: string;
   verification?: string;
   reason?: string;
@@ -33,8 +29,8 @@ type ApplePurchaseResult = {
 type AppleIAPPlugin = {
   getProducts(options: { productIds: string[] }): Promise<{ ok: boolean; products: AppleProduct[] }>;
   purchase(options: { productId: string }): Promise<ApplePurchaseResult>;
-  restorePurchases(): Promise<{ ok: boolean; entitlements: AppleEntitlement[]; productIds: string[] }>;
-  getActiveEntitlements(): Promise<{ ok: boolean; entitlements: AppleEntitlement[]; productIds: string[] }>;
+  restorePurchases(): Promise<{ ok: boolean; entitlements: AppleEntitlement[]; productIds: string[]; restored?: string[] }>;
+  getActiveEntitlements(): Promise<{ ok: boolean; entitlements: AppleEntitlement[]; productIds: string[]; subscriptions?: string[] }>;
 };
 
 const AppleIAP = registerPlugin<AppleIAPPlugin>("AppleIAP");

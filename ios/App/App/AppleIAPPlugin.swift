@@ -95,11 +95,12 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
             do {
                 try await AppStore.sync()
                 let entitlements = await currentEntitlementPayloads()
+                let productIds = entitlements.compactMap { $0["productId"] as? String }
                 call.resolve([
                     "ok": true,
                     "entitlements": entitlements,
-                    "productIds": entitlements.compactMap { $0["productId"] as? String },
-                    "restored": entitlements.compactMap { $0["productId"] as? String }
+                    "productIds": productIds,
+                    "restored": productIds
                 ])
             } catch {
                 call.reject("Restore purchases failed: \(error.localizedDescription)")
@@ -115,11 +116,12 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
 
         Task {
             let entitlements = await currentEntitlementPayloads()
+            let productIds = entitlements.compactMap { $0["productId"] as? String }
             call.resolve([
                 "ok": true,
                 "entitlements": entitlements,
-                "productIds": entitlements.compactMap { $0["productId"] as? String },
-                "subscriptions": entitlements.compactMap { $0["productId"] as? String }
+                "productIds": productIds,
+                "subscriptions": productIds
             ])
         }
     }
@@ -146,7 +148,8 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
             "transactionId": String(transaction.id),
             "originalTransactionId": String(transaction.originalID),
             "purchaseDateMs": Int(transaction.purchaseDate.timeIntervalSince1970 * 1000),
-            "isUpgraded": transaction.isUpgraded
+            "isUpgraded": transaction.isUpgraded,
+            "signedTransactionInfo": transaction.jwsRepresentation
         ]
 
         if let expirationDate = transaction.expirationDate {

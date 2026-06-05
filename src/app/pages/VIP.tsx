@@ -11,6 +11,7 @@ import {
   restoreApplePurchases,
   startAppleIapPurchase,
 } from "../utils/appleIap";
+import { restoreApplePurchaseWithServer, syncApplePurchaseWithServer } from "../utils/api";
 
 export function VIP() {
   const [showMenu, setShowMenu] = useState(false);
@@ -30,9 +31,12 @@ export function VIP() {
   type PlanMeta = { id: PlanId; name: string; cycle: BillingCycle; rank: number };
   type AppleEntitlementItem = {
     productId: string;
+    transactionId?: string;
+    originalTransactionId?: string;
     purchaseDateMs?: number;
     expirationDateMs?: number | null;
     isUpgraded?: boolean;
+    signedTransactionInfo?: string;
   };
 
   const PLAN_META_BY_PRODUCT_ID: Record<string, PlanMeta> = {
@@ -55,10 +59,17 @@ export function VIP() {
     return `${planName} ${cycle === "monthly" ? "Monthly" : "Yearly"}`;
   };
 
-  const saveAppleEntitlement = (meta: PlanMeta, productId: string, transactionId = "") => {
-    localStorage.setItem("userPlan", meta.name);
-    localStorage.setItem("appleProductId", productId);
-    localStorage.setItem("appleBillingCycle", meta.cycle);
+  const applyServerBillingState = (payload: any) => {
+    const appPlan = String(payload?.app_plan || payload?.user?.plan || payload?.plan || "").trim();
+    const displayPlan = String(payload?.display_plan || payload?.plan || appPlan || "").trim();
+    const productId = String(payload?.product_id || "").trim();
+    const billing = String(payload?.billing || "").trim();
+    const transactionId = String(payload?.transaction_id || "").trim();
+
+    if (displayPlan) localStorage.setItem("userPlan", displayPlan.toUpperCase());
+    if (appPlan) localStorage.setItem("serverPlan", appPlan);
+    if (productId) localStorage.setItem("appleProductId", productId);
+    if (billing) localStorage.setItem("appleBillingCycle", billing);
     if (transactionId) localStorage.setItem("appleTransactionId", transactionId);
     window.dispatchEvent(new Event("storage"));
   };
@@ -69,9 +80,12 @@ export function VIP() {
       return direct
         .map((item: any) => ({
           productId: String(item?.productId || item?.productID || "").trim(),
+          transactionId: String(item?.transactionId || item?.transactionID || "").trim(),
+          originalTransactionId: String(item?.originalTransactionId || item?.originalTransactionID || "").trim(),
           purchaseDateMs: Number(item?.purchaseDateMs || 0) || 0,
           expirationDateMs: item?.expirationDateMs == null ? null : Number(item.expirationDateMs),
           isUpgraded: item?.isUpgraded === true,
+          signedTransactionInfo: String(item?.signedTransactionInfo || "").trim(),
         }))
         .filter((item: AppleEntitlementItem) => !!item.productId && !item.isUpgraded);
     }
@@ -84,26 +98,9 @@ export function VIP() {
     return Array.from(new Set(ids.map((id: any) => String(id || "").trim()).filter(Boolean))).map((productId) => ({ productId }));
   };
 
-  const bestEntitlementFromItems = (items: AppleEntitlementItem[] = []) => {
-    const mapped = items
-      .map((item) => ({ ...item, meta: productMeta(item.productId) }))
-      .filter((item): item is AppleEntitlementItem & { meta: PlanMeta } => !!item.meta);
-
-    if (!mapped.length) return null;
-
-    // Prefer the most recent StoreKit entitlement. This prevents an old lifetime sandbox
-    // purchase from overriding a newer active PRO/VIP subscription during Restore.
-    return mapped.sort((a, b) => {
-      const ap = Number(a.purchaseDateMs || 0);
-      const bp = Number(b.purchaseDateMs || 0);
-      if (bp !== ap) return bp - ap;
-      return b.meta.rank - a.meta.rank;
-    })[0];
-  };
-
   const isRecentApplePurchase = (purchaseDateMs?: number | null) => {
     const ts = Number(purchaseDateMs || 0);
-    if (!Number.isFinite(ts) || ts <= 0) return true; // Older plugin fallback.
+    if (!Number.isFinite(ts) || ts <= 0) return true;
     return Math.abs(Date.now() - ts) <= 5 * 60 * 1000;
   };
 
@@ -309,9 +306,7 @@ export function VIP() {
 
       const purchasedProductId = String(result.productId || "").trim();
       if (purchasedProductId !== productId) {
-        alert(
-          `Apple confirmed ${purchasedProductId || "another product"}, not ${productId}. Your plan was not changed. Please use Restore Purchases or try again.`
-        );
+        alert(`Apple confirmed ${purchasedProductId || "another product"}, not ${productId}. Your plan was not changed.`);
         return;
       }
 
@@ -320,7 +315,21 @@ export function VIP() {
         return;
       }
 
-      saveAppleEntitlement(expectedMeta, productId, result.transactionId || "");
+      const server = await syncApplePurchaseWithServer({
+        source: "purchase",
+        productId,
+        transactionId: result.transactionId || "",
+        originalTransactionId: result.originalTransactionId || "",
+        purchaseDateMs: result.purchaseDateMs || Date.now(),
+        expirationDateMs: result.expirationDateMs ?? null,
+        signedTransactionInfo: result.signedTransactionInfo || "",
+      });
+
+      if (!server?.ok) {
+        throw new Error(server?.message || "Apple purchase was not accepted by BEX billing server.");
+      }
+
+      applyServerBillingState(server);
       alert(subscribedMessage(selectedPlanLabel(expectedMeta.name, expectedMeta.cycle)));
       navigate("/app");
     } catch (e: any) {
@@ -344,22 +353,26 @@ export function VIP() {
   const handleRestoreApplePurchases = async () => {
     try {
       const restored = await restoreApplePurchases();
-      if (!restored?.ok) throw new Error(restored?.message || restored?.error || "Restore failed");
+      if (!restored?.ok) throw new Error((restored as any)?.message || (restored as any)?.error || "Restore failed");
 
       const active = await getAppleActiveEntitlements();
-      const items = [
+      const entitlements = [
         ...normalizeAppleEntitlementItems(active),
         ...normalizeAppleEntitlementItems(restored),
       ];
-      const best = bestEntitlementFromItems(items);
 
-      if (!best) {
+      if (!entitlements.length) {
         alert("No active Apple purchase was found for this Apple ID.");
         return;
       }
 
-      saveAppleEntitlement(best.meta, best.productId);
-      alert(subscribedMessage(selectedPlanLabel(best.meta.name, best.meta.cycle)));
+      const server = await restoreApplePurchaseWithServer({ entitlements });
+      if (!server?.ok) {
+        throw new Error(server?.message || "Restore was not accepted by BEX billing server.");
+      }
+
+      applyServerBillingState(server);
+      alert(subscribedMessage(server.display_plan || server.plan || "Apple"));
       navigate("/app");
     } catch (e: any) {
       const rawMessage = String(e?.message || e?.error || e || "");
@@ -538,19 +551,6 @@ export function VIP() {
             {t({ en: "Yearly (Save up to 30%)", fa: "سالانه (تا ۳۰٪ صرفه‌جویی)", ar: "سنوي (وفر حتى 30%)", es: "Anual (ahorra hasta 30%)", "pt-BR": "Anual (economize até 30%)", hi: "वार्षिक (30% तक बचत)", tr: "Yıllık (%30’a kadar tasarruf)", de: "Jährlich (bis zu 30% sparen)", fr: "Annuel (économisez jusqu’à 30 %)", zh: "年付（最多节省30%）", ko: "연간 (최대 30% 절약)" })}
           </button>
         </div>
-
-        {isIOSInstalledApp() && (
-          <button
-            onClick={handleRestoreApplePurchases}
-            className={`w-full rounded-xl border py-3 font-bold transition-all ${
-              darkMode
-                ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
-                : "border-yellow-500/40 bg-yellow-50 text-yellow-700"
-            }`}
-          >
-            Restore Purchases
-          </button>
-        )}
 
         {plans.map((plan) => (
           <div
