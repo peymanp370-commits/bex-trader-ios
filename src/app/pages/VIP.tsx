@@ -11,7 +11,7 @@ import {
   restoreApplePurchases,
   startAppleIapPurchase,
 } from "../utils/appleIap";
-import { restoreApplePurchaseWithServer, syncApplePurchaseWithServer } from "../utils/api";
+import { fetchAppleBillingStatus, restoreApplePurchaseWithServer, syncApplePurchaseWithServer } from "../utils/api";
 
 export function VIP() {
   const [showMenu, setShowMenu] = useState(false);
@@ -59,19 +59,62 @@ export function VIP() {
     return `${planName} ${cycle === "monthly" ? "Monthly" : "Yearly"}`;
   };
 
+  const normalizePlanForStorage = (value: string) => {
+    const compact = String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    if (!compact) return "";
+    if (compact.includes("lifetime")) return "LIFETIME";
+    if (compact.includes("vip")) return "VIP_AUTO";
+    if (compact.includes("pro")) return "PRO";
+    if (compact.includes("basic")) return "BASIC";
+    if (compact.includes("free")) return "FREE";
+    return compact.toUpperCase();
+  };
+
+  const emitBillingStateChanged = () => {
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new Event("bexPlanChanged"));
+  };
+
   const applyServerBillingState = (payload: any) => {
     const appPlan = String(payload?.app_plan || payload?.user?.plan || payload?.plan || "").trim();
-    const displayPlan = String(payload?.display_plan || payload?.plan || appPlan || "").trim();
+    const billingPlan = String(payload?.billing_record?.plan || payload?.plan || appPlan || "").trim();
+    const displayPlan = String(payload?.display_plan || billingPlan || appPlan || "").trim();
     const productId = String(payload?.product_id || "").trim();
-    const billing = String(payload?.billing || "").trim();
+    const billing = String(payload?.billing || payload?.billing_record?.billing || "").trim();
     const transactionId = String(payload?.transaction_id || "").trim();
+    const storagePlan = normalizePlanForStorage(appPlan || displayPlan || billingPlan);
 
-    if (displayPlan) localStorage.setItem("userPlan", displayPlan.toUpperCase());
+    if (storagePlan) {
+      localStorage.setItem("userPlan", storagePlan);
+      localStorage.setItem("activePlan", storagePlan);
+      localStorage.setItem("subscription_plan", storagePlan);
+      localStorage.setItem("plan", storagePlan);
+      localStorage.setItem("bex_user_plan", storagePlan);
+      localStorage.setItem("bex_plan", storagePlan);
+    }
     if (appPlan) localStorage.setItem("serverPlan", appPlan);
+    if (displayPlan) localStorage.setItem("displayPlan", displayPlan.toUpperCase());
     if (productId) localStorage.setItem("appleProductId", productId);
     if (billing) localStorage.setItem("appleBillingCycle", billing);
     if (transactionId) localStorage.setItem("appleTransactionId", transactionId);
-    window.dispatchEvent(new Event("storage"));
+    if (payload?.user) {
+      try {
+        localStorage.setItem("user", JSON.stringify(payload.user));
+        localStorage.setItem("bex_user", JSON.stringify(payload.user));
+      } catch {}
+    }
+    emitBillingStateChanged();
+  };
+
+  const refreshAppleBillingStatus = async () => {
+    try {
+      const status = await fetchAppleBillingStatus();
+      if (status?.ok) {
+        applyServerBillingState(status);
+        return status;
+      }
+    } catch {}
+    return null;
   };
 
   const normalizeAppleEntitlementItems = (payload: any): AppleEntitlementItem[] => {
@@ -118,6 +161,12 @@ export function VIP() {
   }, []);
 
 
+  useEffect(() => {
+    if (!shouldShowAppleRestore()) return;
+    refreshAppleBillingStatus();
+  }, []);
+
+
   const isAndroidInstalledApp = () => {
     const ua = navigator.userAgent || "";
     const isAndroid = /Android/i.test(ua);
@@ -129,6 +178,15 @@ export function VIP() {
   };
 
   const isIOSInstalledApp = () => isNativeIOSApp();
+
+  const shouldShowAppleRestore = () => {
+    const ua = navigator.userAgent || "";
+    const isIOSBrowser = /iPad|iPhone|iPod/i.test(ua);
+    const isStandalone =
+      window.matchMedia?.("(display-mode: standalone)")?.matches ||
+      (navigator as any).standalone === true;
+    return isNativeIOSApp() || isIOSBrowser || isStandalone;
+  };
 
   const checkoutPlanId = (planId: string) => {
     // Stripe / web checkout IDs used by Checkout.tsx
@@ -306,12 +364,14 @@ export function VIP() {
 
       const purchasedProductId = String(result.productId || "").trim();
       if (purchasedProductId !== productId) {
-        alert(`Apple confirmed ${purchasedProductId || "another product"}, not ${productId}. Your plan was not changed.`);
+        await refreshAppleBillingStatus();
+        alert(`Apple confirmed ${purchasedProductId || "another product"}, not ${productId}. Your plan was not changed. Your current Apple plan was refreshed instead.`);
         return;
       }
 
       if (!isRecentApplePurchase(result.purchaseDateMs)) {
-        alert("Apple returned an older purchase record. Your plan was not changed. Please use Restore Purchases.");
+        await refreshAppleBillingStatus();
+        alert("Apple returned an older purchase record. Your plan was not changed. Use Restore Purchases if Apple already changed your subscription.");
         return;
       }
 
@@ -330,6 +390,7 @@ export function VIP() {
       }
 
       applyServerBillingState(server);
+      await refreshAppleBillingStatus();
       alert(subscribedMessage(selectedPlanLabel(expectedMeta.name, expectedMeta.cycle)));
       navigate("/app");
     } catch (e: any) {
@@ -372,6 +433,7 @@ export function VIP() {
       }
 
       applyServerBillingState(server);
+      await refreshAppleBillingStatus();
       alert(subscribedMessage(server.display_plan || server.plan || "Apple"));
       navigate("/app");
     } catch (e: any) {
@@ -551,6 +613,16 @@ export function VIP() {
             {t({ en: "Yearly (Save up to 30%)", fa: "سالانه (تا ۳۰٪ صرفه‌جویی)", ar: "سنوي (وفر حتى 30%)", es: "Anual (ahorra hasta 30%)", "pt-BR": "Anual (economize até 30%)", hi: "वार्षिक (30% तक बचत)", tr: "Yıllık (%30’a kadar tasarruf)", de: "Jährlich (bis zu 30% sparen)", fr: "Annuel (économisez jusqu’à 30 %)", zh: "年付（最多节省30%）", ko: "연간 (최대 30% 절약)" })}
           </button>
         </div>
+
+        {shouldShowAppleRestore() && (
+          <button
+            type="button"
+            onClick={handleRestoreApplePurchases}
+            className={`${darkMode ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-300" : "border-yellow-400 bg-yellow-50 text-yellow-800"} w-full rounded-2xl border px-4 py-3 text-sm font-extrabold shadow-sm`}
+          >
+            Restore Purchases
+          </button>
+        )}
 
         {plans.map((plan) => (
           <div

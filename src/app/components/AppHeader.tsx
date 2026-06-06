@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ArrowLeft, Menu, Moon, Settings, Sun, UserCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import bexLogoTransparent from "../../assets/bex-brand-logo.png";
@@ -249,8 +249,25 @@ export function AppHeader({
 }: AppHeaderProps) {
   const navigate = useNavigate();
   const darkMode = typeof darkModeProp === "boolean" ? darkModeProp : readDarkMode(true);
+  const [headerVersion, setHeaderVersion] = useState(0);
+
+  useEffect(() => {
+    const refreshHeader = () => setHeaderVersion((v) => v + 1);
+    window.addEventListener("storage", refreshHeader);
+    window.addEventListener("bexPlanChanged", refreshHeader);
+    window.addEventListener("themeChange", refreshHeader);
+    window.addEventListener("focus", refreshHeader);
+    return () => {
+      window.removeEventListener("storage", refreshHeader);
+      window.removeEventListener("bexPlanChanged", refreshHeader);
+      window.removeEventListener("themeChange", refreshHeader);
+      window.removeEventListener("focus", refreshHeader);
+    };
+  }, []);
+
   const savedName = cleanName(userName || readStoredName());
   const plan = readStoredPlan();
+  void headerVersion;
   // Force a consistent account identity line on every app header.
   // Settings was passing showUser={false}, which hid the name and left only the plan badge.
   // Keep the prop for compatibility, but never hide the identity line when this shared header is used.
