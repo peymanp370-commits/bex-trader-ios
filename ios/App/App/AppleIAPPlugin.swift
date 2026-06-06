@@ -149,7 +149,7 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
             "originalTransactionId": String(transaction.originalID),
             "purchaseDateMs": Int(transaction.purchaseDate.timeIntervalSince1970 * 1000),
             "isUpgraded": transaction.isUpgraded,
-            "signedTransactionInfo": transaction.jwsRepresentation
+            "signedTransactionInfo": ""
         ]
 
         if let expirationDate = transaction.expirationDate {
