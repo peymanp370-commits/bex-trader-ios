@@ -21,6 +21,10 @@ export type ApplePurchaseResult = AppleEntitlement & {
   ok?: boolean;
   environment?: string;
   verification?: string;
+  requestedProductId?: string;
+  matchedRequestedProduct?: boolean;
+  entitlements?: AppleEntitlement[];
+  productIds?: string[];
   reason?: string;
   error?: string;
   message?: string;
