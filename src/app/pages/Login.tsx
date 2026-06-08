@@ -7,6 +7,7 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { Eye, EyeOff } from "lucide-react";
 import logoImage from "../../assets/bex-brand-logo.png";
 import { clearLocalAuthState } from "../utils/api";
+import { getAppleActiveEntitlements, isNativeIOSApp } from "../utils/appleIap";
 
 const AUTH_BASE =
   import.meta.env.VITE_API_URL || "https://auth.bextrader.com";
@@ -36,6 +37,45 @@ async function clearServerAuthSession() {
 async function resetAuthForFreshSignIn() {
   clearLocalAuthState();
   await clearServerAuthSession();
+}
+
+
+type ApplePlanMeta = { productId: string; plan: string; billing: string; rank: number; label: string };
+
+const APPLE_LOGIN_PLAN_BY_PRODUCT: Record<string, ApplePlanMeta> = {
+  basic_monthly_v4: { productId: "basic_monthly_v4", plan: "BASIC", billing: "monthly", rank: 1, label: "BASIC" },
+  basic_yearly_v4: { productId: "basic_yearly_v4", plan: "BASIC", billing: "yearly", rank: 1, label: "BASIC" },
+  pro_monthly_v4: { productId: "pro_monthly_v4", plan: "PRO", billing: "monthly", rank: 2, label: "PRO" },
+  pro_yearly_v4: { productId: "pro_yearly_v4", plan: "PRO", billing: "yearly", rank: 2, label: "PRO" },
+  vip_monthly_v4: { productId: "vip_monthly_v4", plan: "VIP_AUTO", billing: "monthly", rank: 3, label: "VIP AUTO" },
+  vip_yearly_v4: { productId: "vip_yearly_v4", plan: "VIP_AUTO", billing: "yearly", rank: 3, label: "VIP AUTO" },
+  vip_lifetime: { productId: "vip_lifetime", plan: "LIFETIME", billing: "lifetime", rank: 4, label: "LIFETIME" },
+};
+
+async function hydrateAppleEntitlementsAfterLogin() {
+  if (!isNativeIOSApp()) return;
+  try {
+    const active = await getAppleActiveEntitlements();
+    const entitlements = Array.isArray(active?.entitlements) ? active.entitlements : [];
+    const productIds = [
+      ...entitlements.map((item: any) => String(item?.productId || "").trim()),
+      ...(Array.isArray(active?.productIds) ? active.productIds.map((id: any) => String(id || "").trim()) : []),
+      ...(Array.isArray(active?.subscriptions) ? active.subscriptions.map((id: any) => String(id || "").trim()) : []),
+    ];
+    const best = productIds
+      .map((productId) => APPLE_LOGIN_PLAN_BY_PRODUCT[productId])
+      .filter(Boolean)
+      .sort((a, b) => b.rank - a.rank)[0];
+    if (!best) return;
+    localStorage.setItem("userPlan", best.plan);
+    localStorage.setItem("serverPlan", best.plan === "VIP_AUTO" ? "vip_auto" : best.plan.toLowerCase());
+    localStorage.setItem("appleProductId", best.productId);
+    localStorage.setItem("appleBillingCycle", best.billing);
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new Event("bexPlanChanged"));
+  } catch {
+    // Silent login hydration only. Manual Restore Purchases remains available on the VIP page.
+  }
 }
 
 
@@ -723,32 +763,6 @@ export function Login() {
       resultUser?.email ||
       "Trader";
 
-    const userId = String(resultUser?.id || resultUser?.user_id || resultUser?.userId || "").trim();
-    const userEmail = String(resultUser?.email || fallbackIdentity || "").trim().toLowerCase();
-    const safePlan = String(resultUser?.plan || "free").trim() || "free";
-
-    [
-      "activePlan",
-      "bex_active_plan",
-      "subscription_plan",
-      "bex_subscription_plan",
-      "entitlement",
-      "bex_entitlement",
-      "plan",
-      "bex_plan",
-      "subscription",
-      "bex_subscription",
-      "tier",
-      "bex_tier",
-      "serverPlan",
-      "displayPlan",
-      "appleProductId",
-      "appleBillingCycle",
-      "appleTransactionId",
-      "bex_plan_scope_user_id",
-      "bex_plan_scope_email",
-    ].forEach((key) => localStorage.removeItem(key));
-
     localStorage.setItem(
       "userTimezone",
       resultUser?.timezone ||
@@ -758,22 +772,11 @@ export function Login() {
     localStorage.setItem("userCountry", resultUser?.country || "Unknown");
     localStorage.setItem("userFirstName", resultUser?.first_name || "");
     localStorage.setItem("userLastName", resultUser?.last_name || "");
-    localStorage.setItem("userEmail", userEmail || fallbackIdentity);
+    localStorage.setItem("userEmail", resultUser?.email || fallbackIdentity);
     localStorage.setItem("userName", displayName);
-    localStorage.setItem("userPlan", safePlan);
-    localStorage.setItem("bex_user_plan", safePlan);
-    if (userId) localStorage.setItem("bex_plan_scope_user_id", userId);
-    if (userEmail) localStorage.setItem("bex_plan_scope_email", userEmail);
-
-    try {
-      const userForStorage = { ...(resultUser || {}), plan: safePlan };
-      localStorage.setItem("user", JSON.stringify(userForStorage));
-      localStorage.setItem("bex_user", JSON.stringify(userForStorage));
-    } catch {}
-
+    localStorage.setItem("userPlan", resultUser?.plan || "free");
     saveAccountProfileToLocalStorage(resultUser || {});
     window.dispatchEvent(new Event("storage"));
-    window.dispatchEvent(new Event("bexPlanChanged"));
   };
 
   const handleNativeAuthCallback = async (rawUrl: string) => {
@@ -805,6 +808,7 @@ export function Login() {
       };
       saveUserToLocalStorage(nativeUser, email || "Trader");
       if (email) await hydrateAccountProfile(email);
+      await hydrateAppleEntitlementsAfterLogin();
       window.dispatchEvent(new Event("storage"));
       return true;
     }
@@ -1008,6 +1012,7 @@ export function Login() {
 
     saveUserToLocalStorage(user, user?.email || email || "Trader");
     await hydrateAccountProfile(user?.email || email || appleUserId);
+    await hydrateAppleEntitlementsAfterLogin();
     window.dispatchEvent(new Event("storage"));
     navigate("/app", { replace: true });
   };
@@ -1168,6 +1173,7 @@ export function Login() {
 
     saveUserToLocalStorage(user, user?.email || email || "Trader");
     await hydrateAccountProfile(user?.email || email);
+    await hydrateAppleEntitlementsAfterLogin();
     window.dispatchEvent(new Event("storage"));
     navigate("/app", { replace: true });
   };

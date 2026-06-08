@@ -31,6 +31,7 @@ export function VIP() {
   type AppleEntitlementItem = {
     productId: string;
     transactionId?: string;
+    originalTransactionId?: string;
     purchaseDateMs?: number;
     expirationDateMs?: number | null;
     isUpgraded?: boolean;
@@ -46,22 +47,19 @@ export function VIP() {
     vip_lifetime: { id: "lifetime", name: "LIFETIME", cycle: "lifetime", rank: 4 },
   };
 
+  const PLAN_RANK_BY_NAME: Record<string, PlanMeta> = {
+    BASIC: { id: "basic", name: "BASIC", cycle: "monthly", rank: 1 },
+    PRO: { id: "pro", name: "PRO", cycle: "monthly", rank: 2 },
+    VIP: { id: "vip", name: "VIP", cycle: "monthly", rank: 3 },
+    VIP_AUTO: { id: "vip", name: "VIP", cycle: "monthly", rank: 3 },
+    LIFETIME: { id: "lifetime", name: "LIFETIME", cycle: "lifetime", rank: 4 },
+  };
+
   const productMeta = (productId?: string | null) => PLAN_META_BY_PRODUCT_ID[String(productId || "").trim()] || null;
 
   const selectedPlanLabel = (planName: string, cycle: BillingCycle) => {
     if (cycle === "lifetime") return `${planName} Lifetime`;
     return `${planName} ${cycle === "monthly" ? "Monthly" : "Yearly"}`;
-  };
-
-  const saveAppleEntitlement = (meta: PlanMeta, productId: string, transactionId = "") => {
-    localStorage.setItem("userPlan", meta.name);
-    localStorage.setItem("activePlan", meta.name);
-    localStorage.setItem("subscription_plan", meta.id === "vip" ? "vip_auto" : meta.id);
-    localStorage.setItem("appleProductId", productId);
-    localStorage.setItem("appleBillingCycle", meta.cycle);
-    if (transactionId) localStorage.setItem("appleTransactionId", transactionId);
-    window.dispatchEvent(new Event("bexPlanChanged"));
-    window.dispatchEvent(new Event("storage"));
   };
 
   const normalizeAppleEntitlementItems = (payload: any): AppleEntitlementItem[] => {
@@ -70,7 +68,8 @@ export function VIP() {
       return direct
         .map((item: any) => ({
           productId: String(item?.productId || item?.productID || "").trim(),
-          transactionId: String(item?.transactionId || "").trim(),
+          transactionId: String(item?.transactionId || item?.transactionID || "").trim(),
+          originalTransactionId: String(item?.originalTransactionId || item?.originalTransactionID || "").trim(),
           purchaseDateMs: Number(item?.purchaseDateMs || 0) || 0,
           expirationDateMs: item?.expirationDateMs == null ? null : Number(item.expirationDateMs),
           isUpgraded: item?.isUpgraded === true,
@@ -82,57 +81,58 @@ export function VIP() {
       ...(Array.isArray(payload?.productIds) ? payload.productIds : []),
       ...(Array.isArray(payload?.subscriptions) ? payload.subscriptions : []),
       ...(Array.isArray(payload?.restored) ? payload.restored : []),
-      payload?.productId,
     ];
     return Array.from(new Set(ids.map((id: any) => String(id || "").trim()).filter(Boolean))).map((productId) => ({ productId }));
   };
 
-  const entitlementWithMeta = (items: AppleEntitlementItem[] = []) =>
-    items
-      .map((item) => ({ ...item, meta: productMeta(item.productId) }))
-      .filter((item): item is AppleEntitlementItem & { meta: PlanMeta } => !!item.meta && !item.isUpgraded);
-
-  const sortByPlanStrength = <T extends AppleEntitlementItem & { meta: PlanMeta }>(items: T[]) =>
-    [...items].sort((a, b) => {
-      if (b.meta.rank !== a.meta.rank) return b.meta.rank - a.meta.rank;
-      const bp = Number(b.purchaseDateMs || 0);
-      const ap = Number(a.purchaseDateMs || 0);
-      return bp - ap;
-    });
-
-  const bestEntitlementFromItems = (items: AppleEntitlementItem[] = []) => {
-    const mapped = entitlementWithMeta(items);
-    return mapped.length ? sortByPlanStrength(mapped)[0] : null;
+  const bestEntitlementFromItems = (items: AppleEntitlementItem[]) => {
+    return items
+      .map((item) => ({ item, meta: productMeta(item.productId) }))
+      .filter((x): x is { item: AppleEntitlementItem; meta: PlanMeta } => !!x.meta)
+      .sort((a, b) => {
+        if (b.meta.rank !== a.meta.rank) return b.meta.rank - a.meta.rank;
+        const bDate = Number(b.item.purchaseDateMs || 0);
+        const aDate = Number(a.item.purchaseDateMs || 0);
+        return bDate - aDate;
+      })[0] || null;
   };
 
-  const entitlementForProduct = (items: AppleEntitlementItem[] = [], productId: string) => {
-    const mapped = entitlementWithMeta(items).filter((item) => item.productId === productId);
-    return mapped.length ? sortByPlanStrength(mapped)[0] : null;
+  const readStoredPlanMeta = () => {
+    const productId = String(localStorage.getItem("appleProductId") || "").trim();
+    const fromProduct = productMeta(productId);
+    if (fromProduct) return { meta: fromProduct, productId };
+
+    const rawPlan = String(localStorage.getItem("userPlan") || localStorage.getItem("serverPlan") || "").trim();
+    const compact = rawPlan.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").toUpperCase();
+    const byName = PLAN_RANK_BY_NAME[compact] || (compact.includes("LIFETIME") ? PLAN_RANK_BY_NAME.LIFETIME : compact.includes("VIP") ? PLAN_RANK_BY_NAME.VIP_AUTO : compact.includes("PRO") ? PLAN_RANK_BY_NAME.PRO : compact.includes("BASIC") ? PLAN_RANK_BY_NAME.BASIC : null);
+    return byName ? { meta: byName, productId: "" } : null;
   };
 
-  const strongestEntitlementAtLeast = (items: AppleEntitlementItem[] = [], rank: number) => {
-    const mapped = entitlementWithMeta(items).filter((item) => item.meta.rank >= rank);
-    return mapped.length ? sortByPlanStrength(mapped)[0] : null;
-  };
-
-  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  const readAppleEntitlementsAfterPurchase = async (purchasePayload: any, selectedProductId: string) => {
-    const all: AppleEntitlementItem[] = [...normalizeAppleEntitlementItems(purchasePayload)];
-
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      try {
-        const active = await getAppleActiveEntitlements();
-        all.push(...normalizeAppleEntitlementItems(active));
-        if (entitlementForProduct(all, selectedProductId)) break;
-      } catch (_) {
-        // best effort
-      }
-      if (attempt < 3) await sleep(700);
+  const getActiveAppleBest = async () => {
+    if (!isIOSInstalledApp()) return null;
+    try {
+      const active = await getAppleActiveEntitlements();
+      return bestEntitlementFromItems(normalizeAppleEntitlementItems(active));
+    } catch {
+      return null;
     }
-
-    return all;
   };
+
+  const saveApplePlan = (meta: PlanMeta, productId: string, transactionId = "") => {
+    const userPlan = meta.id === "vip" ? "VIP_AUTO" : meta.name;
+    localStorage.setItem("userPlan", userPlan);
+    localStorage.setItem("serverPlan", meta.id === "vip" ? "vip_auto" : meta.id);
+    if (productId) localStorage.setItem("appleProductId", productId);
+    localStorage.setItem("appleBillingCycle", meta.cycle);
+    if (transactionId) localStorage.setItem("appleTransactionId", transactionId);
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new Event("bexPlanChanged"));
+  };
+
+  const alreadySubscribedMessage = (label: string) => `You are already subscribed to ${label}.`;
+  const lifetimeLockedMessage = () => "Lifetime is already active. Lower plans cannot replace Lifetime access.";
+  const keptExistingMessage = (current: PlanMeta, selected: PlanMeta) =>
+    `Apple kept your existing ${selectedPlanLabel(current.name, current.cycle)} plan active. Your selected ${selectedPlanLabel(selected.name, selected.cycle)} change may apply at renewal if Apple scheduled it.`;
 
   useEffect(() => {
     const handleThemeChange = () => {
@@ -311,19 +311,38 @@ export function VIP() {
   const startAppleInAppPurchase = async (plan: (typeof plans)[0]) => {
     const appleCycle: BillingCycle = plan.id === "lifetime" ? "lifetime" : billingCycle;
     const productId = appleProductIdForPlan(plan.id, appleCycle);
-
-    if (!productId) {
-      alert("Apple product id is missing for this plan.");
-      return;
-    }
-
     const expectedMeta = productMeta(productId);
-    if (!expectedMeta) {
-      alert("Apple product id is not mapped in the app.");
+
+    if (!productId || !expectedMeta) {
+      alert("Apple product id is missing or not mapped for this plan.");
       return;
     }
 
     try {
+      const activeBefore = await getActiveAppleBest();
+      const storedBefore = readStoredPlanMeta();
+      const currentBeforeMeta = activeBefore?.meta || storedBefore?.meta || null;
+      const currentBeforeProductId = activeBefore?.item?.productId || storedBefore?.productId || "";
+      const currentBeforeTx = activeBefore?.item?.transactionId || "";
+
+      if (currentBeforeMeta?.id === "lifetime") {
+        if (expectedMeta.id === "lifetime") {
+          alert(alreadySubscribedMessage(selectedPlanLabel(currentBeforeMeta.name, currentBeforeMeta.cycle)));
+        } else {
+          alert(lifetimeLockedMessage());
+        }
+        saveApplePlan(currentBeforeMeta, currentBeforeProductId || "vip_lifetime", currentBeforeTx);
+        navigate("/app");
+        return;
+      }
+
+      if (currentBeforeProductId && currentBeforeProductId === productId) {
+        alert(alreadySubscribedMessage(selectedPlanLabel(expectedMeta.name, expectedMeta.cycle)));
+        saveApplePlan(expectedMeta, productId, currentBeforeTx);
+        navigate("/app");
+        return;
+      }
+
       const result = await startAppleIapPurchase(productId);
       if (!result?.ok) {
         if (result?.reason === "user_cancelled") return;
@@ -334,57 +353,44 @@ export function VIP() {
         throw new Error(result?.message || result?.error || "Apple purchase failed");
       }
 
-      const entitlements = await readAppleEntitlementsAfterPurchase(result, productId);
-      const exact = entitlementForProduct(entitlements, productId);
+      const purchasedProductId = String(result.productId || "").trim();
+      if (purchasedProductId !== productId) {
+        const activeAfterMismatch = await getActiveAppleBest();
+        if (activeAfterMismatch?.meta) {
+          saveApplePlan(activeAfterMismatch.meta, activeAfterMismatch.item.productId, activeAfterMismatch.item.transactionId || "");
+          alert(keptExistingMessage(activeAfterMismatch.meta, expectedMeta));
+          navigate("/app");
+          return;
+        }
+        alert(`Apple confirmed ${purchasedProductId || "another product"}, not ${productId}. Your plan was not changed.`);
+        return;
+      }
 
-      if (exact) {
-        saveAppleEntitlement(exact.meta, exact.productId, String(exact.transactionId || result.transactionId || ""));
-        alert(subscribedMessage(selectedPlanLabel(exact.meta.name, exact.meta.cycle)));
+      const activeAfter = await getActiveAppleBest();
+      if (activeAfter?.meta && activeAfter.meta.rank > expectedMeta.rank) {
+        saveApplePlan(activeAfter.meta, activeAfter.item.productId, activeAfter.item.transactionId || "");
+        alert(keptExistingMessage(activeAfter.meta, expectedMeta));
         navigate("/app");
         return;
       }
 
-      const strongest = strongestEntitlementAtLeast(entitlements, expectedMeta.rank);
-      if (strongest && strongest.meta.rank > expectedMeta.rank) {
-        saveAppleEntitlement(strongest.meta, strongest.productId, String(strongest.transactionId || ""));
-        alert(
-          `Apple kept your existing ${selectedPlanLabel(strongest.meta.name, strongest.meta.cycle)} plan active. ` +
-            `Your selected ${selectedPlanLabel(expectedMeta.name, expectedMeta.cycle)} change may apply at renewal if Apple scheduled it.`
-        );
+      if (activeAfter?.meta && activeAfter.meta.rank === expectedMeta.rank && activeAfter.item.productId !== productId) {
+        saveApplePlan(activeAfter.meta, activeAfter.item.productId, activeAfter.item.transactionId || "");
+        alert(keptExistingMessage(activeAfter.meta, expectedMeta));
         navigate("/app");
         return;
       }
 
-      const current = bestEntitlementFromItems(entitlements);
-      if (current) {
-        saveAppleEntitlement(current.meta, current.productId, String(current.transactionId || ""));
-        alert(
-          `Apple returned your existing ${selectedPlanLabel(current.meta.name, current.meta.cycle)} purchase, ` +
-            `not the selected ${selectedPlanLabel(expectedMeta.name, expectedMeta.cycle)} plan. ` +
-            `Your current Apple plan was refreshed. If you changed it in Apple's subscription sheet, reopen this page or use Restore Purchases after Apple finishes the change.`
-        );
-        navigate("/app");
-        return;
-      }
-
-      alert(
-        `Apple did not return an active entitlement for ${selectedPlanLabel(expectedMeta.name, expectedMeta.cycle)}. ` +
-          `Your plan was not changed. Please use Restore Purchases or try again.`
-      );
+      saveApplePlan(expectedMeta, productId, result.transactionId || "");
+      alert(subscribedMessage(selectedPlanLabel(expectedMeta.name, expectedMeta.cycle)));
+      navigate("/app");
     } catch (e: any) {
       const rawMessage = String(e?.message || e?.error || e || "");
-      const isProductConfigIssue =
-        rawMessage.toLowerCase().includes("product not found") ||
-        rawMessage.toLowerCase().includes("products not found") ||
-        rawMessage.toLowerCase().includes("not found");
-
-      if (isProductConfigIssue) {
-        alert(
-          "Apple subscriptions are not available yet for this build. Please check App Store Connect product IDs and subscription group."
-        );
+      const lower = rawMessage.toLowerCase();
+      if (lower.includes("product not found") || lower.includes("products not found") || lower.includes("not found")) {
+        alert("Apple subscriptions are not available yet for this build. Please check App Store Connect product IDs and subscription group.");
         return;
       }
-
       alert(`Apple purchase could not be completed. ${rawMessage || "Please try again."}`);
     }
   };
@@ -392,7 +398,7 @@ export function VIP() {
   const handleRestoreApplePurchases = async () => {
     try {
       const restored = await restoreApplePurchases();
-      if (!restored?.ok) throw new Error((restored as any)?.message || (restored as any)?.error || "Restore failed");
+      if (!restored?.ok) throw new Error(restored?.message || restored?.error || "Restore failed");
 
       const active = await getAppleActiveEntitlements();
       const best = bestEntitlementFromItems([
@@ -405,8 +411,8 @@ export function VIP() {
         return;
       }
 
-      saveAppleEntitlement(best.meta, best.productId, String(best.transactionId || ""));
-      alert(subscribedMessage(selectedPlanLabel(best.meta.name, best.meta.cycle)));
+      saveApplePlan(best.meta, best.item.productId, best.item.transactionId || "");
+      alert(`Restored ${selectedPlanLabel(best.meta.name, best.meta.cycle)}.`);
       navigate("/app");
     } catch (e: any) {
       const rawMessage = String(e?.message || e?.error || e || "");
@@ -589,10 +595,10 @@ export function VIP() {
         {isIOSInstalledApp() && (
           <button
             onClick={handleRestoreApplePurchases}
-            className={`w-full rounded-xl border py-3 font-bold transition-all ${
+            className={`w-full rounded-xl border px-4 py-3 text-sm font-bold transition-all ${
               darkMode
-                ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
-                : "border-yellow-500/40 bg-yellow-50 text-yellow-700"
+                ? "border-yellow-500/25 bg-yellow-500/5 text-yellow-400 hover:bg-yellow-500/10"
+                : "border-yellow-500/30 bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
             }`}
           >
             Restore Purchases

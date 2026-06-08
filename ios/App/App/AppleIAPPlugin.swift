@@ -62,33 +62,24 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
                 case .success(let verification):
                     switch verification {
                     case .verified(let transaction):
-                        await transaction.finish()
-
-                        let entitlements = await currentEntitlementPayloads()
-                        let productIds = entitlements.compactMap { $0["productId"] as? String }
-                        let selectedEntitlement = entitlements.first { ($0["productId"] as? String) == productId }
-                        var payload = selectedEntitlement ?? entitlementPayload(transaction)
+                        var payload = entitlementPayload(transaction)
                         payload["ok"] = true
                         payload["verification"] = "verified"
-                        payload["requestedProductId"] = productId
-                        payload["entitlements"] = entitlements
-                        payload["productIds"] = productIds
-                        payload["matchedRequestedProduct"] = ((payload["productId"] as? String) == productId)
+                        await transaction.finish()
                         call.resolve(payload)
                     case .unverified(let transaction, let error):
                         var payload = entitlementPayload(transaction)
                         payload["ok"] = false
                         payload["verification"] = "unverified"
-                        payload["requestedProductId"] = productId
                         payload["error"] = error.localizedDescription
                         call.resolve(payload)
                     }
                 case .userCancelled:
-                    call.resolve(["ok": false, "reason": "user_cancelled", "requestedProductId": productId])
+                    call.resolve(["ok": false, "reason": "user_cancelled"])
                 case .pending:
-                    call.resolve(["ok": false, "reason": "pending", "requestedProductId": productId])
+                    call.resolve(["ok": false, "reason": "pending"])
                 @unknown default:
-                    call.resolve(["ok": false, "reason": "unknown", "requestedProductId": productId])
+                    call.resolve(["ok": false, "reason": "unknown"])
                 }
             } catch {
                 call.reject("Apple purchase failed: \(error.localizedDescription)")

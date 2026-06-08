@@ -47,30 +47,6 @@ const LOCAL_AUTH_KEYS = [
   "isAuthenticated",
 ];
 
-const LOCAL_BILLING_PLAN_KEYS = [
-  "userPlan",
-  "bex_user_plan",
-  "activePlan",
-  "bex_active_plan",
-  "subscription_plan",
-  "bex_subscription_plan",
-  "entitlement",
-  "bex_entitlement",
-  "plan",
-  "bex_plan",
-  "subscription",
-  "bex_subscription",
-  "tier",
-  "bex_tier",
-  "serverPlan",
-  "displayPlan",
-  "appleProductId",
-  "appleBillingCycle",
-  "appleTransactionId",
-  "bex_plan_scope_user_id",
-  "bex_plan_scope_email",
-];
-
 export function getStoredRefreshToken(): string {
   try {
     return (
@@ -123,9 +99,8 @@ function expireCookie(name: string) {
 export function clearLocalAuthState() {
   try {
     LOCAL_AUTH_KEYS.forEach((key) => localStorage.removeItem(key));
-    LOCAL_BILLING_PLAN_KEYS.forEach((key) => localStorage.removeItem(key));
 
-    // Also clear common auth/billing-related keys without touching app preferences like language/theme.
+    // Also clear common auth-related keys without touching app preferences like language/theme.
     Object.keys(localStorage).forEach((key) => {
       const k = key.toLowerCase();
       if (
@@ -137,11 +112,6 @@ export function clearLocalAuthState() {
         k.includes("oauth") ||
         k.includes("google") ||
         k.includes("apple") ||
-        k.includes("billing") ||
-        k.includes("subscription") ||
-        k.includes("entitlement") ||
-        k === "plan" ||
-        k.endsWith("plan") ||
         k.includes("user") ||
         k.startsWith("bex_")
       ) {
@@ -209,34 +179,6 @@ export type AdminCustomersResponse = {
   ok: boolean;
   count: number;
   customers: Array<any>;
-};
-
-
-export type AppleBillingEntitlement = {
-  productId: string;
-  transactionId?: string;
-  originalTransactionId?: string;
-  purchaseDateMs?: number;
-  expirationDateMs?: number | null;
-  isUpgraded?: boolean;
-  signedTransactionInfo?: string;
-};
-
-export type AppleBillingSyncResponse = {
-  ok: boolean;
-  code?: string;
-  message?: string;
-  source?: "purchase" | "restore" | "status" | string;
-  product_id?: string;
-  transaction_id?: string | null;
-  original_transaction_id?: string | null;
-  plan?: string;
-  billing?: string;
-  app_plan?: string;
-  display_plan?: string;
-  user?: AuthUser | null;
-  billing_record?: any;
-  vip?: any;
 };
 
 export interface DashboardSignal {
@@ -1217,54 +1159,4 @@ export async function fetchAdminCustomers(): Promise<AdminCustomersResponse | nu
 
 export async function adminGenerateToken(payload: { email: string; mt5_account_login: string; server?: string; max_lot?: number; max_trades?: number; }): Promise<any> {
   return appApiRequest<any>("/api/admin/generate-token", { method: "POST", body: JSON.stringify(payload) }, 30000);
-}
-
-
-// ---------------- Apple IAP Billing V2 ----------------
-async function authApiRequest<T>(path: string, init: RequestInit = {}, timeoutMs = 30000): Promise<T | null> {
-  const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort("timeout"), timeoutMs);
-  try {
-    const response = await fetch(`${AUTH_BASE}${path}`, {
-      ...init,
-      credentials: "include",
-      cache: "no-store",
-      mode: "cors",
-      signal: controller.signal,
-      headers: {
-        accept: "application/json",
-        ...(init.body ? { "Content-Type": "application/json" } : {}),
-        ...authHeaders(),
-        ...(init.headers || {}),
-      },
-    });
-    const data = await safeJson<T>(response);
-    if (!response.ok) return (data as T) || null;
-    return data;
-  } catch (error) {
-    console.error("authApiRequest failed", path, error);
-    return null;
-  } finally {
-    window.clearTimeout(timeoutId);
-  }
-}
-
-export async function syncApplePurchaseWithServer(payload: AppleBillingEntitlement & { source?: "purchase" | "restore" }): Promise<AppleBillingSyncResponse | null> {
-  return authApiRequest<AppleBillingSyncResponse>(
-    "/api/apple/sync",
-    { method: "POST", body: JSON.stringify(payload) },
-    45000
-  );
-}
-
-export async function restoreApplePurchaseWithServer(payload: { entitlements: AppleBillingEntitlement[] }): Promise<AppleBillingSyncResponse | null> {
-  return authApiRequest<AppleBillingSyncResponse>(
-    "/api/apple/restore",
-    { method: "POST", body: JSON.stringify(payload) },
-    45000
-  );
-}
-
-export async function fetchAppleBillingStatus(): Promise<AppleBillingSyncResponse | null> {
-  return authApiRequest<AppleBillingSyncResponse>("/api/apple/status", {}, 30000);
 }
