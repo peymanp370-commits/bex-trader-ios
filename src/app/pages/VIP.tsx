@@ -4,14 +4,7 @@ import { useEffect, useState } from "react";
 import { SideMenu } from "../components/SideMenu";
 import { AppHeader } from "../components/AppHeader";
 import { getLanguage, tr, formatNumber } from "../utils/i18n";
-import {
-  appleProductIdForPlan,
-  getAppleActiveEntitlements,
-  isNativeIOSApp,
-  restoreApplePurchases,
-  startAppleIapPurchase,
-} from "../utils/appleIap";
-import { fetchAppleBillingStatus, restoreApplePurchaseWithServer, syncApplePurchaseWithServer } from "../utils/api";
+import { appleProductIdForPlan, isNativeIOSApp, startAppleIapPurchase } from "../utils/appleIap";
 
 export function VIP() {
   const [showMenu, setShowMenu] = useState(false);
@@ -25,171 +18,28 @@ export function VIP() {
 
   const t = (dict: Record<string, string>) => tr(lang, dict);
 
+  type BillingCycle = "monthly" | "yearly";
+  type ApplePlanMeta = { id: "basic" | "pro" | "vip"; name: string; rank: number };
 
-  type BillingCycle = "monthly" | "yearly" | "lifetime";
-  type PlanId = "basic" | "pro" | "vip" | "lifetime";
-  type PlanMeta = { id: PlanId; name: string; cycle: BillingCycle; rank: number };
-  type AppleEntitlementItem = {
-    productId: string;
-    transactionId?: string;
-    originalTransactionId?: string;
-    purchaseDateMs?: number;
-    expirationDateMs?: number | null;
-    isUpgraded?: boolean;
-    signedTransactionInfo?: string;
+  const APPLE_PLAN_META_BY_PRODUCT_ID: Record<string, ApplePlanMeta & { cycle: BillingCycle }> = {
+    basic_monthly_v4: { id: "basic", name: "BASIC", rank: 1, cycle: "monthly" },
+    basic_yearly_v4: { id: "basic", name: "BASIC", rank: 1, cycle: "yearly" },
+    pro_monthly_v4: { id: "pro", name: "PRO", rank: 2, cycle: "monthly" },
+    pro_yearly_v4: { id: "pro", name: "PRO", rank: 2, cycle: "yearly" },
+    vip_monthly_v4: { id: "vip", name: "VIP AUTO", rank: 3, cycle: "monthly" },
+    vip_yearly_v4: { id: "vip", name: "VIP AUTO", rank: 3, cycle: "yearly" },
   };
 
-  const PLAN_META_BY_PRODUCT_ID: Record<string, PlanMeta> = {
-    basic_monthly_v4: { id: "basic", name: "BASIC", cycle: "monthly", rank: 1 },
-    basic_yearly_v4: { id: "basic", name: "BASIC", cycle: "yearly", rank: 1 },
-    pro_monthly_v4: { id: "pro", name: "PRO", cycle: "monthly", rank: 2 },
-    pro_yearly_v4: { id: "pro", name: "PRO", cycle: "yearly", rank: 2 },
-    vip_monthly_v4: { id: "vip", name: "VIP", cycle: "monthly", rank: 3 },
-    vip_yearly_v4: { id: "vip", name: "VIP", cycle: "yearly", rank: 3 },
-    vip_lifetime: { id: "lifetime", name: "LIFETIME", cycle: "lifetime", rank: 4 },
-  };
+  const appleMetaForProductId = (productId: string) =>
+    APPLE_PLAN_META_BY_PRODUCT_ID[String(productId || "").trim()] || null;
 
-  const productMeta = (productId?: string | null) => {
-    const key = String(productId || "").trim();
-    return PLAN_META_BY_PRODUCT_ID[key] || null;
-  };
-
-  const selectedPlanLabel = (planName: string, cycle: BillingCycle) => {
-    if (cycle === "lifetime") return `${planName} Lifetime`;
-    return `${planName} ${cycle === "monthly" ? "Monthly" : "Yearly"}`;
-  };
-
-  const normalizePlanForStorage = (value: string) => {
-    const compact = String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
-    if (!compact) return "";
-    if (compact.includes("lifetime")) return "LIFETIME";
-    if (compact.includes("vip")) return "VIP_AUTO";
-    if (compact.includes("pro")) return "PRO";
-    if (compact.includes("basic")) return "BASIC";
-    if (compact.includes("free")) return "FREE";
-    return compact.toUpperCase();
-  };
-
-  const emitBillingStateChanged = () => {
-    window.dispatchEvent(new Event("storage"));
-    window.dispatchEvent(new Event("bexPlanChanged"));
-  };
-
-  const readCurrentUserIdentityForBilling = () => {
-    const parse = (key: string) => {
-      try {
-        const raw = localStorage.getItem(key);
-        if (!raw) return null;
-        const obj = JSON.parse(raw);
-        if (!obj || typeof obj !== "object") return null;
-        const nestedUser = obj.user && typeof obj.user === "object" ? obj.user : null;
-        const source = nestedUser || obj;
-        return {
-          id: String(source.id || source.user_id || source.userId || "").trim(),
-          email: String(source.email || source.user_email || source.username || "").trim().toLowerCase(),
-        };
-      } catch {
-        return null;
-      }
-    };
-
-    for (const key of ["user", "bex_user", "auth_user", "currentUser", "bex_current_user"]) {
-      const found = parse(key);
-      if (found?.id || found?.email) return found;
-    }
-
-    return {
-      id: "",
-      email: String(localStorage.getItem("bex_user_email") || localStorage.getItem("userEmail") || localStorage.getItem("email") || "").trim().toLowerCase(),
-    };
-  };
-
-  const applyServerBillingState = (payload: any) => {
-    const currentIdentity = readCurrentUserIdentityForBilling();
-    const serverUserId = String(payload?.user?.id || payload?.user_id || "").trim();
-    const serverEmail = String(payload?.user?.email || payload?.email || "").trim().toLowerCase();
-
-    if (
-      (currentIdentity.id && serverUserId && currentIdentity.id !== serverUserId) ||
-      (currentIdentity.email && serverEmail && currentIdentity.email !== serverEmail)
-    ) {
-      return;
-    }
-
-    const appPlan = String(payload?.app_plan || payload?.user?.plan || payload?.plan || "").trim();
-    const billingPlan = String(payload?.billing_record?.plan || payload?.plan || appPlan || "").trim();
-    const displayPlan = String(payload?.display_plan || billingPlan || appPlan || "").trim();
-    const productId = String(payload?.product_id || "").trim();
-    const billing = String(payload?.billing || payload?.billing_record?.billing || "").trim();
-    const transactionId = String(payload?.transaction_id || "").trim();
-    const storagePlan = normalizePlanForStorage(appPlan || displayPlan || billingPlan);
-    const scopedUserId = serverUserId || currentIdentity.id;
-    const scopedEmail = serverEmail || currentIdentity.email;
-
-    if (scopedUserId) localStorage.setItem("bex_plan_scope_user_id", scopedUserId);
-    if (scopedEmail) localStorage.setItem("bex_plan_scope_email", scopedEmail);
-
-    if (storagePlan) {
-      localStorage.setItem("userPlan", storagePlan);
-      localStorage.setItem("activePlan", storagePlan);
-      localStorage.setItem("subscription_plan", storagePlan);
-      localStorage.setItem("plan", storagePlan);
-      localStorage.setItem("bex_user_plan", storagePlan);
-      localStorage.setItem("bex_plan", storagePlan);
-    }
-    if (appPlan) localStorage.setItem("serverPlan", appPlan);
-    if (displayPlan) localStorage.setItem("displayPlan", displayPlan.toUpperCase());
-    if (productId) localStorage.setItem("appleProductId", productId);
-    if (billing) localStorage.setItem("appleBillingCycle", billing);
+  const applyApplePlanLocally = (meta: ApplePlanMeta, productId: string, transactionId = "") => {
+    localStorage.setItem("userPlan", meta.name);
+    localStorage.setItem("serverPlan", meta.id === "vip" ? "vip_auto" : meta.id);
+    localStorage.setItem("appleProductId", productId);
     if (transactionId) localStorage.setItem("appleTransactionId", transactionId);
-    if (payload?.user) {
-      try {
-        localStorage.setItem("user", JSON.stringify(payload.user));
-        localStorage.setItem("bex_user", JSON.stringify(payload.user));
-      } catch {}
-    }
-    emitBillingStateChanged();
-  };
-
-  const refreshAppleBillingStatus = async () => {
-    try {
-      const status = await fetchAppleBillingStatus();
-      if (status?.ok) {
-        applyServerBillingState(status);
-        return status;
-      }
-    } catch {}
-    return null;
-  };
-
-  const normalizeAppleEntitlementItems = (payload: any): AppleEntitlementItem[] => {
-    const direct = Array.isArray(payload?.entitlements) ? payload.entitlements : [];
-    if (direct.length > 0) {
-      return direct
-        .map((item: any) => ({
-          productId: String(item?.productId || item?.productID || "").trim(),
-          transactionId: String(item?.transactionId || item?.transactionID || "").trim(),
-          originalTransactionId: String(item?.originalTransactionId || item?.originalTransactionID || "").trim(),
-          purchaseDateMs: Number(item?.purchaseDateMs || 0) || 0,
-          expirationDateMs: item?.expirationDateMs == null ? null : Number(item.expirationDateMs),
-          isUpgraded: item?.isUpgraded === true,
-          signedTransactionInfo: String(item?.signedTransactionInfo || "").trim(),
-        }))
-        .filter((item: AppleEntitlementItem) => !!item.productId && !item.isUpgraded);
-    }
-
-    const ids = [
-      ...(Array.isArray(payload?.productIds) ? payload.productIds : []),
-      ...(Array.isArray(payload?.subscriptions) ? payload.subscriptions : []),
-      ...(Array.isArray(payload?.restored) ? payload.restored : []),
-    ];
-    return Array.from(new Set(ids.map((id: any) => String(id || "").trim()).filter(Boolean))).map((productId) => ({ productId }));
-  };
-
-  const isRecentApplePurchase = (purchaseDateMs?: number | null) => {
-    const ts = Number(purchaseDateMs || 0);
-    if (!Number.isFinite(ts) || ts <= 0) return true;
-    return Math.abs(Date.now() - ts) <= 5 * 60 * 1000;
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new CustomEvent("bexPlanChanged", { detail: { plan: meta.name, productId } }));
   };
 
   useEffect(() => {
@@ -206,12 +56,6 @@ export function VIP() {
   }, []);
 
 
-  useEffect(() => {
-    if (!shouldShowAppleRestore()) return;
-    refreshAppleBillingStatus();
-  }, []);
-
-
   const isAndroidInstalledApp = () => {
     const ua = navigator.userAgent || "";
     const isAndroid = /Android/i.test(ua);
@@ -223,15 +67,6 @@ export function VIP() {
   };
 
   const isIOSInstalledApp = () => isNativeIOSApp();
-
-  const shouldShowAppleRestore = () => {
-    const ua = navigator.userAgent || "";
-    const isIOSBrowser = /iPad|iPhone|iPod/i.test(ua);
-    const isStandalone =
-      window.matchMedia?.("(display-mode: standalone)")?.matches ||
-      (navigator as any).standalone === true;
-    return isNativeIOSApp() || isIOSBrowser || isStandalone;
-  };
 
   const checkoutPlanId = (planId: string) => {
     // Stripe / web checkout IDs used by Checkout.tsx
@@ -382,15 +217,18 @@ export function VIP() {
   };
 
   const startAppleInAppPurchase = async (plan: (typeof plans)[0]) => {
-    const appleCycle: BillingCycle = plan.id === "lifetime" ? "lifetime" : billingCycle;
-    const productId = appleProductIdForPlan(plan.id, appleCycle);
+    if (plan.id === "lifetime") {
+      alert("Lifetime purchase is not available on iOS yet. Please choose a monthly or yearly plan.");
+      return;
+    }
 
+    const productId = appleProductIdForPlan(plan.id, billingCycle);
     if (!productId) {
       alert("Apple product id is missing for this plan.");
       return;
     }
 
-    const expectedMeta = productMeta(productId);
+    const expectedMeta = appleMetaForProductId(productId);
     if (!expectedMeta) {
       alert("Apple product id is not mapped in the app.");
       return;
@@ -407,36 +245,23 @@ export function VIP() {
         throw new Error(result?.message || result?.error || "Apple purchase failed");
       }
 
-      const purchasedProductId = String(result.productId || "").trim();
-      if (purchasedProductId !== productId) {
-        await refreshAppleBillingStatus();
-        alert(`Apple confirmed ${purchasedProductId || "another product"}, not ${productId}. Your plan was not changed. Your current Apple plan was refreshed instead.`);
+      // Important: purchase() must be treated differently from restore().
+      // A purchase tap is only successful for this screen when StoreKit returns the
+      // same product the user selected. Do not scan currentEntitlements here, because
+      // Apple can still return an older active Basic/Pro entitlement during sandbox
+      // subscription changes. That old entitlement must not be used as the purchase result.
+      const confirmedProductId = String(result.productId || "").trim();
+      if (confirmedProductId && confirmedProductId !== productId) {
+        const currentMeta = appleMetaForProductId(confirmedProductId);
+        const currentName = currentMeta?.name || confirmedProductId;
+        alert(
+          `Apple returned your existing ${currentName} purchase, not the selected ${expectedMeta.name} plan. Your plan was not changed in the app. If you changed it in Apple's subscription sheet, reopen this page or use Restore Purchases after Apple finishes the change.`
+        );
         return;
       }
 
-      if (!isRecentApplePurchase(result.purchaseDateMs)) {
-        await refreshAppleBillingStatus();
-        alert("Apple returned an older purchase record. Your plan was not changed. Use Restore Purchases if Apple already changed your subscription.");
-        return;
-      }
-
-      const server = await syncApplePurchaseWithServer({
-        source: "purchase",
-        productId,
-        transactionId: result.transactionId || "",
-        originalTransactionId: result.originalTransactionId || "",
-        purchaseDateMs: result.purchaseDateMs || Date.now(),
-        expirationDateMs: result.expirationDateMs ?? null,
-        signedTransactionInfo: result.signedTransactionInfo || "",
-      });
-
-      if (!server?.ok) {
-        throw new Error(server?.message || "Apple purchase was not accepted by BEX billing server.");
-      }
-
-      applyServerBillingState(server);
-      await refreshAppleBillingStatus();
-      alert(subscribedMessage(selectedPlanLabel(expectedMeta.name, expectedMeta.cycle)));
+      applyApplePlanLocally(expectedMeta, productId, result.transactionId || "");
+      alert(subscribedMessage(expectedMeta.name));
       navigate("/app");
     } catch (e: any) {
       const rawMessage = String(e?.message || e?.error || e || "");
@@ -447,43 +272,12 @@ export function VIP() {
 
       if (isProductConfigIssue) {
         alert(
-          "Apple subscriptions are not available yet for this build. Please check App Store Connect product IDs and subscription group."
+          "Apple subscriptions are not available yet for this build. Please try again shortly or contact support."
         );
         return;
       }
 
       alert(`Apple purchase could not be completed. ${rawMessage || "Please try again."}`);
-    }
-  };
-
-  const handleRestoreApplePurchases = async () => {
-    try {
-      const restored = await restoreApplePurchases();
-      if (!restored?.ok) throw new Error((restored as any)?.message || (restored as any)?.error || "Restore failed");
-
-      const active = await getAppleActiveEntitlements();
-      const entitlements = [
-        ...normalizeAppleEntitlementItems(active),
-        ...normalizeAppleEntitlementItems(restored),
-      ];
-
-      if (!entitlements.length) {
-        alert("No active Apple purchase was found for this Apple ID.");
-        return;
-      }
-
-      const server = await restoreApplePurchaseWithServer({ entitlements });
-      if (!server?.ok) {
-        throw new Error(server?.message || "Restore was not accepted by BEX billing server.");
-      }
-
-      applyServerBillingState(server);
-      await refreshAppleBillingStatus();
-      alert(subscribedMessage(server.display_plan || server.plan || "Apple"));
-      navigate("/app");
-    } catch (e: any) {
-      const rawMessage = String(e?.message || e?.error || e || "");
-      alert(`Restore purchases could not be completed. ${rawMessage || "Please try again."}`);
     }
   };
 
@@ -659,16 +453,6 @@ export function VIP() {
           </button>
         </div>
 
-        {shouldShowAppleRestore() && (
-          <button
-            type="button"
-            onClick={handleRestoreApplePurchases}
-            className={`${darkMode ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-300" : "border-yellow-400 bg-yellow-50 text-yellow-800"} w-full rounded-2xl border px-4 py-3 text-sm font-extrabold shadow-sm`}
-          >
-            Restore Purchases
-          </button>
-        )}
-
         {plans.map((plan) => (
           <div
             key={plan.id}
@@ -728,7 +512,7 @@ export function VIP() {
               }`}
             >
               {plan.id === "basic"
-                ? t({ en: "Subscribe Basic", fa: "خرید Basic", ar: "اشترك في Basic", es: "Suscribirse a Basic", "pt-BR": "Assinar Basic", hi: "Basic सब्सक्राइब करें", tr: "Basic aboneliği", de: "Basic abonnieren", fr: "S’abonner à Basic", zh: "订阅Basic", ko: "Basic 구독" })
+                ? t({ en: "Start Free", fa: "شروع رایگان", ar: "ابدأ مجانًا", es: "Empezar gratis", "pt-BR": "Começar grátis", hi: "मुफ्त शुरू करें", tr: "Ücretsiz başla", de: "Kostenlos starten", fr: "Commencer gratuitement", zh: "免费开始", ko: "무료 시작" })
                 : plan.id === "lifetime"
                 ? t({ en: "Buy Lifetime", fa: "خرید مادام‌العمر", ar: "شراء مدى الحياة", es: "Comprar Lifetime", "pt-BR": "Comprar Vitalício", hi: "लाइफटाइम खरीदें", tr: "Lifetime satın al", de: "Lifetime kaufen", fr: "Acheter Lifetime", zh: "购买终身版", ko: "라이프타임 구매" })
                 : t({ en: "Upgrade Now", fa: "ارتقا بده", ar: "قم بالترقية الآن", es: "Actualizar ahora", "pt-BR": "Fazer upgrade agora", hi: "अभी अपग्रेड करें", tr: "Şimdi yükselt", de: "Jetzt upgraden", fr: "Mettre à niveau", zh: "立即升级", ko: "지금 업그레이드" })}
