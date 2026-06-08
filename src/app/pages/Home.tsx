@@ -1444,7 +1444,12 @@ export function Home() {
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         <div className={`hidden h-10 w-16 items-center justify-center rounded-xl shadow-lg ring-1 sm:flex ${symbol === "XAUUSD" ? "bg-yellow-500/15 ring-yellow-400/30" : "bg-slate-200/15 ring-slate-200/30"}`} aria-label={cardAssetName}>
-                          <span className="text-2xl" role="img" aria-hidden="true">{symbol === "XAUUSD" ? "🟡" : "🥈"}</span>
+                          <span
+                            className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-200"
+                            aria-hidden="true"
+                          >
+                            {symbol === "XAUUSD" ? "GOLD" : "SILVER"}
+                          </span>
                         </div>
                         <span className={`rounded-xl px-3 py-1 text-xs font-black ${sourcePillClass}`}>{view.sourceLabel}</span>
                       </div>

@@ -75,7 +75,47 @@ export function VIP() {
     window.dispatchEvent(new Event("bexPlanChanged"));
   };
 
+  const readCurrentUserIdentityForBilling = () => {
+    const parse = (key: string) => {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const obj = JSON.parse(raw);
+        if (!obj || typeof obj !== "object") return null;
+        const nestedUser = obj.user && typeof obj.user === "object" ? obj.user : null;
+        const source = nestedUser || obj;
+        return {
+          id: String(source.id || source.user_id || source.userId || "").trim(),
+          email: String(source.email || source.user_email || source.username || "").trim().toLowerCase(),
+        };
+      } catch {
+        return null;
+      }
+    };
+
+    for (const key of ["user", "bex_user", "auth_user", "currentUser", "bex_current_user"]) {
+      const found = parse(key);
+      if (found?.id || found?.email) return found;
+    }
+
+    return {
+      id: "",
+      email: String(localStorage.getItem("bex_user_email") || localStorage.getItem("userEmail") || localStorage.getItem("email") || "").trim().toLowerCase(),
+    };
+  };
+
   const applyServerBillingState = (payload: any) => {
+    const currentIdentity = readCurrentUserIdentityForBilling();
+    const serverUserId = String(payload?.user?.id || payload?.user_id || "").trim();
+    const serverEmail = String(payload?.user?.email || payload?.email || "").trim().toLowerCase();
+
+    if (
+      (currentIdentity.id && serverUserId && currentIdentity.id !== serverUserId) ||
+      (currentIdentity.email && serverEmail && currentIdentity.email !== serverEmail)
+    ) {
+      return;
+    }
+
     const appPlan = String(payload?.app_plan || payload?.user?.plan || payload?.plan || "").trim();
     const billingPlan = String(payload?.billing_record?.plan || payload?.plan || appPlan || "").trim();
     const displayPlan = String(payload?.display_plan || billingPlan || appPlan || "").trim();
@@ -83,6 +123,11 @@ export function VIP() {
     const billing = String(payload?.billing || payload?.billing_record?.billing || "").trim();
     const transactionId = String(payload?.transaction_id || "").trim();
     const storagePlan = normalizePlanForStorage(appPlan || displayPlan || billingPlan);
+    const scopedUserId = serverUserId || currentIdentity.id;
+    const scopedEmail = serverEmail || currentIdentity.email;
+
+    if (scopedUserId) localStorage.setItem("bex_plan_scope_user_id", scopedUserId);
+    if (scopedEmail) localStorage.setItem("bex_plan_scope_email", scopedEmail);
 
     if (storagePlan) {
       localStorage.setItem("userPlan", storagePlan);

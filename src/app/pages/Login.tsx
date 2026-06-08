@@ -723,6 +723,32 @@ export function Login() {
       resultUser?.email ||
       "Trader";
 
+    const userId = String(resultUser?.id || resultUser?.user_id || resultUser?.userId || "").trim();
+    const userEmail = String(resultUser?.email || fallbackIdentity || "").trim().toLowerCase();
+    const safePlan = String(resultUser?.plan || "free").trim() || "free";
+
+    [
+      "activePlan",
+      "bex_active_plan",
+      "subscription_plan",
+      "bex_subscription_plan",
+      "entitlement",
+      "bex_entitlement",
+      "plan",
+      "bex_plan",
+      "subscription",
+      "bex_subscription",
+      "tier",
+      "bex_tier",
+      "serverPlan",
+      "displayPlan",
+      "appleProductId",
+      "appleBillingCycle",
+      "appleTransactionId",
+      "bex_plan_scope_user_id",
+      "bex_plan_scope_email",
+    ].forEach((key) => localStorage.removeItem(key));
+
     localStorage.setItem(
       "userTimezone",
       resultUser?.timezone ||
@@ -732,11 +758,22 @@ export function Login() {
     localStorage.setItem("userCountry", resultUser?.country || "Unknown");
     localStorage.setItem("userFirstName", resultUser?.first_name || "");
     localStorage.setItem("userLastName", resultUser?.last_name || "");
-    localStorage.setItem("userEmail", resultUser?.email || fallbackIdentity);
+    localStorage.setItem("userEmail", userEmail || fallbackIdentity);
     localStorage.setItem("userName", displayName);
-    localStorage.setItem("userPlan", resultUser?.plan || "PRO");
+    localStorage.setItem("userPlan", safePlan);
+    localStorage.setItem("bex_user_plan", safePlan);
+    if (userId) localStorage.setItem("bex_plan_scope_user_id", userId);
+    if (userEmail) localStorage.setItem("bex_plan_scope_email", userEmail);
+
+    try {
+      const userForStorage = { ...(resultUser || {}), plan: safePlan };
+      localStorage.setItem("user", JSON.stringify(userForStorage));
+      localStorage.setItem("bex_user", JSON.stringify(userForStorage));
+    } catch {}
+
     saveAccountProfileToLocalStorage(resultUser || {});
     window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new Event("bexPlanChanged"));
   };
 
   const handleNativeAuthCallback = async (rawUrl: string) => {

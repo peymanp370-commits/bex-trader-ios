@@ -104,6 +104,70 @@ function readStoredName() {
   }
 }
 
+
+type StoredIdentity = {
+  id: string;
+  email: string;
+};
+
+function readJsonObject(storageKey: string): Record<string, unknown> | null {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, unknown> | null;
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function readCurrentStoredIdentity(): StoredIdentity {
+  const jsonKeys = ["user", "bex_user", "auth_user", "currentUser", "bex_current_user", "session", "bex_session"];
+  for (const key of jsonKeys) {
+    const obj = readJsonObject(key);
+    const nestedUser = obj?.user && typeof obj.user === "object" ? (obj.user as Record<string, unknown>) : null;
+    const candidate = nestedUser || obj;
+    const id = String(candidate?.id || candidate?.user_id || candidate?.userId || "").trim();
+    const email = String(candidate?.email || candidate?.user_email || candidate?.username || "").trim().toLowerCase();
+    if (id || email) return { id, email };
+  }
+
+  const email = String(
+    localStorage.getItem("bex_user_email") ||
+    localStorage.getItem("userEmail") ||
+    localStorage.getItem("email") ||
+    localStorage.getItem("user_email") ||
+    ""
+  ).trim().toLowerCase();
+  return { id: "", email };
+}
+
+function readCurrentUserPlanCandidates(): PlanInfo[] {
+  const jsonKeys = ["user", "bex_user", "auth_user", "currentUser", "bex_current_user"];
+  const candidates: PlanInfo[] = [];
+
+  for (const key of jsonKeys) {
+    const obj = readJsonObject(key);
+    if (!obj) continue;
+    const nestedUser = obj.user && typeof obj.user === "object" ? (obj.user as Record<string, unknown>) : null;
+    const source = nestedUser || obj;
+    const userPlan = normalizePlan(source.plan || source.subscription_plan || source.activePlan || source.entitlement || source.tier);
+    if (userPlan) candidates.push(userPlan);
+  }
+
+  return candidates;
+}
+
+function planScopeMatchesCurrentUser(identity: StoredIdentity): boolean {
+  const scopedUserId = String(localStorage.getItem("bex_plan_scope_user_id") || "").trim();
+  const scopedEmail = String(localStorage.getItem("bex_plan_scope_email") || "").trim().toLowerCase();
+
+  if (!scopedUserId && !scopedEmail) return !identity.id && !identity.email;
+  if (identity.id && scopedUserId && identity.id === scopedUserId) return true;
+  if (identity.email && scopedEmail && identity.email === scopedEmail) return true;
+  return false;
+}
+
 function normalizePlan(value: unknown): PlanInfo | null {
   const raw = String(value || "").trim();
   if (!raw) return null;
@@ -164,6 +228,10 @@ function readJsonPlanCandidates(storageKey: string): PlanInfo[] {
 
 function readStoredPlan(): PlanInfo {
   try {
+    const identity = readCurrentStoredIdentity();
+    const userPlanCandidates = readCurrentUserPlanCandidates();
+    const currentUserPlan = userPlanCandidates.sort((a, b) => b.rank - a.rank)[0] || null;
+
     const planKeys = [
       "userPlan",
       "bex_user_plan",
@@ -179,17 +247,20 @@ function readStoredPlan(): PlanInfo {
       "bex_subscription",
       "tier",
       "bex_tier",
+      "serverPlan",
+      "displayPlan",
     ];
 
-    const jsonKeys = ["user", "bex_user", "auth_user", "profile", "bex_profile", "currentUser", "bex_current_user", "session", "bex_session"];
+    const scopedPlanAllowed = planScopeMatchesCurrentUser(identity);
+    const directCandidates = scopedPlanAllowed
+      ? (planKeys.map((key) => normalizePlan(localStorage.getItem(key))).filter(Boolean) as PlanInfo[])
+      : [];
 
-    const candidates = [
-      ...planKeys.map((key) => normalizePlan(localStorage.getItem(key))),
-      ...jsonKeys.flatMap(readJsonPlanCandidates),
-    ].filter(Boolean) as PlanInfo[];
+    const best = [...userPlanCandidates, ...directCandidates].sort((a, b) => b.rank - a.rank)[0];
 
-    const best = candidates.sort((a, b) => b.rank - a.rank)[0];
-    return best || { key: "FREE", label: "FREE", rank: PLAN_RANK.FREE };
+    if (best) return best;
+    if (currentUserPlan) return currentUserPlan;
+    return { key: "FREE", label: "FREE", rank: PLAN_RANK.FREE };
   } catch {
     return { key: "FREE", label: "FREE", rank: PLAN_RANK.FREE };
   }

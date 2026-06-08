@@ -47,6 +47,30 @@ const LOCAL_AUTH_KEYS = [
   "isAuthenticated",
 ];
 
+const LOCAL_BILLING_PLAN_KEYS = [
+  "userPlan",
+  "bex_user_plan",
+  "activePlan",
+  "bex_active_plan",
+  "subscription_plan",
+  "bex_subscription_plan",
+  "entitlement",
+  "bex_entitlement",
+  "plan",
+  "bex_plan",
+  "subscription",
+  "bex_subscription",
+  "tier",
+  "bex_tier",
+  "serverPlan",
+  "displayPlan",
+  "appleProductId",
+  "appleBillingCycle",
+  "appleTransactionId",
+  "bex_plan_scope_user_id",
+  "bex_plan_scope_email",
+];
+
 export function getStoredRefreshToken(): string {
   try {
     return (
@@ -99,8 +123,9 @@ function expireCookie(name: string) {
 export function clearLocalAuthState() {
   try {
     LOCAL_AUTH_KEYS.forEach((key) => localStorage.removeItem(key));
+    LOCAL_BILLING_PLAN_KEYS.forEach((key) => localStorage.removeItem(key));
 
-    // Also clear common auth-related keys without touching app preferences like language/theme.
+    // Also clear common auth/billing-related keys without touching app preferences like language/theme.
     Object.keys(localStorage).forEach((key) => {
       const k = key.toLowerCase();
       if (
@@ -112,6 +137,11 @@ export function clearLocalAuthState() {
         k.includes("oauth") ||
         k.includes("google") ||
         k.includes("apple") ||
+        k.includes("billing") ||
+        k.includes("subscription") ||
+        k.includes("entitlement") ||
+        k === "plan" ||
+        k.endsWith("plan") ||
         k.includes("user") ||
         k.startsWith("bex_")
       ) {
