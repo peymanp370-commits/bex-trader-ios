@@ -2651,6 +2651,15 @@ async function ensureBillingTables(db) {
     )
   `).run();
 
+
+  // Apple IAP ownership columns. Existing production D1 tables may predate this schema,
+  // so add them safely without failing deploys.
+  await addColumnIfMissing(db, "user_billing", "provider TEXT");
+  await addColumnIfMissing(db, "user_billing", "apple_product_id TEXT");
+  await addColumnIfMissing(db, "user_billing", "apple_transaction_id TEXT");
+  await addColumnIfMissing(db, "user_billing", "apple_original_transaction_id TEXT");
+  await addColumnIfMissing(db, "user_billing", "apple_environment TEXT");
+
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS user_execution_settings (
       user_id TEXT PRIMARY KEY,
@@ -3038,6 +3047,15 @@ async function verifyAppleTransactionAuthority(env, body, entitlement, meta) {
   throw err;
 }
 
+function applePlanRank(plan) {
+  const p = String(plan || "").trim().toLowerCase();
+  if (p === "lifetime") return 4;
+  if (p === "vip_auto" || p === "vip") return 3;
+  if (p === "pro") return 2;
+  if (p === "basic") return 1;
+  return 0;
+}
+
 function pickBestAppleEntitlement(entitlements) {
   const now = Date.now();
   const mapped = (entitlements || [])
@@ -3049,14 +3067,60 @@ function pickBestAppleEntitlement(entitlements) {
 
   if (!mapped.length) return null;
 
+  // Pick the strongest currently-active entitlement first. Purchase date is only a tie-breaker.
+  // This prevents a newer lower plan from visually replacing an already-owned higher plan.
   mapped.sort((a, b) => {
+    if (b.meta.rank !== a.meta.rank) return b.meta.rank - a.meta.rank;
     const ap = Number(a.purchaseDateMs || 0);
     const bp = Number(b.purchaseDateMs || 0);
-    if (bp !== ap) return bp - ap;
-    return b.meta.rank - a.meta.rank;
+    return bp - ap;
   });
 
   return mapped[0];
+}
+
+function appleOwnerLookupKeys(input = {}) {
+  const tx = String(input.transaction_id || input.transactionId || "").trim();
+  const original = String(input.original_transaction_id || input.originalTransactionId || tx || "").trim();
+  return { tx: tx || null, original: original || tx || null };
+}
+
+async function findExistingAppleBillingByTransaction(env, input = {}) {
+  const ids = appleOwnerLookupKeys(input);
+  if (!ids.tx && !ids.original) return null;
+  await ensureBillingTables(env.DB);
+  return await env.DB.prepare(`
+    SELECT *
+    FROM user_billing
+    WHERE provider = 'apple'
+      AND (
+        (? IS NOT NULL AND apple_original_transaction_id = ?)
+        OR (? IS NOT NULL AND apple_transaction_id = ?)
+        OR (? IS NOT NULL AND stripe_subscription_id = ?)
+        OR (? IS NOT NULL AND stripe_session_id = ?)
+        OR (? IS NOT NULL AND stripe_customer_id = ?)
+      )
+    ORDER BY updated_at DESC
+    LIMIT 1
+  `).bind(
+    ids.original, ids.original,
+    ids.tx, ids.tx,
+    ids.original, ids.original,
+    ids.tx, ids.tx,
+    ids.original, ids.original
+  ).first();
+}
+
+async function demoteOldAppleOwnerIfEmpty(env, oldUserId, now) {
+  const oldId = String(oldUserId || "").trim();
+  if (!oldId) return;
+
+  const remaining = await env.DB.prepare(`SELECT * FROM user_billing WHERE user_id = ? LIMIT 1`).bind(oldId).first();
+  if (remaining) return;
+
+  await env.DB.prepare(`UPDATE users SET plan = 'free', updated_at = ? WHERE id = ?`).bind(now, oldId).run();
+  await env.DB.prepare(`UPDATE vip_tokens SET active = 0, last_seen_at = ? WHERE user_id = ? AND active = 1`).bind(now, oldId).run();
+  await env.DB.prepare(`INSERT OR REPLACE INTO user_execution_settings (user_id, auto_trading_enabled, max_lot, max_trades, risk_mode, updated_at) VALUES (?, 0, 0.01, 1, 'normal', ?)`).bind(oldId, now).run();
 }
 
 async function handleAppleIapSync(env, request, user, body, source = "purchase") {
@@ -3065,14 +3129,20 @@ async function handleAppleIapSync(env, request, user, body, source = "purchase")
   if (!entitlement.productId) throw new Error("apple_product_id_required");
 
   const { meta, signedPayload, verification, authoritativeSignedTransactionInfo } = await validateAppleTransactionPayload(env, body, entitlement);
+  const authoritativeProductId = String(signedPayload?.productId || entitlement.productId || "").trim();
+  const authoritativeTransactionId = String(signedPayload?.transactionId || entitlement.transactionId || "").trim() || null;
+  const authoritativeOriginalId = String(signedPayload?.originalTransactionId || entitlement.originalTransactionId || authoritativeTransactionId || "").trim() || null;
+  const authoritativeExpires = Number(signedPayload?.expiresDate || signedPayload?.expirationDate || entitlement.expirationDateMs || 0) || null;
+  const authoritativePurchaseDate = Number(signedPayload?.purchaseDate || entitlement.purchaseDateMs || 0) || Date.now();
+
   const applied = await applyApplePaidPlan(env, user, {
     source,
     provider: "apple",
-    product_id: entitlement.productId,
-    transaction_id: entitlement.transactionId,
-    original_transaction_id: entitlement.originalTransactionId,
-    purchase_date_ms: entitlement.purchaseDateMs || Number(signedPayload?.purchaseDate || 0) || Date.now(),
-    expiration_date_ms: entitlement.expirationDateMs,
+    product_id: authoritativeProductId,
+    transaction_id: authoritativeTransactionId,
+    original_transaction_id: authoritativeOriginalId,
+    purchase_date_ms: authoritativePurchaseDate,
+    expiration_date_ms: authoritativeExpires,
     signed_transaction_info: authoritativeSignedTransactionInfo || entitlement.signedTransactionInfo,
     verification,
     meta
@@ -3128,21 +3198,83 @@ async function applyApplePaidPlan(env, user, input) {
   const appPlan = meta.appPlan;
   const billingPlan = meta.plan;
   const billing = meta.billing;
+  const incomingRank = applePlanRank(billingPlan);
+  const tx = String(input.transaction_id || "").trim() || null;
+  const originalTx = String(input.original_transaction_id || tx || "").trim() || null;
+
+  const currentBilling = await env.DB.prepare(`SELECT * FROM user_billing WHERE user_id = ? LIMIT 1`).bind(user.id).first();
+  const currentRank = applePlanRank(currentBilling?.plan || user.plan || "free");
+
+  // Never let an Apple lower plan visually replace an existing Stripe lifetime or higher active plan.
+  if (currentRank > incomingRank) {
+    return {
+      source: input.source || "purchase",
+      product_id: input.product_id,
+      transaction_id: tx,
+      original_transaction_id: originalTx,
+      plan: currentBilling?.plan || user.plan || "free",
+      billing: currentBilling?.billing || null,
+      app_plan: user.plan || "free",
+      display_plan: displayApplePlanName(currentBilling?.plan || user.plan || "free"),
+      retained_existing_plan: true,
+      reason: "existing_higher_plan_kept",
+      user: await getSafeUser(env.DB, user.id),
+      billing_record: currentBilling || null,
+      vip: await getVipProfile(env, user.id)
+    };
+  }
+
+  if (currentBilling?.provider === "apple" && currentBilling?.apple_product_id === input.product_id && currentBilling?.apple_original_transaction_id === originalTx) {
+    return {
+      source: input.source || "purchase",
+      product_id: input.product_id,
+      transaction_id: tx,
+      original_transaction_id: originalTx,
+      plan: currentBilling.plan,
+      billing: currentBilling.billing,
+      app_plan: user.plan || appPlan,
+      display_plan: displayApplePlanName(currentBilling.plan),
+      already_subscribed: true,
+      reason: "same_apple_product_already_active",
+      user: await getSafeUser(env.DB, user.id),
+      billing_record: currentBilling,
+      vip: await getVipProfile(env, user.id)
+    };
+  }
+
+  const existingOwner = await findExistingAppleBillingByTransaction(env, {
+    transaction_id: tx,
+    original_transaction_id: originalTx
+  });
+
+  let transferredFromUserId = null;
+  if (existingOwner && existingOwner.user_id && existingOwner.user_id !== user.id) {
+    transferredFromUserId = existingOwner.user_id;
+    await env.DB.prepare(`DELETE FROM user_billing WHERE user_id = ?`).bind(existingOwner.user_id).run();
+  }
 
   await env.DB.prepare(`UPDATE users SET plan = ?, updated_at = ? WHERE id = ?`).bind(appPlan, now, user.id).run();
 
   await env.DB.prepare(`
     INSERT INTO user_billing (
-      user_id,email,plan,billing,status,stripe_customer_id,stripe_subscription_id,stripe_session_id,current_period_end,created_at,updated_at
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?)
+      user_id,email,plan,billing,status,provider,
+      stripe_customer_id,stripe_subscription_id,stripe_session_id,
+      apple_product_id,apple_transaction_id,apple_original_transaction_id,apple_environment,
+      current_period_end,created_at,updated_at
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(user_id) DO UPDATE SET
       email=excluded.email,
       plan=excluded.plan,
       billing=excluded.billing,
       status=excluded.status,
+      provider=excluded.provider,
       stripe_customer_id=excluded.stripe_customer_id,
       stripe_subscription_id=excluded.stripe_subscription_id,
       stripe_session_id=excluded.stripe_session_id,
+      apple_product_id=excluded.apple_product_id,
+      apple_transaction_id=excluded.apple_transaction_id,
+      apple_original_transaction_id=excluded.apple_original_transaction_id,
+      apple_environment=excluded.apple_environment,
       current_period_end=excluded.current_period_end,
       updated_at=excluded.updated_at
   `).bind(
@@ -3152,18 +3284,27 @@ async function applyApplePaidPlan(env, user, input) {
     billing,
     "active",
     "apple",
-    input.original_transaction_id || input.transaction_id || null,
-    input.transaction_id || null,
+    null,
+    null,
+    null,
+    input.product_id || null,
+    tx,
+    originalTx,
+    String(input.verification || "unknown"),
     input.expiration_date_ms || null,
     now,
     now
   ).run();
 
+  if (transferredFromUserId) {
+    await demoteOldAppleOwnerIfEmpty(env, transferredFromUserId, now);
+  }
+
   await env.DB.prepare(`
     INSERT INTO billing_events (id, provider, type, user_id, email, plan, billing, payload_json, created_at)
     VALUES (?, 'apple', ?, ?, ?, ?, ?, ?, ?)
   `).bind(
-    input.transaction_id || makeId("apple_evt"),
+    tx || makeId("apple_evt"),
     input.source === "restore" ? "apple_restore_sync" : "apple_purchase_sync",
     user.id,
     user.email || null,
@@ -3171,12 +3312,13 @@ async function applyApplePaidPlan(env, user, input) {
     billing,
     JSON.stringify({
       product_id: input.product_id,
-      transaction_id: input.transaction_id,
-      original_transaction_id: input.original_transaction_id,
+      transaction_id: tx,
+      original_transaction_id: originalTx,
       purchase_date_ms: input.purchase_date_ms,
       expiration_date_ms: input.expiration_date_ms,
       verification: input.verification,
       source: input.source,
+      transferred_from_user_id: transferredFromUserId,
       has_signed_transaction_info: !!input.signed_transaction_info
     }),
     now
@@ -3191,24 +3333,20 @@ async function applyApplePaidPlan(env, user, input) {
 
   const freshUser = await getSafeUser(env.DB, user.id);
   const vip = await getVipProfile(env, user.id);
+  const billingRecord = await env.DB.prepare(`SELECT * FROM user_billing WHERE user_id = ? LIMIT 1`).bind(user.id).first();
   return {
     source: input.source || "purchase",
     product_id: input.product_id,
-    transaction_id: input.transaction_id || null,
-    original_transaction_id: input.original_transaction_id || null,
+    transaction_id: tx,
+    original_transaction_id: originalTx,
+    transferred_from_user_id: transferredFromUserId,
     plan: billingPlan,
     billing,
     app_plan: appPlan,
     display_plan: meta.displayPlan,
     verification: input.verification,
     user: freshUser,
-    billing_record: {
-      provider: "apple",
-      plan: billingPlan,
-      billing,
-      status: "active",
-      current_period_end: input.expiration_date_ms || null
-    },
+    billing_record: billingRecord,
     vip
   };
 }

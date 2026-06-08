@@ -9,8 +9,7 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "getProducts", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "purchase", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "restorePurchases", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getActiveEntitlements", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "restorePurchases", returnType: CAPPluginReturnPromise)
     ]
 
     @objc func getProducts(_ call: CAPPluginCall) {
@@ -62,17 +61,22 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
                 case .success(let verification):
                     switch verification {
                     case .verified(let transaction):
-                        var payload = entitlementPayload(transaction)
-                        payload["ok"] = true
-                        payload["verification"] = "verified"
                         await transaction.finish()
-                        call.resolve(payload)
+                        call.resolve([
+                            "ok": true,
+                            "productId": transaction.productID,
+                            "transactionId": String(transaction.id),
+                            "originalTransactionId": String(transaction.originalID),
+                            "verification": "verified"
+                        ])
                     case .unverified(let transaction, let error):
-                        var payload = entitlementPayload(transaction)
-                        payload["ok"] = false
-                        payload["verification"] = "unverified"
-                        payload["error"] = error.localizedDescription
-                        call.resolve(payload)
+                        call.resolve([
+                            "ok": false,
+                            "productId": transaction.productID,
+                            "transactionId": String(transaction.id),
+                            "verification": "unverified",
+                            "error": error.localizedDescription
+                        ])
                     }
                 case .userCancelled:
                     call.resolve(["ok": false, "reason": "user_cancelled"])
@@ -94,72 +98,34 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
         }
 
         Task {
-            do {
-                try await AppStore.sync()
-                let entitlements = await currentEntitlementPayloads()
-                let productIds = entitlements.compactMap { $0["productId"] as? String }
-                call.resolve([
-                    "ok": true,
-                    "entitlements": entitlements,
-                    "productIds": productIds,
-                    "restored": productIds
-                ])
-            } catch {
-                call.reject("Restore purchases failed: \(error.localizedDescription)")
+            var entitlements: [[String: Any]] = []
+
+            for await result in Transaction.currentEntitlements {
+                switch result {
+                case .verified(let transaction):
+                    entitlements.append([
+                        "ok": true,
+                        "productId": transaction.productID,
+                        "transactionId": String(transaction.id),
+                        "originalTransactionId": String(transaction.originalID),
+                        "purchaseDateMs": Int(transaction.purchaseDate.timeIntervalSince1970 * 1000),
+                        "expirationDateMs": transaction.expirationDate == nil ? NSNull() : Int(transaction.expirationDate!.timeIntervalSince1970 * 1000),
+                        "verification": "verified"
+                    ])
+                case .unverified(let transaction, let error):
+                    entitlements.append([
+                        "ok": false,
+                        "productId": transaction.productID,
+                        "transactionId": String(transaction.id),
+                        "originalTransactionId": String(transaction.originalID),
+                        "verification": "unverified",
+                        "error": error.localizedDescription
+                    ])
+                }
             }
+
+            call.resolve(["ok": true, "entitlements": entitlements])
         }
     }
 
-    @objc func getActiveEntitlements(_ call: CAPPluginCall) {
-        guard #available(iOS 15.0, *) else {
-            call.reject("Apple In-App Purchase requires iOS 15 or newer.")
-            return
-        }
-
-        Task {
-            let entitlements = await currentEntitlementPayloads()
-            let productIds = entitlements.compactMap { $0["productId"] as? String }
-            call.resolve([
-                "ok": true,
-                "entitlements": entitlements,
-                "productIds": productIds,
-                "subscriptions": productIds
-            ])
-        }
-    }
-
-    @available(iOS 15.0, *)
-    private func currentEntitlementPayloads() async -> [[String: Any]] {
-        var items: [[String: Any]] = []
-        for await result in Transaction.currentEntitlements {
-            switch result {
-            case .verified(let transaction):
-                if transaction.isUpgraded { continue }
-                items.append(entitlementPayload(transaction))
-            default:
-                break
-            }
-        }
-        return items
-    }
-
-    @available(iOS 15.0, *)
-    private func entitlementPayload(_ transaction: Transaction) -> [String: Any] {
-        var payload: [String: Any] = [
-            "productId": transaction.productID,
-            "transactionId": String(transaction.id),
-            "originalTransactionId": String(transaction.originalID),
-            "purchaseDateMs": Int(transaction.purchaseDate.timeIntervalSince1970 * 1000),
-            "isUpgraded": transaction.isUpgraded,
-            "signedTransactionInfo": ""
-        ]
-
-        if let expirationDate = transaction.expirationDate {
-            payload["expirationDateMs"] = Int(expirationDate.timeIntervalSince1970 * 1000)
-        } else {
-            payload["expirationDateMs"] = NSNull()
-        }
-
-        return payload
-    }
 }

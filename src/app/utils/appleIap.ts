@@ -1,24 +1,17 @@
 import { Capacitor, registerPlugin } from "@capacitor/core";
 
-export type AppleProduct = {
+type AppleProduct = {
   productId: string;
   displayName?: string;
   description?: string;
   price?: string;
 };
 
-export type AppleEntitlement = {
-  productId: string;
+type ApplePurchaseResult = {
+  ok?: boolean;
+  productId?: string;
   transactionId?: string;
   originalTransactionId?: string;
-  purchaseDateMs?: number;
-  expirationDateMs?: number | null;
-  isUpgraded?: boolean;
-  signedTransactionInfo?: string;
-};
-
-export type ApplePurchaseResult = AppleEntitlement & {
-  ok?: boolean;
   environment?: string;
   verification?: string;
   reason?: string;
@@ -29,8 +22,7 @@ export type ApplePurchaseResult = AppleEntitlement & {
 type AppleIAPPlugin = {
   getProducts(options: { productIds: string[] }): Promise<{ ok: boolean; products: AppleProduct[] }>;
   purchase(options: { productId: string }): Promise<ApplePurchaseResult>;
-  restorePurchases(): Promise<{ ok: boolean; entitlements: AppleEntitlement[]; productIds: string[]; restored?: string[] }>;
-  getActiveEntitlements(): Promise<{ ok: boolean; entitlements: AppleEntitlement[]; productIds: string[]; subscriptions?: string[] }>;
+  restorePurchases(options?: Record<string, never>): Promise<{ ok: boolean; entitlements: ApplePurchaseResult[] }>;
 };
 
 const AppleIAP = registerPlugin<AppleIAPPlugin>("AppleIAP");
@@ -49,7 +41,8 @@ export const APPLE_IAP_PRODUCT_IDS = {
     yearly: "vip_yearly_v4",
   },
   lifetime: {
-    lifetime: "vip_lifetime",
+    monthly: "vip_lifetime",
+    yearly: "vip_lifetime",
   },
 } as const;
 
@@ -57,11 +50,11 @@ export function isNativeIOSApp() {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios";
 }
 
-export function appleProductIdForPlan(planId: string, cycle: "monthly" | "yearly" | "lifetime") {
-  if (planId === "basic" && cycle !== "lifetime") return APPLE_IAP_PRODUCT_IDS.basic[cycle];
-  if (planId === "pro" && cycle !== "lifetime") return APPLE_IAP_PRODUCT_IDS.pro[cycle];
-  if (planId === "vip" && cycle !== "lifetime") return APPLE_IAP_PRODUCT_IDS.vip[cycle];
-  if (planId === "lifetime") return APPLE_IAP_PRODUCT_IDS.lifetime.lifetime;
+export function appleProductIdForPlan(planId: string, cycle: "monthly" | "yearly") {
+  if (planId === "basic") return APPLE_IAP_PRODUCT_IDS.basic[cycle];
+  if (planId === "pro") return APPLE_IAP_PRODUCT_IDS.pro[cycle];
+  if (planId === "vip") return APPLE_IAP_PRODUCT_IDS.vip[cycle];
+  if (planId === "lifetime") return APPLE_IAP_PRODUCT_IDS.lifetime[cycle];
   return "";
 }
 
@@ -77,16 +70,10 @@ export async function startAppleIapPurchase(productId: string) {
   return AppleIAP.purchase({ productId });
 }
 
-export async function restoreApplePurchases() {
-  if (!isNativeIOSApp()) {
-    throw new Error("Restore Purchases is only available inside the iOS app.");
-  }
-  return AppleIAP.restorePurchases();
-}
 
-export async function getAppleActiveEntitlements() {
+export async function restoreAppleIapPurchases() {
   if (!isNativeIOSApp()) {
-    throw new Error("Apple entitlements are only available inside the iOS app.");
+    return { ok: false, entitlements: [], reason: "not_ios_native" } as any;
   }
-  return AppleIAP.getActiveEntitlements();
+  return AppleIAP.restorePurchases({});
 }

@@ -7,7 +7,7 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { Eye, EyeOff } from "lucide-react";
 import logoImage from "../../assets/bex-brand-logo.png";
 import { clearLocalAuthState } from "../utils/api";
-import { getAppleActiveEntitlements, isNativeIOSApp } from "../utils/appleIap";
+import { isNativeIOSApp, restoreAppleIapPurchases } from "../utils/appleIap";
 
 const AUTH_BASE =
   import.meta.env.VITE_API_URL || "https://auth.bextrader.com";
@@ -16,6 +16,47 @@ const HISTORY_BASE =
   import.meta.env.VITE_MT5_HISTORY_API_URL ||
   import.meta.env.VITE_HISTORY_API_URL ||
   "https://bex-mt5-history-ingest.peymanp370.workers.dev";
+
+
+
+async function syncAppleEntitlementsAfterLogin() {
+  if (!isNativeIOSApp()) return;
+  try {
+    const restored = await restoreAppleIapPurchases();
+    const entitlements = Array.isArray((restored as any)?.entitlements) ? (restored as any).entitlements : [];
+    if (!entitlements.length) return;
+
+    const token = (
+      localStorage.getItem("bex_refresh_token") ||
+      localStorage.getItem("refresh_token") ||
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("token") ||
+      ""
+    ).trim();
+
+    const res = await fetch(`${AUTH_BASE}/api/apple/restore`, {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ entitlements, source: "login_restore" }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data?.ok === false) return;
+
+    const displayPlan = data?.display_plan || data?.plan || data?.user?.plan;
+    if (displayPlan) localStorage.setItem("userPlan", String(displayPlan));
+    if (data?.user) saveAccountProfileToLocalStorage(data.user);
+    window.dispatchEvent(new Event("storage"));
+  } catch {
+    // Login must never fail because restore sync failed. User can still press Restore Purchases on VIP.
+  }
+}
 
 async function clearServerAuthSession() {
   await Promise.allSettled([
@@ -37,45 +78,6 @@ async function clearServerAuthSession() {
 async function resetAuthForFreshSignIn() {
   clearLocalAuthState();
   await clearServerAuthSession();
-}
-
-
-type ApplePlanMeta = { productId: string; plan: string; billing: string; rank: number; label: string };
-
-const APPLE_LOGIN_PLAN_BY_PRODUCT: Record<string, ApplePlanMeta> = {
-  basic_monthly_v4: { productId: "basic_monthly_v4", plan: "BASIC", billing: "monthly", rank: 1, label: "BASIC" },
-  basic_yearly_v4: { productId: "basic_yearly_v4", plan: "BASIC", billing: "yearly", rank: 1, label: "BASIC" },
-  pro_monthly_v4: { productId: "pro_monthly_v4", plan: "PRO", billing: "monthly", rank: 2, label: "PRO" },
-  pro_yearly_v4: { productId: "pro_yearly_v4", plan: "PRO", billing: "yearly", rank: 2, label: "PRO" },
-  vip_monthly_v4: { productId: "vip_monthly_v4", plan: "VIP_AUTO", billing: "monthly", rank: 3, label: "VIP AUTO" },
-  vip_yearly_v4: { productId: "vip_yearly_v4", plan: "VIP_AUTO", billing: "yearly", rank: 3, label: "VIP AUTO" },
-  vip_lifetime: { productId: "vip_lifetime", plan: "LIFETIME", billing: "lifetime", rank: 4, label: "LIFETIME" },
-};
-
-async function hydrateAppleEntitlementsAfterLogin() {
-  if (!isNativeIOSApp()) return;
-  try {
-    const active = await getAppleActiveEntitlements();
-    const entitlements = Array.isArray(active?.entitlements) ? active.entitlements : [];
-    const productIds = [
-      ...entitlements.map((item: any) => String(item?.productId || "").trim()),
-      ...(Array.isArray(active?.productIds) ? active.productIds.map((id: any) => String(id || "").trim()) : []),
-      ...(Array.isArray(active?.subscriptions) ? active.subscriptions.map((id: any) => String(id || "").trim()) : []),
-    ];
-    const best = productIds
-      .map((productId) => APPLE_LOGIN_PLAN_BY_PRODUCT[productId])
-      .filter(Boolean)
-      .sort((a, b) => b.rank - a.rank)[0];
-    if (!best) return;
-    localStorage.setItem("userPlan", best.plan);
-    localStorage.setItem("serverPlan", best.plan === "VIP_AUTO" ? "vip_auto" : best.plan.toLowerCase());
-    localStorage.setItem("appleProductId", best.productId);
-    localStorage.setItem("appleBillingCycle", best.billing);
-    window.dispatchEvent(new Event("storage"));
-    window.dispatchEvent(new Event("bexPlanChanged"));
-  } catch {
-    // Silent login hydration only. Manual Restore Purchases remains available on the VIP page.
-  }
 }
 
 
@@ -774,7 +776,7 @@ export function Login() {
     localStorage.setItem("userLastName", resultUser?.last_name || "");
     localStorage.setItem("userEmail", resultUser?.email || fallbackIdentity);
     localStorage.setItem("userName", displayName);
-    localStorage.setItem("userPlan", resultUser?.plan || "free");
+    localStorage.setItem("userPlan", resultUser?.plan || "PRO");
     saveAccountProfileToLocalStorage(resultUser || {});
     window.dispatchEvent(new Event("storage"));
   };
@@ -808,7 +810,6 @@ export function Login() {
       };
       saveUserToLocalStorage(nativeUser, email || "Trader");
       if (email) await hydrateAccountProfile(email);
-      await hydrateAppleEntitlementsAfterLogin();
       window.dispatchEvent(new Event("storage"));
       return true;
     }
@@ -868,6 +869,7 @@ export function Login() {
 
       saveUserToLocalStorage(result.user, cleanIdentity);
       await hydrateAccountProfile(result.user?.email || cleanIdentity);
+      await syncAppleEntitlementsAfterLogin();
       navigate("/app");
     } catch {
       setError(tx(lang, {
@@ -1012,7 +1014,6 @@ export function Login() {
 
     saveUserToLocalStorage(user, user?.email || email || "Trader");
     await hydrateAccountProfile(user?.email || email || appleUserId);
-    await hydrateAppleEntitlementsAfterLogin();
     window.dispatchEvent(new Event("storage"));
     navigate("/app", { replace: true });
   };
@@ -1173,7 +1174,7 @@ export function Login() {
 
     saveUserToLocalStorage(user, user?.email || email || "Trader");
     await hydrateAccountProfile(user?.email || email);
-    await hydrateAppleEntitlementsAfterLogin();
+    await syncAppleEntitlementsAfterLogin();
     window.dispatchEvent(new Event("storage"));
     navigate("/app", { replace: true });
   };
