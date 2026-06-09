@@ -2346,7 +2346,7 @@ async function adminUpgradeVip(env, body) {
   await env.DB.prepare(`INSERT OR REPLACE INTO user_execution_settings (user_id, auto_trading_enabled, max_lot, max_trades, risk_mode, updated_at) VALUES (?, 1, ?, ?, 'normal', ?)`).bind(user.id, maxLot, maxTrades, now).run();
   if (mt5Login) { const accountId = `uta_${sanitizeIdPart(email)}_mt5`; await env.DB.prepare(`INSERT INTO user_trading_accounts (id,user_id,platform,login_id,server,encrypted_password,is_active,created_at,updated_at) VALUES (?,?,'mt5',?,?, '',1,?,?) ON CONFLICT(id) DO UPDATE SET login_id=excluded.login_id, server=excluded.server, is_active=1, updated_at=excluded.updated_at`).bind(accountId, user.id, mt5Login, server || 'UNKNOWN_SERVER', now, now).run(); }
   const existing = await env.DB.prepare(`SELECT * FROM vip_tokens WHERE user_id = ? AND active = 1 LIMIT 1`).bind(user.id).first();
-  if (!existing) { const clientId = clean(body.client_id) || `client_${sanitizeIdPart(email)}`; const token = clean(body.token) || makePublicToken(`bex_vip_${sanitizeIdPart(email)}`); const vipId = `vip_${sanitizeIdPart(email)}_${now}`; await env.DB.prepare(`INSERT INTO vip_tokens (id,user_id,email,client_id,token,mt5_account_login,active,expires_at,allowed_symbols,max_lot,plan,created_at,last_seen_at) VALUES (?,?,?,?,?,?,1,?,?,?,?,NULL)`).bind(vipId, user.id, email, clientId, token, mt5Login || '', Number(body.expires_at || 1798761599000), allowedSymbols, maxLot, 'VIP_AUTO', now).run(); }
+  if (!existing) { const clientId = clean(body.client_id) || `client_${sanitizeIdPart(email)}`; const token = clean(body.token) || makePublicToken(`bex_vip_${sanitizeIdPart(email)}`); const vipId = `vip_${sanitizeIdPart(email)}_${now}`; await env.DB.prepare(`INSERT INTO vip_tokens (id,user_id,email,client_id,token,mt5_account_login,active,expires_at,allowed_symbols,max_lot,plan,created_at,last_seen_at) VALUES (?,?,?,?,?,?,1,?,?,?,?,?,?)`).bind(vipId, user.id, email, clientId, token, mt5Login || '', Number(body.expires_at || 1798761599000), allowedSymbols, maxLot, 'VIP_AUTO', now, now).run(); }
   else { await env.DB.prepare(`UPDATE vip_tokens SET mt5_account_login = COALESCE(NULLIF(?, ''), mt5_account_login), allowed_symbols = ?, max_lot = ?, plan = 'VIP_AUTO' WHERE id = ?`).bind(mt5Login || '', allowedSymbols, maxLot, existing.id).run(); }
   return await getVipProfile(env, user.id);
 }
@@ -2769,8 +2769,8 @@ async function grantVipAutoEntitlement(env, user, billingPlan = "vip_auto") {
 
   await env.DB.prepare(`
     INSERT INTO vip_tokens (id,user_id,email,client_id,token,mt5_account_login,active,expires_at,allowed_symbols,max_lot,plan,created_at,last_seen_at)
-    VALUES (?,?,?,?,?,?,1,?,?,?,?,NULL)
-  `).bind(vipId, user.id, email, clientId, token, "", expiresAt, allowedSymbols, maxLot, tokenPlan, now).run();
+    VALUES (?,?,?,?,?,?,1,?,?,?,?,?,?)
+  `).bind(vipId, user.id, email, clientId, token, "", expiresAt, allowedSymbols, maxLot, tokenPlan, now, now).run();
 
   return { created: true, token };
 }
