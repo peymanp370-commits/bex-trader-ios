@@ -93,7 +93,7 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func restorePurchases(_ call: CAPPluginCall) {
         guard #available(iOS 15.0, *) else {
-            call.reject("Apple In-App Purchase requires iOS 15 or newer.")
+            call.reject("Apple restore requires iOS 15 or newer.")
             return
         }
 
@@ -108,8 +108,6 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
                         "productId": transaction.productID,
                         "transactionId": String(transaction.id),
                         "originalTransactionId": String(transaction.originalID),
-                        "purchaseDateMs": Int(transaction.purchaseDate.timeIntervalSince1970 * 1000),
-                        "expirationDateMs": transaction.expirationDate == nil ? NSNull() : Int(transaction.expirationDate!.timeIntervalSince1970 * 1000),
                         "verification": "verified"
                     ])
                 case .unverified(let transaction, let error):

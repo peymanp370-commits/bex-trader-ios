@@ -1,4 +1,4 @@
-import { SignJWT, importPKCS8, importX509, createRemoteJWKSet, jwtVerify, decodeProtectedHeader } from "jose";
+import { SignJWT, importPKCS8, createRemoteJWKSet, jwtVerify } from "jose";
 
 let APPLE_JWKS_CACHE = null;
 
@@ -36,13 +36,6 @@ export default {
               has_key_id: !!env.APPLE_KEY_ID,
               has_private_key: !!env.APPLE_PRIVATE_KEY,
               has_redirect_uri: !!env.APPLE_REDIRECT_URI
-            },
-            app_store_server_api: {
-              configured: getAppleServerApiConfig(env).configured,
-              has_issuer_id: !!getAppleServerApiConfig(env).issuerId,
-              has_key_id: !!getAppleServerApiConfig(env).keyId,
-              has_private_key: !!getAppleServerApiConfig(env).privateKey,
-              bundle_id: getAppleServerApiConfig(env).bundleId
             }
           },
           endpoints: [
@@ -69,7 +62,6 @@ export default {
             "POST /api/billing/create-checkout-session",
             "POST /api/billing/stripe-webhook",
             "POST /api/apple/sync",
-            "POST /api/apple/verify",
             "POST /api/apple/restore",
             "GET /api/apple/status",
             "GET /auth/google/start",
@@ -483,7 +475,7 @@ export default {
         const user = await requireUserByRefreshSession(env.DB, request);
         if (!user.ok) return user.response;
         const body = await readJson(request);
-        const result = await handleAppleIapSync(env, request, user.user, body, "purchase");
+        const result = await handleAppleIapSync(env, user.user, body);
         return ok(request, result);
       }
 
@@ -491,7 +483,7 @@ export default {
         const user = await requireUserByRefreshSession(env.DB, request);
         if (!user.ok) return user.response;
         const body = await readJson(request);
-        const result = await handleAppleIapRestore(env, request, user.user, body);
+        const result = await handleAppleIapRestore(env, user.user, body);
         return ok(request, result);
       }
 
@@ -2651,9 +2643,6 @@ async function ensureBillingTables(db) {
     )
   `).run();
 
-
-  // Apple IAP ownership columns. Existing production D1 tables may predate this schema,
-  // so add them safely without failing deploys.
   await addColumnIfMissing(db, "user_billing", "provider TEXT");
   await addColumnIfMissing(db, "user_billing", "apple_product_id TEXT");
   await addColumnIfMissing(db, "user_billing", "apple_transaction_id TEXT");
@@ -2786,572 +2775,142 @@ async function grantVipAutoEntitlement(env, user, billingPlan = "vip_auto") {
   return { created: true, token };
 }
 
-/* ---------------- APPLE IAP BILLING V2 ---------------- */
 
-const APPLE_PRODUCT_CATALOG = {
-  basic_monthly_v4: { plan: "basic", billing: "monthly", appPlan: "basic", displayPlan: "BASIC", rank: 1 },
-  basic_yearly_v4: { plan: "basic", billing: "yearly", appPlan: "basic", displayPlan: "BASIC", rank: 1 },
-  pro_monthly_v4: { plan: "pro", billing: "monthly", appPlan: "pro", displayPlan: "PRO", rank: 2 },
-  pro_yearly_v4: { plan: "pro", billing: "yearly", appPlan: "pro", displayPlan: "PRO", rank: 2 },
-  vip_monthly_v4: { plan: "vip_auto", billing: "monthly", appPlan: "vip_auto", displayPlan: "VIP", rank: 3 },
-  vip_yearly_v4: { plan: "vip_auto", billing: "yearly", appPlan: "vip_auto", displayPlan: "VIP", rank: 3 },
-  vip_lifetime: { plan: "lifetime", billing: "lifetime", appPlan: "vip_auto", displayPlan: "LIFETIME", rank: 4 }
-};
-
-function appleProductMeta(productId) {
-  return APPLE_PRODUCT_CATALOG[String(productId || "").trim()] || null;
+function appleProductToPlan(productId) {
+  const p = String(productId || "").trim().toLowerCase();
+  if (p.includes("lifetime")) return { plan: "lifetime", userPlan: "lifetime", billing: "lifetime", rank: 4 };
+  if (p.includes("vip")) return { plan: "vip_auto", userPlan: "vip_auto", billing: p.includes("year") ? "yearly" : "monthly", rank: 3 };
+  if (p.includes("pro")) return { plan: "pro", userPlan: "pro", billing: p.includes("year") ? "yearly" : "monthly", rank: 2 };
+  if (p.includes("basic")) return { plan: "basic", userPlan: "basic", billing: p.includes("year") ? "yearly" : "monthly", rank: 1 };
+  return { plan: "free", userPlan: "free", billing: "", rank: 0 };
 }
 
-function normalizeAppleEntitlement(input) {
-  const productId = String(input?.productId || input?.product_id || input?.productID || "").trim();
-  return {
-    productId,
-    transactionId: String(input?.transactionId || input?.transaction_id || input?.transactionID || "").trim() || null,
-    originalTransactionId: String(input?.originalTransactionId || input?.original_transaction_id || input?.originalTransactionID || "").trim() || null,
-    purchaseDateMs: Number(input?.purchaseDateMs || input?.purchase_date_ms || 0) || 0,
-    expirationDateMs: input?.expirationDateMs == null ? null : Number(input.expirationDateMs),
-    isUpgraded: input?.isUpgraded === true,
-    signedTransactionInfo: String(input?.signedTransactionInfo || input?.signed_transaction_info || "").trim() || null
-  };
-}
-
-function decodeJwtPayloadNoVerify(jws) {
-  const parts = String(jws || "").split(".");
-  if (parts.length < 2) return null;
-  try {
-    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
-    const json = atob(padded);
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
-}
-
-async function validateAppleTransactionPayload(env, body, entitlement) {
-  const meta = appleProductMeta(entitlement.productId);
-  if (!meta) {
-    const err = new Error("Unknown Apple product id");
-    err.code = "APPLE_PRODUCT_UNKNOWN";
-    throw err;
-  }
-
-  if (entitlement.isUpgraded) {
-    const err = new Error("Apple transaction was already upgraded");
-    err.code = "APPLE_TRANSACTION_UPGRADED";
-    throw err;
-  }
-
-  const verified = await verifyAppleTransactionAuthority(env, body, entitlement, meta);
-  const signedPayload = verified.payload || {};
-
-  const authoritativeProductId = String(signedPayload.productId || "").trim();
-  const authoritativeTransactionId = String(signedPayload.transactionId || "").trim();
-  const authoritativeOriginalId = String(signedPayload.originalTransactionId || "").trim();
-  const authoritativeBundleId = String(signedPayload.bundleId || "").trim();
-
-  if (authoritativeProductId && authoritativeProductId !== entitlement.productId) {
-    const err = new Error("Apple verified product id does not match request");
-    err.code = "APPLE_PRODUCT_MISMATCH";
-    throw err;
-  }
-
-  if (entitlement.transactionId && authoritativeTransactionId && authoritativeTransactionId !== entitlement.transactionId) {
-    const err = new Error("Apple verified transaction id does not match request");
-    err.code = "APPLE_TRANSACTION_MISMATCH";
-    throw err;
-  }
-
-  if (entitlement.originalTransactionId && authoritativeOriginalId && authoritativeOriginalId !== entitlement.originalTransactionId) {
-    const err = new Error("Apple verified original transaction id does not match request");
-    err.code = "APPLE_ORIGINAL_TRANSACTION_MISMATCH";
-    throw err;
-  }
-
-  const expectedBundle = getAppleExpectedBundleId(env, body);
-  if (authoritativeBundleId && expectedBundle && authoritativeBundleId !== expectedBundle) {
-    const err = new Error("Apple verified bundle id does not match BEX app");
-    err.code = "APPLE_BUNDLE_MISMATCH";
-    throw err;
-  }
-
-  const now = Date.now();
-  const authoritativeExpires = Number(signedPayload.expiresDate || signedPayload.expirationDate || entitlement.expirationDateMs || 0) || null;
-  if (authoritativeExpires && authoritativeExpires < now && meta.billing !== "lifetime") {
-    const err = new Error("Apple subscription is expired");
-    err.code = "APPLE_SUBSCRIPTION_EXPIRED";
-    throw err;
-  }
-
-  return {
-    meta,
-    signedPayload,
-    verification: verified.verification,
-    authoritativeSignedTransactionInfo: verified.signedTransactionInfo || entitlement.signedTransactionInfo || null
-  };
-}
-
-function getAppleExpectedBundleId(env, body = {}) {
-  return String(
-    body?.bundleId ||
-    body?.bundle_id ||
-    env.APPLE_BUNDLE_ID ||
-    env.APPLE_IOS_CLIENT_ID ||
-    "com.bextrader.app"
-  ).trim();
-}
-
-function getAppleServerApiConfig(env) {
-  const issuerId = String(env.APPLE_ASC_ISSUER_ID || env.APPLE_APP_STORE_CONNECT_ISSUER_ID || env.APP_STORE_CONNECT_ISSUER_ID || "").trim();
-  const keyId = String(env.APPLE_ASC_KEY_ID || env.APPLE_APP_STORE_CONNECT_KEY_ID || env.APP_STORE_CONNECT_KEY_ID || "").trim();
-  const privateKey = String(env.APPLE_ASC_PRIVATE_KEY || env.APPLE_APP_STORE_CONNECT_PRIVATE_KEY || env.APP_STORE_CONNECT_PRIVATE_KEY || "").trim();
-  const bundleId = String(env.APPLE_BUNDLE_ID || env.APPLE_IOS_CLIENT_ID || "com.bextrader.app").trim();
-  return { issuerId, keyId, privateKey, bundleId, configured: !!issuerId && !!keyId && !!privateKey && !!bundleId };
-}
-
-async function makeAppleServerApiJwt(env) {
-  const cfg = getAppleServerApiConfig(env);
-  if (!cfg.configured) {
-    const err = new Error("Apple App Store Server API is not configured");
-    err.code = "APPLE_SERVER_API_NOT_CONFIGURED";
-    err.missing = {
-      APPLE_ASC_ISSUER_ID: !cfg.issuerId,
-      APPLE_ASC_KEY_ID: !cfg.keyId,
-      APPLE_ASC_PRIVATE_KEY: !cfg.privateKey,
-      APPLE_BUNDLE_ID: !cfg.bundleId
-    };
-    throw err;
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  const privateKey = await importPKCS8(normalizePemKey(cfg.privateKey), "ES256");
-  const token = await new SignJWT({ bid: cfg.bundleId })
-    .setProtectedHeader({ alg: "ES256", kid: cfg.keyId, typ: "JWT" })
-    .setIssuer(cfg.issuerId)
-    .setIssuedAt(now)
-    .setExpirationTime(now + 5 * 60)
-    .setAudience("appstoreconnect-v1")
-    .sign(privateKey);
-  return { token, cfg };
-}
-
-function appleServerApiBaseUrls(env) {
-  const preferred = String(env.APPLE_APP_STORE_ENVIRONMENT || env.APPLE_IAP_ENVIRONMENT || "").trim().toLowerCase();
-  const prod = "https://api.storekit.itunes.apple.com";
-  const sandbox = "https://api.storekit-sandbox.itunes.apple.com";
-  if (preferred === "sandbox") return [sandbox, prod];
-  if (preferred === "production" || preferred === "prod") return [prod, sandbox];
-  return [prod, sandbox];
-}
-
-async function fetchAppleServerTransactionInfo(env, transactionId) {
-  const id = String(transactionId || "").trim();
-  if (!id) {
-    const err = new Error("Apple transaction id is required for server verification");
-    err.code = "APPLE_TRANSACTION_ID_REQUIRED";
-    throw err;
-  }
-
-  const { token } = await makeAppleServerApiJwt(env);
-  let lastError = null;
-
-  for (const baseUrl of appleServerApiBaseUrls(env)) {
-    const res = await fetch(`${baseUrl}/inApps/v1/transactions/${encodeURIComponent(id)}`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
-    });
-    const data = await res.json().catch(() => ({}));
-    if (res.ok && data?.signedTransactionInfo) {
-      return { signedTransactionInfo: String(data.signedTransactionInfo), environmentUrl: baseUrl, raw: data };
-    }
-    lastError = { status: res.status, data, environmentUrl: baseUrl };
-    if (![400, 401, 403, 404].includes(res.status)) break;
-  }
-
-  const err = new Error("Apple App Store Server API transaction lookup failed");
-  err.code = "APPLE_SERVER_TRANSACTION_LOOKUP_FAILED";
-  err.detail = lastError;
-  throw err;
-}
-
-function pemFromAppleX5c(cert) {
-  const cleanCert = String(cert || "").replace(/\s+/g, "");
-  if (!cleanCert) return "";
-  const wrapped = cleanCert.match(/.{1,64}/g)?.join("\n") || cleanCert;
-  return `-----BEGIN CERTIFICATE-----\n${wrapped}\n-----END CERTIFICATE-----`;
-}
-
-async function verifyAppleSignedTransactionJws(jws, env, body = {}) {
-  const token = String(jws || "").trim();
-  if (!token) {
-    const err = new Error("Apple signedTransactionInfo is missing");
-    err.code = "APPLE_SIGNED_TRANSACTION_MISSING";
-    throw err;
-  }
-
-  let header;
-  try {
-    header = decodeProtectedHeader(token);
-  } catch {
-    const err = new Error("Apple signedTransactionInfo header is invalid");
-    err.code = "APPLE_SIGNED_TRANSACTION_HEADER_INVALID";
-    throw err;
-  }
-
-  const cert = Array.isArray(header?.x5c) ? header.x5c[0] : null;
-  if (!cert) {
-    const err = new Error("Apple signedTransactionInfo certificate chain is missing");
-    err.code = "APPLE_SIGNED_TRANSACTION_CERT_MISSING";
-    throw err;
-  }
-
-  const key = await importX509(pemFromAppleX5c(cert), "ES256");
-  const { payload } = await jwtVerify(token, key, { algorithms: ["ES256"] });
-
-  const expectedBundle = getAppleExpectedBundleId(env, body);
-  if (payload?.bundleId && expectedBundle && String(payload.bundleId) !== expectedBundle) {
-    const err = new Error("Apple signed transaction bundle id is invalid");
-    err.code = "APPLE_BUNDLE_MISMATCH";
-    throw err;
-  }
-
-  if (payload?.productId && !appleProductMeta(payload.productId)) {
-    const err = new Error("Apple signed transaction product id is not in BEX catalog");
-    err.code = "APPLE_PRODUCT_UNKNOWN";
-    throw err;
-  }
-
-  return payload;
-}
-
-async function verifyAppleTransactionAuthority(env, body, entitlement, meta) {
-  const cfg = getAppleServerApiConfig(env);
-
-  if (cfg.configured && entitlement.transactionId) {
-    const server = await fetchAppleServerTransactionInfo(env, entitlement.transactionId);
-    const payload = await verifyAppleSignedTransactionJws(server.signedTransactionInfo, env, body);
-    return {
-      payload,
-      signedTransactionInfo: server.signedTransactionInfo,
-      verification: server.environmentUrl.includes("sandbox") ? "app_store_server_api_sandbox_verified" : "app_store_server_api_production_verified"
-    };
-  }
-
-  if (entitlement.signedTransactionInfo) {
-    const payload = await verifyAppleSignedTransactionJws(entitlement.signedTransactionInfo, env, body);
-    return { payload, signedTransactionInfo: entitlement.signedTransactionInfo, verification: "storekit_jws_signature_verified" };
-  }
-
-  const err = new Error("Apple transaction cannot be verified. Configure App Store Server API or pass signedTransactionInfo.");
-  err.code = "APPLE_VERIFICATION_REQUIRED";
-  throw err;
-}
-
-function applePlanRank(plan) {
-  const p = String(plan || "").trim().toLowerCase();
-  if (p === "lifetime") return 4;
-  if (p === "vip_auto" || p === "vip") return 3;
-  if (p === "pro") return 2;
-  if (p === "basic") return 1;
+function billingRank(plan) {
+  const p = String(plan || "free").toLowerCase();
+  if (p.includes("lifetime")) return 4;
+  if (p.includes("vip")) return 3;
+  if (p.includes("pro")) return 2;
+  if (p.includes("basic")) return 1;
   return 0;
 }
 
-function pickBestAppleEntitlement(entitlements) {
-  const now = Date.now();
-  const mapped = (entitlements || [])
-    .map(normalizeAppleEntitlement)
-    .filter((item) => item.productId && !item.isUpgraded)
-    .map((item) => ({ ...item, meta: appleProductMeta(item.productId) }))
-    .filter((item) => !!item.meta)
-    .filter((item) => !item.expirationDateMs || Number(item.expirationDateMs) > now || item.meta.billing === "lifetime");
-
-  if (!mapped.length) return null;
-
-  // Pick the strongest currently-active entitlement first. Purchase date is only a tie-breaker.
-  // This prevents a newer lower plan from visually replacing an already-owned higher plan.
-  mapped.sort((a, b) => {
-    if (b.meta.rank !== a.meta.rank) return b.meta.rank - a.meta.rank;
-    const ap = Number(a.purchaseDateMs || 0);
-    const bp = Number(b.purchaseDateMs || 0);
-    return bp - ap;
-  });
-
-  return mapped[0];
-}
-
-function appleOwnerLookupKeys(input = {}) {
-  const tx = String(input.transaction_id || input.transactionId || "").trim();
-  const original = String(input.original_transaction_id || input.originalTransactionId || tx || "").trim();
-  return { tx: tx || null, original: original || tx || null };
-}
-
-async function findExistingAppleBillingByTransaction(env, input = {}) {
-  const ids = appleOwnerLookupKeys(input);
-  if (!ids.tx && !ids.original) return null;
+async function getUserBillingRow(env, userId) {
   await ensureBillingTables(env.DB);
-  return await env.DB.prepare(`
-    SELECT *
-    FROM user_billing
-    WHERE provider = 'apple'
-      AND (
-        (? IS NOT NULL AND apple_original_transaction_id = ?)
-        OR (? IS NOT NULL AND apple_transaction_id = ?)
-        OR (? IS NOT NULL AND stripe_subscription_id = ?)
-        OR (? IS NOT NULL AND stripe_session_id = ?)
-        OR (? IS NOT NULL AND stripe_customer_id = ?)
-      )
-    ORDER BY updated_at DESC
-    LIMIT 1
-  `).bind(
-    ids.original, ids.original,
-    ids.tx, ids.tx,
-    ids.original, ids.original,
-    ids.tx, ids.tx,
-    ids.original, ids.original
-  ).first();
-}
-
-async function demoteOldAppleOwnerIfEmpty(env, oldUserId, now) {
-  const oldId = String(oldUserId || "").trim();
-  if (!oldId) return;
-
-  const remaining = await env.DB.prepare(`SELECT * FROM user_billing WHERE user_id = ? LIMIT 1`).bind(oldId).first();
-  if (remaining) return;
-
-  await env.DB.prepare(`UPDATE users SET plan = 'free', updated_at = ? WHERE id = ?`).bind(now, oldId).run();
-  await env.DB.prepare(`UPDATE vip_tokens SET active = 0, last_seen_at = ? WHERE user_id = ? AND active = 1`).bind(now, oldId).run();
-  await env.DB.prepare(`INSERT OR REPLACE INTO user_execution_settings (user_id, auto_trading_enabled, max_lot, max_trades, risk_mode, updated_at) VALUES (?, 0, 0.01, 1, 'normal', ?)`).bind(oldId, now).run();
-}
-
-async function handleAppleIapSync(env, request, user, body, source = "purchase") {
-  await ensureBillingTables(env.DB);
-  const entitlement = normalizeAppleEntitlement(body);
-  if (!entitlement.productId) throw new Error("apple_product_id_required");
-
-  const { meta, signedPayload, verification, authoritativeSignedTransactionInfo } = await validateAppleTransactionPayload(env, body, entitlement);
-  const authoritativeProductId = String(signedPayload?.productId || entitlement.productId || "").trim();
-  const authoritativeTransactionId = String(signedPayload?.transactionId || entitlement.transactionId || "").trim() || null;
-  const authoritativeOriginalId = String(signedPayload?.originalTransactionId || entitlement.originalTransactionId || authoritativeTransactionId || "").trim() || null;
-  const authoritativeExpires = Number(signedPayload?.expiresDate || signedPayload?.expirationDate || entitlement.expirationDateMs || 0) || null;
-  const authoritativePurchaseDate = Number(signedPayload?.purchaseDate || entitlement.purchaseDateMs || 0) || Date.now();
-
-  const applied = await applyApplePaidPlan(env, user, {
-    source,
-    provider: "apple",
-    product_id: authoritativeProductId,
-    transaction_id: authoritativeTransactionId,
-    original_transaction_id: authoritativeOriginalId,
-    purchase_date_ms: authoritativePurchaseDate,
-    expiration_date_ms: authoritativeExpires,
-    signed_transaction_info: authoritativeSignedTransactionInfo || entitlement.signedTransactionInfo,
-    verification,
-    meta
-  });
-
-  return applied;
-}
-
-async function handleAppleIapRestore(env, request, user, body) {
-  await ensureBillingTables(env.DB);
-  const entitlements = Array.isArray(body?.entitlements) ? body.entitlements : [];
-  const best = pickBestAppleEntitlement(entitlements);
-  if (!best) {
-    const err = new Error("No active Apple purchase was found for this Apple ID");
-    err.code = "APPLE_NO_ACTIVE_ENTITLEMENT";
-    throw err;
-  }
-
-  return await handleAppleIapSync(env, request, user, { ...best, source: "restore" }, "restore");
+  return await env.DB.prepare(`SELECT * FROM user_billing WHERE user_id = ? LIMIT 1`).bind(userId).first();
 }
 
 async function getAppleBillingStatus(env, user) {
-  await ensureBillingTables(env.DB);
-  const billing = await env.DB.prepare(`SELECT * FROM user_billing WHERE user_id = ? LIMIT 1`).bind(user.id).first();
-  const vip = await getVipProfile(env, user.id);
+  const billing = await getUserBillingRow(env, user.id);
+  const safeUser = await getSafeUser(env.DB, user.id);
   return {
-    source: "status",
-    user,
-    billing_record: billing || null,
-    vip,
-    plan: billing?.plan || user.plan || "free",
-    billing: billing?.billing || null,
-    app_plan: user.plan || "free",
-    display_plan: displayApplePlanName(billing?.plan || user.plan || "free")
+    user: safeUser,
+    billing: billing || null,
+    effective_plan: safeUser?.plan || billing?.plan || "free",
+    provider: billing?.provider || null,
   };
 }
 
-function displayApplePlanName(plan) {
-  const p = String(plan || "").toLowerCase();
-  if (p === "lifetime") return "LIFETIME";
-  if (p === "vip_auto" || p === "vip") return "VIP";
-  if (p === "pro") return "PRO";
-  if (p === "basic") return "BASIC";
-  return "FREE";
-}
-
-async function applyApplePaidPlan(env, user, input) {
+async function upsertAppleBilling(env, user, input) {
   await ensureBillingTables(env.DB);
   const now = Date.now();
-  const meta = input.meta || appleProductMeta(input.product_id);
-  if (!meta) throw new Error("apple_product_unknown");
+  const meta = appleProductToPlan(input.productId || input.confirmedProductId);
+  const existing = await getUserBillingRow(env, user.id);
+  const existingPlan = existing?.plan || user.plan || "free";
+  const existingRank = billingRank(existingPlan);
+  const existingProvider = String(existing?.provider || "").toLowerCase();
+  const isManualVip = existingRank >= 3 && (existingProvider === "manual" || existing?.billing === "manual" || String(existingPlan).toLowerCase().includes("vip"));
 
-  const appPlan = meta.appPlan;
-  const billingPlan = meta.plan;
-  const billing = meta.billing;
-  const incomingRank = applePlanRank(billingPlan);
-  const tx = String(input.transaction_id || "").trim() || null;
-  const originalTx = String(input.original_transaction_id || tx || "").trim() || null;
+  if (billingRank(user.plan) === 4 || existingRank === 4) {
+    return { effective_plan: "lifetime", provider: existing?.provider || "backend", billing: existing?.billing || "lifetime", message: "Lifetime is already active. Apple cannot replace it." };
+  }
 
-  const currentBilling = await env.DB.prepare(`SELECT * FROM user_billing WHERE user_id = ? LIMIT 1`).bind(user.id).first();
-  const currentRank = applePlanRank(currentBilling?.plan || user.plan || "free");
+  if (isManualVip && meta.rank <= existingRank) {
+    await env.DB.prepare(`UPDATE users SET plan = ?, updated_at = ? WHERE id = ?`).bind("VIP_AUTO", now, user.id).run();
+    return { effective_plan: "VIP_AUTO", provider: existing?.provider || "manual", billing: existing?.billing || "manual", message: "Your VIP AUTO plan is active. Apple restore did not downgrade it." };
+  }
 
-  // Never let an Apple lower plan visually replace an existing Stripe lifetime or higher active plan.
-  if (currentRank > incomingRank) {
+  // Apple can schedule a downgrade, but BEX must not lower access immediately.
+  // Example: VIP Monthly -> Basic Monthly should keep VIP active until Apple renewal.
+  if (existingRank > 0 && meta.rank > 0 && meta.rank < existingRank) {
+    const keepPlan = existingPlan || user.plan || "free";
+    await env.DB.prepare(`UPDATE users SET plan = ?, updated_at = ? WHERE id = ?`).bind(keepPlan, now, user.id).run();
     return {
-      source: input.source || "purchase",
-      product_id: input.product_id,
-      transaction_id: tx,
-      original_transaction_id: originalTx,
-      plan: currentBilling?.plan || user.plan || "free",
-      billing: currentBilling?.billing || null,
-      app_plan: user.plan || "free",
-      display_plan: displayApplePlanName(currentBilling?.plan || user.plan || "free"),
-      retained_existing_plan: true,
-      reason: "existing_higher_plan_kept",
-      user: await getSafeUser(env.DB, user.id),
-      billing_record: currentBilling || null,
-      vip: await getVipProfile(env, user.id)
+      effective_plan: keepPlan,
+      provider: existing?.provider || "backend",
+      billing: existing?.billing || "",
+      scheduled_product_id: input.productId || input.confirmedProductId || null,
+      message: "Apple may schedule this lower plan for renewal. Your current BEX plan remains active until Apple changes the entitlement."
     };
   }
 
-  if (currentBilling?.provider === "apple" && currentBilling?.apple_product_id === input.product_id && currentBilling?.apple_original_transaction_id === originalTx) {
-    return {
-      source: input.source || "purchase",
-      product_id: input.product_id,
-      transaction_id: tx,
-      original_transaction_id: originalTx,
-      plan: currentBilling.plan,
-      billing: currentBilling.billing,
-      app_plan: user.plan || appPlan,
-      display_plan: displayApplePlanName(currentBilling.plan),
-      already_subscribed: true,
-      reason: "same_apple_product_already_active",
-      user: await getSafeUser(env.DB, user.id),
-      billing_record: currentBilling,
-      vip: await getVipProfile(env, user.id)
-    };
-  }
-
-  const existingOwner = await findExistingAppleBillingByTransaction(env, {
-    transaction_id: tx,
-    original_transaction_id: originalTx
-  });
-
-  let transferredFromUserId = null;
-  if (existingOwner && existingOwner.user_id && existingOwner.user_id !== user.id) {
-    transferredFromUserId = existingOwner.user_id;
-    await env.DB.prepare(`DELETE FROM user_billing WHERE user_id = ?`).bind(existingOwner.user_id).run();
-  }
-
-  await env.DB.prepare(`UPDATE users SET plan = ?, updated_at = ? WHERE id = ?`).bind(appPlan, now, user.id).run();
+  const userPlan = meta.userPlan;
+  await env.DB.prepare(`UPDATE users SET plan = ?, updated_at = ? WHERE id = ?`).bind(userPlan, now, user.id).run();
 
   await env.DB.prepare(`
-    INSERT INTO user_billing (
-      user_id,email,plan,billing,status,provider,
-      stripe_customer_id,stripe_subscription_id,stripe_session_id,
-      apple_product_id,apple_transaction_id,apple_original_transaction_id,apple_environment,
-      current_period_end,created_at,updated_at
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    INSERT INTO user_billing (user_id,email,plan,billing,status,current_period_end,created_at,updated_at,provider,apple_product_id,apple_transaction_id,apple_original_transaction_id,apple_environment)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(user_id) DO UPDATE SET
       email=excluded.email,
       plan=excluded.plan,
       billing=excluded.billing,
       status=excluded.status,
+      updated_at=excluded.updated_at,
       provider=excluded.provider,
-      stripe_customer_id=excluded.stripe_customer_id,
-      stripe_subscription_id=excluded.stripe_subscription_id,
-      stripe_session_id=excluded.stripe_session_id,
       apple_product_id=excluded.apple_product_id,
       apple_transaction_id=excluded.apple_transaction_id,
       apple_original_transaction_id=excluded.apple_original_transaction_id,
-      apple_environment=excluded.apple_environment,
-      current_period_end=excluded.current_period_end,
-      updated_at=excluded.updated_at
+      apple_environment=excluded.apple_environment
   `).bind(
     user.id,
     user.email || null,
-    billingPlan,
-    billing,
+    meta.plan,
+    meta.billing,
     "active",
-    "apple",
     null,
-    null,
-    null,
-    input.product_id || null,
-    tx,
-    originalTx,
-    String(input.verification || "unknown"),
-    input.expiration_date_ms || null,
     now,
-    now
+    now,
+    "apple",
+    input.productId || input.confirmedProductId || null,
+    input.transactionId || null,
+    input.originalTransactionId || null,
+    input.environment || "unknown"
   ).run();
 
-  if (transferredFromUserId) {
-    await demoteOldAppleOwnerIfEmpty(env, transferredFromUserId, now);
-  }
-
-  await env.DB.prepare(`
-    INSERT INTO billing_events (id, provider, type, user_id, email, plan, billing, payload_json, created_at)
-    VALUES (?, 'apple', ?, ?, ?, ?, ?, ?, ?)
-  `).bind(
-    tx || makeId("apple_evt"),
-    input.source === "restore" ? "apple_restore_sync" : "apple_purchase_sync",
-    user.id,
-    user.email || null,
-    billingPlan,
-    billing,
-    JSON.stringify({
-      product_id: input.product_id,
-      transaction_id: tx,
-      original_transaction_id: originalTx,
-      purchase_date_ms: input.purchase_date_ms,
-      expiration_date_ms: input.expiration_date_ms,
-      verification: input.verification,
-      source: input.source,
-      transferred_from_user_id: transferredFromUserId,
-      has_signed_transaction_info: !!input.signed_transaction_info
-    }),
-    now
-  ).run();
-
-  if (billingPlan === "vip_auto" || billingPlan === "lifetime") {
-    await grantVipAutoEntitlement(env, { ...user, plan: appPlan }, billingPlan);
-  } else {
-    await env.DB.prepare(`UPDATE vip_tokens SET active = 0, last_seen_at = ? WHERE user_id = ? AND active = 1`).bind(now, user.id).run();
-    await env.DB.prepare(`INSERT OR REPLACE INTO user_execution_settings (user_id, auto_trading_enabled, max_lot, max_trades, risk_mode, updated_at) VALUES (?, 0, 0.01, 1, 'normal', ?)`).bind(user.id, now).run();
-  }
-
-  const freshUser = await getSafeUser(env.DB, user.id);
-  const vip = await getVipProfile(env, user.id);
-  const billingRecord = await env.DB.prepare(`SELECT * FROM user_billing WHERE user_id = ? LIMIT 1`).bind(user.id).first();
-  return {
-    source: input.source || "purchase",
-    product_id: input.product_id,
-    transaction_id: tx,
-    original_transaction_id: originalTx,
-    transferred_from_user_id: transferredFromUserId,
-    plan: billingPlan,
-    billing,
-    app_plan: appPlan,
-    display_plan: meta.displayPlan,
-    verification: input.verification,
-    user: freshUser,
-    billing_record: billingRecord,
-    vip
-  };
+  if (meta.rank >= 3) await grantVipAutoEntitlement(env, user, meta.plan);
+  return { effective_plan: userPlan, provider: "apple", billing: meta.billing, message: `Apple ${meta.plan.toUpperCase()} access is active.` };
 }
 
-/* ---------------- END APPLE IAP BILLING V2 ---------------- */
+async function handleAppleIapSync(env, user, body) {
+  const productId = clean(body.confirmedProductId || body.productId);
+  if (!productId) return { effective_plan: user.plan || "free", provider: "backend", message: "Apple purchase did not include a product id. Current plan was kept." };
+  return await upsertAppleBilling(env, user, {
+    productId,
+    transactionId: clean(body.transactionId),
+    originalTransactionId: clean(body.originalTransactionId),
+    environment: clean(body.environment) || "unknown",
+  });
+}
+
+async function handleAppleIapRestore(env, user, body) {
+  const entitlements = Array.isArray(body?.entitlements) ? body.entitlements : [];
+  const verified = entitlements.filter((x) => x && x.ok !== false && x.productId).sort((a, b) => appleProductToPlan(b.productId).rank - appleProductToPlan(a.productId).rank);
+  if (!verified.length) {
+    const existing = await getUserBillingRow(env, user.id);
+    return {
+      effective_plan: user.plan || existing?.plan || "free",
+      provider: existing?.provider || "backend",
+      billing: existing?.billing || "",
+      message: "No Apple purchases were found. Your current BEX plan was kept active.",
+    };
+  }
+  const best = verified[0];
+  return await upsertAppleBilling(env, user, {
+    productId: best.productId,
+    transactionId: clean(best.transactionId),
+    originalTransactionId: clean(best.originalTransactionId),
+    environment: clean(best.environment) || "unknown",
+  });
+}
 
 /* ---------------- END BILLING / STRIPE CHECKOUT ---------------- */
 

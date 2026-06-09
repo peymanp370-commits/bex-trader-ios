@@ -7,7 +7,7 @@ type AppleProduct = {
   price?: string;
 };
 
-type ApplePurchaseResult = {
+export type ApplePurchaseResult = {
   ok?: boolean;
   productId?: string;
   transactionId?: string;
@@ -22,7 +22,7 @@ type ApplePurchaseResult = {
 type AppleIAPPlugin = {
   getProducts(options: { productIds: string[] }): Promise<{ ok: boolean; products: AppleProduct[] }>;
   purchase(options: { productId: string }): Promise<ApplePurchaseResult>;
-  restorePurchases(options?: Record<string, never>): Promise<{ ok: boolean; entitlements: ApplePurchaseResult[] }>;
+  restorePurchases(): Promise<{ ok: boolean; entitlements: ApplePurchaseResult[] }>;
 };
 
 const AppleIAP = registerPlugin<AppleIAPPlugin>("AppleIAP");
@@ -41,8 +41,7 @@ export const APPLE_IAP_PRODUCT_IDS = {
     yearly: "vip_yearly_v4",
   },
   lifetime: {
-    monthly: "vip_lifetime",
-    yearly: "vip_lifetime",
+    one_time: "lifetime_v4",
   },
 } as const;
 
@@ -54,7 +53,7 @@ export function appleProductIdForPlan(planId: string, cycle: "monthly" | "yearly
   if (planId === "basic") return APPLE_IAP_PRODUCT_IDS.basic[cycle];
   if (planId === "pro") return APPLE_IAP_PRODUCT_IDS.pro[cycle];
   if (planId === "vip") return APPLE_IAP_PRODUCT_IDS.vip[cycle];
-  if (planId === "lifetime") return APPLE_IAP_PRODUCT_IDS.lifetime[cycle];
+  if (planId === "lifetime") return APPLE_IAP_PRODUCT_IDS.lifetime.one_time;
   return "";
 }
 
@@ -73,7 +72,8 @@ export async function startAppleIapPurchase(productId: string) {
 
 export async function restoreAppleIapPurchases() {
   if (!isNativeIOSApp()) {
-    return { ok: false, entitlements: [], reason: "not_ios_native" } as any;
+    throw new Error("Apple restore is only available inside the iOS app.");
   }
-  return AppleIAP.restorePurchases({});
+
+  return AppleIAP.restorePurchases();
 }
