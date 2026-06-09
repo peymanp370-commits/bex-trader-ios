@@ -61,9 +61,6 @@ export default {
             "POST /api/admin/customer/disable-token",
             "POST /api/billing/create-checkout-session",
             "POST /api/billing/stripe-webhook",
-            "POST /api/apple/sync",
-            "POST /api/apple/restore",
-            "GET /api/apple/status",
             "GET /auth/google/start",
             "GET /auth/google/callback",
             "POST /auth/google/native",
@@ -468,29 +465,6 @@ export default {
 
       if (url.pathname === "/api/billing/stripe-webhook" && request.method === "POST") {
         const result = await handleStripeWebhook(request, env);
-        return ok(request, result);
-      }
-
-      if ((url.pathname === "/api/apple/sync" || url.pathname === "/api/apple/verify") && request.method === "POST") {
-        const user = await requireUserByRefreshSession(env.DB, request);
-        if (!user.ok) return user.response;
-        const body = await readJson(request);
-        const result = await handleAppleIapSync(env, user.user, body);
-        return ok(request, result);
-      }
-
-      if (url.pathname === "/api/apple/restore" && request.method === "POST") {
-        const user = await requireUserByRefreshSession(env.DB, request);
-        if (!user.ok) return user.response;
-        const body = await readJson(request);
-        const result = await handleAppleIapRestore(env, user.user, body);
-        return ok(request, result);
-      }
-
-      if (url.pathname === "/api/apple/status" && request.method === "GET") {
-        const user = await requireUserByRefreshSession(env.DB, request);
-        if (!user.ok) return user.response;
-        const result = await getAppleBillingStatus(env, user.user);
         return ok(request, result);
       }
 
@@ -2346,7 +2320,7 @@ async function adminUpgradeVip(env, body) {
   await env.DB.prepare(`INSERT OR REPLACE INTO user_execution_settings (user_id, auto_trading_enabled, max_lot, max_trades, risk_mode, updated_at) VALUES (?, 1, ?, ?, 'normal', ?)`).bind(user.id, maxLot, maxTrades, now).run();
   if (mt5Login) { const accountId = `uta_${sanitizeIdPart(email)}_mt5`; await env.DB.prepare(`INSERT INTO user_trading_accounts (id,user_id,platform,login_id,server,encrypted_password,is_active,created_at,updated_at) VALUES (?,?,'mt5',?,?, '',1,?,?) ON CONFLICT(id) DO UPDATE SET login_id=excluded.login_id, server=excluded.server, is_active=1, updated_at=excluded.updated_at`).bind(accountId, user.id, mt5Login, server || 'UNKNOWN_SERVER', now, now).run(); }
   const existing = await env.DB.prepare(`SELECT * FROM vip_tokens WHERE user_id = ? AND active = 1 LIMIT 1`).bind(user.id).first();
-  if (!existing) { const clientId = clean(body.client_id) || `client_${sanitizeIdPart(email)}`; const token = clean(body.token) || makePublicToken(`bex_vip_${sanitizeIdPart(email)}`); const vipId = `vip_${sanitizeIdPart(email)}_${now}`; await env.DB.prepare(`INSERT INTO vip_tokens (id,user_id,email,client_id,token,mt5_account_login,active,expires_at,allowed_symbols,max_lot,plan,created_at,last_seen_at) VALUES (?,?,?,?,?,?,1,?,?,?,?,?,?)`).bind(vipId, user.id, email, clientId, token, mt5Login || '', Number(body.expires_at || 1798761599000), allowedSymbols, maxLot, 'VIP_AUTO', now, now).run(); }
+  if (!existing) { const clientId = clean(body.client_id) || `client_${sanitizeIdPart(email)}`; const token = clean(body.token) || makePublicToken(`bex_vip_${sanitizeIdPart(email)}`); const vipId = `vip_${sanitizeIdPart(email)}_${now}`; await env.DB.prepare(`INSERT INTO vip_tokens (id,user_id,email,client_id,token,mt5_account_login,active,expires_at,allowed_symbols,max_lot,plan,created_at,last_seen_at) VALUES (?,?,?,?,?,?,1,?,?,?,?,NULL)`).bind(vipId, user.id, email, clientId, token, mt5Login || '', Number(body.expires_at || 1798761599000), allowedSymbols, maxLot, 'VIP_AUTO', now).run(); }
   else { await env.DB.prepare(`UPDATE vip_tokens SET mt5_account_login = COALESCE(NULLIF(?, ''), mt5_account_login), allowed_symbols = ?, max_lot = ?, plan = 'VIP_AUTO' WHERE id = ?`).bind(mt5Login || '', allowedSymbols, maxLot, existing.id).run(); }
   return await getVipProfile(env, user.id);
 }
@@ -2776,22 +2750,35 @@ async function grantVipAutoEntitlement(env, user, billingPlan = "vip_auto") {
 }
 
 
-function appleProductToPlan(productId) {
-  const p = String(productId || "").trim().toLowerCase();
-  if (p.includes("lifetime")) return { plan: "lifetime", userPlan: "lifetime", billing: "lifetime", rank: 4 };
-  if (p.includes("vip")) return { plan: "vip_auto", userPlan: "vip_auto", billing: p.includes("year") ? "yearly" : "monthly", rank: 3 };
-  if (p.includes("pro")) return { plan: "pro", userPlan: "pro", billing: p.includes("year") ? "yearly" : "monthly", rank: 2 };
-  if (p.includes("basic")) return { plan: "basic", userPlan: "basic", billing: p.includes("year") ? "yearly" : "monthly", rank: 1 };
-  return { plan: "free", userPlan: "free", billing: "", rank: 0 };
+
+/* ---------------- APPLE IAP ACCOUNT-SCOPED BILLING ---------------- */
+
+const APPLE_PRODUCT_CATALOG = {
+  basic_monthly_v4: { plan: "basic", userPlan: "basic", billing: "monthly", rank: 1, display: "BASIC Monthly" },
+  basic_yearly_v4: { plan: "basic", userPlan: "basic", billing: "yearly", rank: 1, display: "BASIC Yearly" },
+  pro_monthly_v4: { plan: "pro", userPlan: "pro", billing: "monthly", rank: 2, display: "PRO Monthly" },
+  pro_yearly_v4: { plan: "pro", userPlan: "pro", billing: "yearly", rank: 2, display: "PRO Yearly" },
+  vip_monthly_v4: { plan: "vip_auto", userPlan: "vip_auto", billing: "monthly", rank: 3, display: "VIP Monthly" },
+  vip_yearly_v4: { plan: "vip_auto", userPlan: "vip_auto", billing: "yearly", rank: 3, display: "VIP Yearly" },
+  vip_lifetime: { plan: "lifetime", userPlan: "lifetime", billing: "lifetime", rank: 4, display: "LIFETIME" }
+};
+
+function appleProductMeta(productId) {
+  const key = String(productId || "").trim();
+  return APPLE_PRODUCT_CATALOG[key] || null;
 }
 
 function billingRank(plan) {
-  const p = String(plan || "free").toLowerCase();
-  if (p.includes("lifetime")) return 4;
-  if (p.includes("vip")) return 3;
-  if (p.includes("pro")) return 2;
-  if (p.includes("basic")) return 1;
+  const p = String(plan || "free").trim().toLowerCase();
+  if (p === "lifetime") return 4;
+  if (p === "vip_auto" || p === "vip" || p === "vip-auto") return 3;
+  if (p === "pro") return 2;
+  if (p === "basic") return 1;
   return 0;
+}
+
+function cleanAppleTx(value) {
+  return String(value || "").trim();
 }
 
 async function getUserBillingRow(env, userId) {
@@ -2799,61 +2786,133 @@ async function getUserBillingRow(env, userId) {
   return await env.DB.prepare(`SELECT * FROM user_billing WHERE user_id = ? LIMIT 1`).bind(userId).first();
 }
 
+async function findAppleTransactionOwner(env, originalTransactionId, transactionId) {
+  await ensureBillingTables(env.DB);
+  const original = cleanAppleTx(originalTransactionId);
+  const tx = cleanAppleTx(transactionId);
+  if (original) {
+    const row = await env.DB.prepare(`
+      SELECT user_id,email,plan,billing,provider,apple_product_id,apple_transaction_id,apple_original_transaction_id
+      FROM user_billing
+      WHERE provider = 'apple' AND apple_original_transaction_id = ?
+      LIMIT 1
+    `).bind(original).first();
+    if (row) return row;
+  }
+  if (tx) {
+    const row = await env.DB.prepare(`
+      SELECT user_id,email,plan,billing,provider,apple_product_id,apple_transaction_id,apple_original_transaction_id
+      FROM user_billing
+      WHERE provider = 'apple' AND apple_transaction_id = ?
+      LIMIT 1
+    `).bind(tx).first();
+    if (row) return row;
+  }
+  return null;
+}
+
+function displayApplePlanName(plan, billing = "") {
+  const p = String(plan || "free").toLowerCase();
+  if (p === "lifetime") return "LIFETIME";
+  if (p === "vip_auto" || p === "vip") return billing === "yearly" ? "VIP Yearly" : "VIP Monthly";
+  if (p === "pro") return billing === "yearly" ? "PRO Yearly" : "PRO Monthly";
+  if (p === "basic") return billing === "yearly" ? "BASIC Yearly" : "BASIC Monthly";
+  return "FREE";
+}
+
 async function getAppleBillingStatus(env, user) {
+  await ensureBillingTables(env.DB);
   const billing = await getUserBillingRow(env, user.id);
   const safeUser = await getSafeUser(env.DB, user.id);
+  const effectivePlan = billing?.plan || safeUser?.plan || "free";
+  const display = displayApplePlanName(effectivePlan, billing?.billing || "");
   return {
+    source: "status",
     user: safeUser,
-    billing: billing || null,
-    effective_plan: safeUser?.plan || billing?.plan || "free",
+    billing_record: billing || null,
+    effective_plan: effectivePlan,
+    app_plan: safeUser?.plan || "free",
+    plan: effectivePlan,
+    billing: billing?.billing || null,
     provider: billing?.provider || null,
+    display_plan: display,
+    message: `${display} is active.`
   };
 }
 
-async function upsertAppleBilling(env, user, input) {
+async function keepCurrentPlanResponse(env, user, message, extra = {}) {
+  const status = await getAppleBillingStatus(env, user);
+  return {
+    ...status,
+    changed: false,
+    message,
+    ...extra
+  };
+}
+
+async function applyAppleScopedPlan(env, user, input, source = "purchase") {
   await ensureBillingTables(env.DB);
   const now = Date.now();
-  const meta = appleProductToPlan(input.productId || input.confirmedProductId);
+  const productId = cleanAppleTx(input.productId || input.confirmedProductId);
+  const transactionId = cleanAppleTx(input.transactionId);
+  const originalTransactionId = cleanAppleTx(input.originalTransactionId || input.original_transaction_id || transactionId);
+  const meta = appleProductMeta(productId);
+
+  if (!meta) {
+    return await keepCurrentPlanResponse(env, user, "Apple returned an unknown BEX product. Your current plan was kept.", {
+      code: "APPLE_PRODUCT_UNKNOWN",
+      apple_product_id: productId || null
+    });
+  }
+
+  const owner = await findAppleTransactionOwner(env, originalTransactionId, transactionId);
+  if (owner && owner.user_id && owner.user_id !== user.id) {
+    return await keepCurrentPlanResponse(env, user, "This Apple purchase is already linked to another BEX account. Your current account was not upgraded.", {
+      code: "APPLE_TRANSACTION_OWNED_BY_ANOTHER_USER",
+      apple_product_id: productId,
+      owner_email: owner.email || null
+    });
+  }
+
   const existing = await getUserBillingRow(env, user.id);
-  const existingPlan = existing?.plan || user.plan || "free";
-  const existingRank = billingRank(existingPlan);
+  const existingRank = billingRank(existing?.plan || user.plan || "free");
+  const targetRank = Number(meta.rank || 0);
   const existingProvider = String(existing?.provider || "").toLowerCase();
-  const isManualVip = existingRank >= 3 && (existingProvider === "manual" || existing?.billing === "manual" || String(existingPlan).toLowerCase().includes("vip"));
+  const existingBilling = String(existing?.billing || "").toLowerCase();
+  const existingPlan = String(existing?.plan || user.plan || "free");
+  const manualVip = existingRank >= 3 && (existingProvider === "manual" || existingBilling === "manual");
 
-  if (billingRank(user.plan) === 4 || existingRank === 4) {
-    return { effective_plan: "lifetime", provider: existing?.provider || "backend", billing: existing?.billing || "lifetime", message: "Lifetime is already active. Apple cannot replace it." };
+  if (manualVip && targetRank <= existingRank) {
+    await env.DB.prepare(`UPDATE users SET plan = 'vip_auto', updated_at = ? WHERE id = ?`).bind(now, user.id).run();
+    return await keepCurrentPlanResponse(env, { ...user, plan: "vip_auto" }, "Your manual VIP AUTO plan is active. Apple did not downgrade it.", {
+      code: "MANUAL_VIP_PROTECTED",
+      apple_product_id: productId
+    });
   }
 
-  if (isManualVip && meta.rank <= existingRank) {
-    await env.DB.prepare(`UPDATE users SET plan = ?, updated_at = ? WHERE id = ?`).bind("VIP_AUTO", now, user.id).run();
-    return { effective_plan: "VIP_AUTO", provider: existing?.provider || "manual", billing: existing?.billing || "manual", message: "Your VIP AUTO plan is active. Apple restore did not downgrade it." };
-  }
-
-  // Apple can schedule a downgrade, but BEX must not lower access immediately.
-  // Example: VIP Monthly -> Basic Monthly should keep VIP active until Apple renewal.
-  if (existingRank > 0 && meta.rank > 0 && meta.rank < existingRank) {
-    const keepPlan = existingPlan || user.plan || "free";
-    await env.DB.prepare(`UPDATE users SET plan = ?, updated_at = ? WHERE id = ?`).bind(keepPlan, now, user.id).run();
-    return {
-      effective_plan: keepPlan,
-      provider: existing?.provider || "backend",
-      billing: existing?.billing || "",
-      scheduled_product_id: input.productId || input.confirmedProductId || null,
-      message: "Apple may schedule this lower plan for renewal. Your current BEX plan remains active until Apple changes the entitlement."
-    };
+  if (existingRank > 0 && targetRank > 0 && targetRank < existingRank) {
+    await env.DB.prepare(`UPDATE users SET plan = ?, updated_at = ? WHERE id = ?`).bind(existingPlan, now, user.id).run();
+    return await keepCurrentPlanResponse(env, { ...user, plan: existingPlan }, "Apple may schedule this lower plan for renewal. Your current BEX plan remains active until Apple changes the entitlement.", {
+      code: "DOWNGRADE_SCHEDULED_NOT_APPLIED",
+      scheduled_product_id: productId
+    });
   }
 
   const userPlan = meta.userPlan;
   await env.DB.prepare(`UPDATE users SET plan = ?, updated_at = ? WHERE id = ?`).bind(userPlan, now, user.id).run();
 
   await env.DB.prepare(`
-    INSERT INTO user_billing (user_id,email,plan,billing,status,current_period_end,created_at,updated_at,provider,apple_product_id,apple_transaction_id,apple_original_transaction_id,apple_environment)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+    INSERT INTO user_billing (
+      user_id,email,plan,billing,status,stripe_customer_id,stripe_subscription_id,stripe_session_id,
+      current_period_end,created_at,updated_at,provider,apple_product_id,apple_transaction_id,
+      apple_original_transaction_id,apple_environment
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(user_id) DO UPDATE SET
       email=excluded.email,
       plan=excluded.plan,
       billing=excluded.billing,
       status=excluded.status,
+      current_period_end=excluded.current_period_end,
       updated_at=excluded.updated_at,
       provider=excluded.provider,
       apple_product_id=excluded.apple_product_id,
@@ -2867,50 +2926,93 @@ async function upsertAppleBilling(env, user, input) {
     meta.billing,
     "active",
     null,
+    null,
+    null,
+    input.expirationDateMs || null,
     now,
     now,
     "apple",
-    input.productId || input.confirmedProductId || null,
-    input.transactionId || null,
-    input.originalTransactionId || null,
-    input.environment || "unknown"
+    productId,
+    transactionId || null,
+    originalTransactionId || null,
+    cleanAppleTx(input.environment) || "unknown"
   ).run();
 
-  if (meta.rank >= 3) await grantVipAutoEntitlement(env, user, meta.plan);
-  return { effective_plan: userPlan, provider: "apple", billing: meta.billing, message: `Apple ${meta.plan.toUpperCase()} access is active.` };
+  if (meta.rank >= 3) {
+    await grantVipAutoEntitlement(env, { ...user, plan: userPlan }, meta.plan);
+  } else {
+    await env.DB.prepare(`UPDATE vip_tokens SET active = 0, last_seen_at = ? WHERE user_id = ? AND active = 1`).bind(now, user.id).run();
+    await env.DB.prepare(`INSERT OR REPLACE INTO user_execution_settings (user_id, auto_trading_enabled, max_lot, max_trades, risk_mode, updated_at) VALUES (?, 0, 0.01, 1, 'normal', ?)`).bind(user.id, now).run();
+  }
+
+  const fresh = await getAppleBillingStatus(env, { ...user, plan: userPlan });
+  return {
+    ...fresh,
+    changed: true,
+    source,
+    product_id: productId,
+    transaction_id: transactionId || null,
+    original_transaction_id: originalTransactionId || null,
+    display_plan: meta.display,
+    message: `Apple ${meta.display} access is active.`
+  };
 }
 
 async function handleAppleIapSync(env, user, body) {
-  const productId = clean(body.confirmedProductId || body.productId);
-  if (!productId) return { effective_plan: user.plan || "free", provider: "backend", message: "Apple purchase did not include a product id. Current plan was kept." };
-  return await upsertAppleBilling(env, user, {
+  const productId = cleanAppleTx(body?.confirmedProductId || body?.productId || body?.product_id);
+  if (!productId) {
+    return await keepCurrentPlanResponse(env, user, "Apple purchase did not include a product id. Your current BEX plan was kept.", {
+      code: "APPLE_PRODUCT_ID_MISSING"
+    });
+  }
+  return await applyAppleScopedPlan(env, user, {
     productId,
-    transactionId: clean(body.transactionId),
-    originalTransactionId: clean(body.originalTransactionId),
-    environment: clean(body.environment) || "unknown",
-  });
+    transactionId: body?.transactionId || body?.transaction_id,
+    originalTransactionId: body?.originalTransactionId || body?.original_transaction_id,
+    expirationDateMs: body?.expirationDateMs ?? body?.expiration_date_ms ?? null,
+    environment: body?.environment || "unknown"
+  }, body?.source || "purchase");
+}
+
+function normalizeAppleEntitlement(input) {
+  return {
+    productId: cleanAppleTx(input?.productId || input?.product_id || input?.productID),
+    transactionId: cleanAppleTx(input?.transactionId || input?.transaction_id || input?.transactionID),
+    originalTransactionId: cleanAppleTx(input?.originalTransactionId || input?.original_transaction_id || input?.originalTransactionID),
+    purchaseDateMs: Number(input?.purchaseDateMs || input?.purchase_date_ms || 0) || 0,
+    expirationDateMs: input?.expirationDateMs == null ? null : Number(input.expirationDateMs),
+    isUpgraded: input?.isUpgraded === true,
+    environment: cleanAppleTx(input?.environment || "unknown")
+  };
 }
 
 async function handleAppleIapRestore(env, user, body) {
-  const entitlements = Array.isArray(body?.entitlements) ? body.entitlements : [];
-  const verified = entitlements.filter((x) => x && x.ok !== false && x.productId).sort((a, b) => appleProductToPlan(b.productId).rank - appleProductToPlan(a.productId).rank);
-  if (!verified.length) {
-    const existing = await getUserBillingRow(env, user.id);
-    return {
-      effective_plan: user.plan || existing?.plan || "free",
-      provider: existing?.provider || "backend",
-      billing: existing?.billing || "",
-      message: "No Apple purchases were found. Your current BEX plan was kept active.",
-    };
+  const entitlements = Array.isArray(body?.entitlements) ? body.entitlements.map(normalizeAppleEntitlement) : [];
+  const usable = [];
+  for (const item of entitlements) {
+    if (!item.productId || item.isUpgraded || !appleProductMeta(item.productId)) continue;
+    const owner = await findAppleTransactionOwner(env, item.originalTransactionId, item.transactionId);
+    if (owner && owner.user_id && owner.user_id !== user.id) continue;
+    usable.push(item);
   }
-  const best = verified[0];
-  return await upsertAppleBilling(env, user, {
-    productId: best.productId,
-    transactionId: clean(best.transactionId),
-    originalTransactionId: clean(best.originalTransactionId),
-    environment: clean(best.environment) || "unknown",
+
+  if (!usable.length) {
+    return await keepCurrentPlanResponse(env, user, "No Apple purchase linked to this BEX account was found. Your current BEX plan was kept active.", {
+      code: "APPLE_NO_ACCOUNT_SCOPED_ENTITLEMENT"
+    });
+  }
+
+  usable.sort((a, b) => {
+    const ar = appleProductMeta(a.productId)?.rank || 0;
+    const br = appleProductMeta(b.productId)?.rank || 0;
+    if (br !== ar) return br - ar;
+    return Number(b.purchaseDateMs || 0) - Number(a.purchaseDateMs || 0);
   });
+
+  return await applyAppleScopedPlan(env, user, usable[0], "restore");
 }
+
+/* ---------------- END APPLE IAP ACCOUNT-SCOPED BILLING ---------------- */
 
 /* ---------------- END BILLING / STRIPE CHECKOUT ---------------- */
 
