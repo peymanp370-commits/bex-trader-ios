@@ -79,9 +79,24 @@ export function VIP() {
   const applyBillingStateFromServer = (payload: any) => {
     const plan = String(payload?.effective_plan || payload?.app_plan || payload?.user?.plan || payload?.plan || "free").trim();
     const billingPlan = String(payload?.billing_record?.plan || payload?.plan || plan || "free").trim();
-    const productId = String(payload?.product_id || payload?.billing_record?.apple_product_id || "").trim();
+    const productId = String(
+      payload?.product_id ||
+      payload?.apple_product_id ||
+      payload?.google_product_id ||
+      payload?.billing_record?.apple_product_id ||
+      payload?.billing_record?.google_product_id ||
+      ""
+    ).trim();
     const billing = String(payload?.billing || payload?.billing_record?.billing || "").trim();
-    const transactionId = String(payload?.transaction_id || payload?.billing_record?.apple_transaction_id || "").trim();
+    const transactionId = String(
+      payload?.transaction_id ||
+      payload?.apple_transaction_id ||
+      payload?.google_order_id ||
+      payload?.billing_record?.apple_transaction_id ||
+      payload?.billing_record?.google_order_id ||
+      ""
+    ).trim();
+    const provider = String(payload?.provider || payload?.billing_record?.provider || "").trim();
     const storagePlan = normalizePlanForStorage(plan || billingPlan);
 
     localStorage.setItem("userPlan", storagePlan);
@@ -91,14 +106,25 @@ export function VIP() {
     localStorage.setItem("plan", storagePlan);
     localStorage.setItem("bex_user_plan", storagePlan);
     localStorage.setItem("bex_plan", storagePlan);
-    if (productId) localStorage.setItem("appleProductId", productId);
-    if (billing) localStorage.setItem("appleBillingCycle", billing);
-    if (transactionId) localStorage.setItem("appleTransactionId", transactionId);
+    if (productId) {
+      if (provider === "google_play") localStorage.setItem("googlePlayProductId", productId);
+      else localStorage.setItem("appleProductId", productId);
+    }
+    if (billing) {
+      localStorage.setItem("billingCycle", billing);
+      if (provider === "google_play") localStorage.setItem("googlePlayBillingCycle", billing);
+      else localStorage.setItem("appleBillingCycle", billing);
+    }
+    if (transactionId) {
+      if (provider === "google_play") localStorage.setItem("googlePlayOrderId", transactionId);
+      else localStorage.setItem("appleTransactionId", transactionId);
+    }
+    if (provider) localStorage.setItem("billingProvider", provider);
     window.dispatchEvent(new Event("storage"));
     window.dispatchEvent(new Event("bexPlanChanged"));
   };
 
-  const postAppleBilling = async (path: string, body: any) => {
+  const postBilling = async (path: string, body: any, label = "billing") => {
     const res = await fetch(`${AUTH_BASE}${path}`, {
       method: "POST",
       headers: authHeaders(),
@@ -107,10 +133,13 @@ export function VIP() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data?.ok === false) {
-      throw new Error(data?.message || data?.code || `Apple billing request failed (${res.status})`);
+      throw new Error(data?.message || data?.code || `${label} request failed (${res.status})`);
     }
     return data;
   };
+
+  const postAppleBilling = (path: string, body: any) => postBilling(path, body, "Apple billing");
+  const postGooglePlayBilling = (path: string, body: any) => postBilling(path, body, "Google Play billing");
 
   const normalizeAppleEntitlements = (payload: any): AppleEntitlement[] => {
     const direct = Array.isArray(payload?.entitlements) ? payload.entitlements : [];
@@ -133,7 +162,7 @@ export function VIP() {
 
   const GOOGLE_PLAY_PRODUCT_IDS: Record<string, Record<"monthly" | "yearly", string>> = {
     basic: { monthly: "basic_monthly", yearly: "basic_yearly" },
-    pro: { monthly: "pro_monthly", yearly: "pro_yearly_v2" },
+    pro: { monthly: "pro_monthly", yearly: "pro_yearly_v4" },
     vip: { monthly: "vip_monthly", yearly: "vip_yearly" },
     lifetime: { monthly: "vip_lifetime", yearly: "vip_lifetime" },
   };
@@ -155,6 +184,35 @@ export function VIP() {
     ];
 
     alert(lines.join("\n"));
+  };
+
+  const extractGooglePaymentPayload = (response: any) => {
+    const details = response?.details || {};
+    return {
+      methodName: response?.methodName || "https://play.google.com/billing",
+      requestId: response?.requestId || details?.requestId || "",
+      details,
+      purchaseToken: details?.purchaseToken || details?.purchase_token || details?.token || details?.purchase?.purchaseToken || "",
+      orderId: details?.orderId || details?.order_id || details?.purchase?.orderId || response?.requestId || "",
+      raw: details,
+    };
+  };
+
+  const syncGooglePlayPurchaseWithServer = async (plan: (typeof plans)[0], productId: string, response: any) => {
+    const paymentResponse = extractGooglePaymentPayload(response);
+    const checkoutBilling = plan.id === "lifetime" ? "lifetime" : billingCycle;
+    return await postGooglePlayBilling("/api/google-play/sync", {
+      source: "purchase",
+      platform: "android",
+      productId,
+      confirmedProductId: productId,
+      requestedProductId: productId,
+      plan: checkoutPlanId(plan.id),
+      billing: checkoutBilling,
+      purchaseToken: paymentResponse.purchaseToken,
+      orderId: paymentResponse.orderId,
+      paymentResponse,
+    });
   };
 
   const startGooglePlayBilling = async (plan: (typeof plans)[0]) => {
@@ -260,15 +318,25 @@ export function VIP() {
     }
 
     try {
-      await response.complete("success");
-    } catch (e) {
-      // Do not block entitlement flow for response.complete edge cases.
-    }
+      const server = await syncGooglePlayPurchaseWithServer(plan, productId, response);
+      try {
+        await response.complete("success");
+      } catch (e) {
+        // Do not block entitlement flow for response.complete edge cases.
+      }
 
-    localStorage.setItem("userPlan", plan.name);
-    localStorage.setItem("googlePlayProductId", productId);
-    alert(subscribedMessage(plan.name));
-    navigate("/app");
+      applyBillingStateFromServer(server);
+      alert(server?.message || subscribedMessage(server?.display_plan || plan.name));
+      navigate("/app");
+    } catch (e: any) {
+      try {
+        await response.complete("fail");
+      } catch (_) {
+        // Ignore PaymentRequest completion edge cases.
+      }
+      const rawMessage = String(e?.message || e?.error || e || "");
+      alert(`Google Play purchase was completed, but BEX could not activate it on your account. ${rawMessage || "Please contact support."}`);
+    }
   };
 
   const startAppleInAppPurchase = async (plan: (typeof plans)[0]) => {
@@ -337,6 +405,55 @@ export function VIP() {
     } catch (e: any) {
       const rawMessage = String(e?.message || e?.error || e || "");
       alert(`Restore purchases could not be completed. ${rawMessage || "Please try again."}`);
+    }
+  };
+
+  const normalizeGooglePurchases = (payload: any): any[] => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.purchases)) return payload.purchases;
+    if (Array.isArray(payload?.items)) return payload.items;
+    if (Array.isArray(payload?.details)) return payload.details;
+    return [];
+  };
+
+  const handleRestoreGooglePlayPurchases = async () => {
+    const w = window as any;
+    if (!isAndroidInstalledApp()) return;
+    if (!("getDigitalGoodsService" in w)) {
+      googleBillingDebug("NO_DIGITAL_GOODS_SERVICE", {
+        reason: "Google Play restore requires the Android installed app from Play.",
+      });
+      return;
+    }
+
+    try {
+      const service = await w.getDigitalGoodsService("https://play.google.com/billing");
+      let purchases: any[] = [];
+
+      if (typeof service?.listPurchases === "function") {
+        try {
+          purchases = normalizeGooglePurchases(await service.listPurchases());
+        } catch (_) {
+          try { purchases = normalizeGooglePurchases(await service.listPurchases("subs")); } catch (_) {}
+        }
+      }
+
+      if (!purchases.length && typeof service?.listPurchaseHistory === "function") {
+        purchases = normalizeGooglePurchases(await service.listPurchaseHistory());
+      }
+
+      if (!purchases.length) {
+        alert("No Google Play purchase was found for this installed app. If you just changed plan, reopen the app and try again.");
+        return;
+      }
+
+      const server = await postGooglePlayBilling("/api/google-play/restore", { purchases });
+      applyBillingStateFromServer(server);
+      alert(server?.message || "Google Play restore completed. Your BEX plan was refreshed.");
+      navigate("/app");
+    } catch (e: any) {
+      const rawMessage = String(e?.message || e?.error || e || "");
+      alert(`Google Play restore could not be completed. ${rawMessage || "Please try again."}`);
     }
   };
 
@@ -512,9 +629,9 @@ export function VIP() {
           </button>
         </div>
 
-        {isIOSInstalledApp() && (
+        {(isIOSInstalledApp() || isAndroidInstalledApp()) && (
           <button
-            onClick={handleRestoreApplePurchases}
+            onClick={isIOSInstalledApp() ? handleRestoreApplePurchases : handleRestoreGooglePlayPurchases}
             className={`w-full rounded-2xl border px-4 py-3 text-sm font-bold transition-all ${
               darkMode ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-300" : "border-yellow-500/30 bg-yellow-50 text-yellow-700"
             }`}

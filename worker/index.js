@@ -61,6 +61,11 @@ export default {
             "POST /api/admin/customer/disable-token",
             "POST /api/billing/create-checkout-session",
             "POST /api/billing/stripe-webhook",
+            "GET /api/billing/status",
+            "POST /api/apple/sync",
+            "POST /api/apple/restore",
+            "POST /api/google-play/sync",
+            "POST /api/google-play/restore",
             "GET /auth/google/start",
             "GET /auth/google/callback",
             "POST /auth/google/native",
@@ -465,6 +470,45 @@ export default {
 
       if (url.pathname === "/api/billing/stripe-webhook" && request.method === "POST") {
         const result = await handleStripeWebhook(request, env);
+        return ok(request, result);
+      }
+
+      if (url.pathname === "/api/billing/status" && request.method === "GET") {
+        const user = await requireUserByRefreshSession(env.DB, request);
+        if (!user.ok) return user.response;
+        const result = await getBillingStatus(env, user.user);
+        return ok(request, result);
+      }
+
+      if (url.pathname === "/api/apple/sync" && request.method === "POST") {
+        const user = await requireUserByRefreshSession(env.DB, request);
+        if (!user.ok) return user.response;
+        const body = await readJson(request);
+        const result = await handleAppleIapSync(env, user.user, body);
+        return ok(request, result);
+      }
+
+      if (url.pathname === "/api/apple/restore" && request.method === "POST") {
+        const user = await requireUserByRefreshSession(env.DB, request);
+        if (!user.ok) return user.response;
+        const body = await readJson(request);
+        const result = await handleAppleIapRestore(env, user.user, body);
+        return ok(request, result);
+      }
+
+      if (url.pathname === "/api/google-play/sync" && request.method === "POST") {
+        const user = await requireUserByRefreshSession(env.DB, request);
+        if (!user.ok) return user.response;
+        const body = await readJson(request);
+        const result = await handleGooglePlaySync(env, user.user, body);
+        return ok(request, result);
+      }
+
+      if (url.pathname === "/api/google-play/restore" && request.method === "POST") {
+        const user = await requireUserByRefreshSession(env.DB, request);
+        if (!user.ok) return user.response;
+        const body = await readJson(request);
+        const result = await handleGooglePlayRestore(env, user.user, body);
         return ok(request, result);
       }
 
@@ -2622,6 +2666,10 @@ async function ensureBillingTables(db) {
   await addColumnIfMissing(db, "user_billing", "apple_transaction_id TEXT");
   await addColumnIfMissing(db, "user_billing", "apple_original_transaction_id TEXT");
   await addColumnIfMissing(db, "user_billing", "apple_environment TEXT");
+  await addColumnIfMissing(db, "user_billing", "google_product_id TEXT");
+  await addColumnIfMissing(db, "user_billing", "google_purchase_token TEXT");
+  await addColumnIfMissing(db, "user_billing", "google_order_id TEXT");
+  await addColumnIfMissing(db, "user_billing", "google_package_name TEXT");
 
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS user_execution_settings (
@@ -2750,6 +2798,286 @@ async function grantVipAutoEntitlement(env, user, billingPlan = "vip_auto") {
 }
 
 
+async function getBillingStatus(env, user) {
+  await ensureBillingTables(env.DB);
+  const billing = await getUserBillingRow(env, user.id);
+  const safeUser = await getSafeUser(env.DB, user.id);
+  const effectivePlan = billing?.plan || safeUser?.plan || "free";
+  const display = displayPlanNameForBilling(effectivePlan, billing?.billing || "");
+  return {
+    source: "status",
+    user: safeUser,
+    billing_record: billing || null,
+    effective_plan: effectivePlan,
+    app_plan: safeUser?.plan || "free",
+    plan: effectivePlan,
+    billing: billing?.billing || null,
+    provider: billing?.provider || null,
+    display_plan: display,
+    message: `${display} is active.`
+  };
+}
+
+function displayPlanNameForBilling(plan, billing = "") {
+  const p = String(plan || "free").toLowerCase();
+  if (p === "lifetime") return "LIFETIME";
+  if (p === "vip_auto" || p === "vip") return billing === "yearly" ? "VIP Yearly" : "VIP Monthly";
+  if (p === "pro") return billing === "yearly" ? "PRO Yearly" : "PRO Monthly";
+  if (p === "basic") return billing === "yearly" ? "BASIC Yearly" : "BASIC Monthly";
+  return "FREE";
+}
+
+/* ---------------- GOOGLE PLAY ACCOUNT-SCOPED BILLING ---------------- */
+
+const GOOGLE_PLAY_PRODUCT_CATALOG = {
+  basic_monthly: { plan: "basic", userPlan: "basic", billing: "monthly", rank: 1, display: "BASIC Monthly" },
+  basic_yearly: { plan: "basic", userPlan: "basic", billing: "yearly", rank: 1, display: "BASIC Yearly" },
+  pro_monthly: { plan: "pro", userPlan: "pro", billing: "monthly", rank: 2, display: "PRO Monthly" },
+  pro_yearly_v4: { plan: "pro", userPlan: "pro", billing: "yearly", rank: 2, display: "PRO Yearly" },
+  pro_yearly_v2: { plan: "pro", userPlan: "pro", billing: "yearly", rank: 2, display: "PRO Yearly" },
+  pro_yearly: { plan: "pro", userPlan: "pro", billing: "yearly", rank: 2, display: "PRO Yearly" },
+  vip_monthly: { plan: "vip_auto", userPlan: "vip_auto", billing: "monthly", rank: 3, display: "VIP Monthly" },
+  vip_yearly: { plan: "vip_auto", userPlan: "vip_auto", billing: "yearly", rank: 3, display: "VIP Yearly" },
+  vip_lifetime: { plan: "lifetime", userPlan: "lifetime", billing: "lifetime", rank: 4, display: "LIFETIME" }
+};
+
+function googlePlayProductMeta(productId) {
+  const key = String(productId || "").trim();
+  return GOOGLE_PLAY_PRODUCT_CATALOG[key] || null;
+}
+
+function normalizeGooglePurchaseToken(body = {}) {
+  const d = body?.paymentResponse?.details || body?.details || body?.raw || {};
+  return cleanAppleTx(
+    body?.purchaseToken ||
+    body?.purchase_token ||
+    body?.token ||
+    d?.purchaseToken ||
+    d?.purchase_token ||
+    d?.token ||
+    d?.purchase?.purchaseToken ||
+    d?.purchase?.token
+  );
+}
+
+function normalizeGoogleOrderId(body = {}) {
+  const d = body?.paymentResponse?.details || body?.details || body?.raw || {};
+  return cleanAppleTx(
+    body?.orderId ||
+    body?.order_id ||
+    d?.orderId ||
+    d?.order_id ||
+    d?.purchase?.orderId ||
+    body?.paymentResponse?.requestId ||
+    body?.requestId
+  );
+}
+
+async function findGooglePurchaseOwner(env, purchaseToken, orderId) {
+  await ensureBillingTables(env.DB);
+  const token = cleanAppleTx(purchaseToken);
+  const order = cleanAppleTx(orderId);
+  if (token) {
+    const row = await env.DB.prepare(`
+      SELECT user_id,email,plan,billing,provider,google_product_id,google_purchase_token,google_order_id
+      FROM user_billing
+      WHERE provider = 'google_play' AND google_purchase_token = ?
+      LIMIT 1
+    `).bind(token).first();
+    if (row) return row;
+  }
+  if (order) {
+    const row = await env.DB.prepare(`
+      SELECT user_id,email,plan,billing,provider,google_product_id,google_purchase_token,google_order_id
+      FROM user_billing
+      WHERE provider = 'google_play' AND google_order_id = ?
+      LIMIT 1
+    `).bind(order).first();
+    if (row) return row;
+  }
+  return null;
+}
+
+async function keepCurrentBillingPlanResponse(env, user, message, extra = {}) {
+  const status = await getBillingStatus(env, user);
+  return { ...status, changed: false, message, ...extra };
+}
+
+async function applyGooglePlayScopedPlan(env, user, input, source = "purchase") {
+  await ensureBillingTables(env.DB);
+  const now = Date.now();
+  const productId = cleanAppleTx(input.productId || input.product_id || input.confirmedProductId);
+  const meta = googlePlayProductMeta(productId);
+  const purchaseToken = normalizeGooglePurchaseToken(input);
+  const orderId = normalizeGoogleOrderId(input);
+  const packageName = cleanAppleTx(input.packageName || input.package_name || input.paymentResponse?.details?.packageName || env.GOOGLE_PLAY_PACKAGE_NAME || "com.bextrader.app");
+
+  if (!meta) {
+    return await keepCurrentBillingPlanResponse(env, user, "Google Play returned an unknown BEX product. Your current plan was kept.", {
+      code: "GOOGLE_PLAY_PRODUCT_UNKNOWN",
+      google_product_id: productId || null
+    });
+  }
+
+  // A purchase token is strongly preferred. Some Android PaymentRequest builds only return
+  // order/request details; for those builds we still keep the entitlement account-scoped,
+  // but mark the record as google_play_unverified until Play Developer API verification is added.
+  const owner = await findGooglePurchaseOwner(env, purchaseToken, orderId);
+  if (owner && owner.user_id && owner.user_id !== user.id) {
+    return await keepCurrentBillingPlanResponse(env, user, "This Google Play purchase is already linked to another BEX account. Your current account was not upgraded.", {
+      code: "GOOGLE_PLAY_PURCHASE_OWNED_BY_ANOTHER_USER",
+      google_product_id: productId,
+      owner_email: owner.email || null
+    });
+  }
+
+  const existing = await getUserBillingRow(env, user.id);
+  const existingRank = billingRank(existing?.plan || user.plan || "free");
+  const targetRank = Number(meta.rank || 0);
+  const existingProvider = String(existing?.provider || "").toLowerCase();
+  const existingBilling = String(existing?.billing || "").toLowerCase();
+  const existingPlan = String(existing?.plan || user.plan || "free");
+  const manualVip = existingRank >= 3 && (existingProvider === "manual" || existingBilling === "manual");
+
+  if (manualVip && targetRank <= existingRank) {
+    await env.DB.prepare(`UPDATE users SET plan = 'vip_auto', updated_at = ? WHERE id = ?`).bind(now, user.id).run();
+    return await keepCurrentBillingPlanResponse(env, { ...user, plan: "vip_auto" }, "Your manual VIP AUTO plan is active. Google Play did not downgrade it.", {
+      code: "MANUAL_VIP_PROTECTED",
+      google_product_id: productId
+    });
+  }
+
+  if (existingRank > 0 && targetRank > 0 && targetRank < existingRank) {
+    await env.DB.prepare(`UPDATE users SET plan = ?, updated_at = ? WHERE id = ?`).bind(existingPlan, now, user.id).run();
+    return await keepCurrentBillingPlanResponse(env, { ...user, plan: existingPlan }, "Google Play may schedule this lower plan for renewal. Your current BEX plan remains active until Google changes the entitlement.", {
+      code: "DOWNGRADE_SCHEDULED_NOT_APPLIED",
+      scheduled_product_id: productId
+    });
+  }
+
+  const userPlan = meta.userPlan;
+  await env.DB.prepare(`UPDATE users SET plan = ?, updated_at = ? WHERE id = ?`).bind(userPlan, now, user.id).run();
+
+  await env.DB.prepare(`
+    INSERT INTO user_billing (
+      user_id,email,plan,billing,status,stripe_customer_id,stripe_subscription_id,stripe_session_id,
+      current_period_end,created_at,updated_at,provider,google_product_id,google_purchase_token,
+      google_order_id,google_package_name
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(user_id) DO UPDATE SET
+      email=excluded.email,
+      plan=excluded.plan,
+      billing=excluded.billing,
+      status=excluded.status,
+      current_period_end=excluded.current_period_end,
+      updated_at=excluded.updated_at,
+      provider=excluded.provider,
+      google_product_id=excluded.google_product_id,
+      google_purchase_token=excluded.google_purchase_token,
+      google_order_id=excluded.google_order_id,
+      google_package_name=excluded.google_package_name
+  `).bind(
+    user.id,
+    user.email || null,
+    meta.plan,
+    meta.billing,
+    purchaseToken ? "active" : "active_unverified_google_play",
+    null,
+    null,
+    null,
+    input.expirationDateMs || null,
+    now,
+    now,
+    "google_play",
+    productId,
+    purchaseToken || null,
+    orderId || null,
+    packageName || null
+  ).run();
+
+  await env.DB.prepare(`
+    INSERT INTO billing_events (id, provider, type, user_id, email, plan, billing, payload_json, created_at)
+    VALUES (?, 'google_play', ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    makeId("bill_evt"),
+    source === "restore" ? "restore_applied" : "purchase_sync_applied",
+    user.id,
+    user.email || null,
+    meta.plan,
+    meta.billing,
+    JSON.stringify({ productId, purchaseToken: purchaseToken ? "present" : "missing", orderId, packageName, source }),
+    now
+  ).run();
+
+  if (meta.rank >= 3) {
+    await grantVipAutoEntitlement(env, { ...user, plan: userPlan }, meta.plan);
+  } else {
+    await env.DB.prepare(`UPDATE vip_tokens SET active = 0, last_seen_at = ? WHERE user_id = ? AND active = 1`).bind(now, user.id).run();
+    await env.DB.prepare(`INSERT OR REPLACE INTO user_execution_settings (user_id, auto_trading_enabled, max_lot, max_trades, risk_mode, updated_at) VALUES (?, 0, 0.01, 1, 'normal', ?)`).bind(user.id, now).run();
+  }
+
+  const fresh = await getBillingStatus(env, { ...user, plan: userPlan });
+  return {
+    ...fresh,
+    changed: true,
+    source,
+    product_id: productId,
+    google_product_id: productId,
+    google_purchase_token_present: !!purchaseToken,
+    google_order_id: orderId || null,
+    display_plan: meta.display,
+    message: `Google Play ${meta.display} access is active.`
+  };
+}
+
+async function handleGooglePlaySync(env, user, body) {
+  const productId = cleanAppleTx(body?.confirmedProductId || body?.productId || body?.product_id);
+  if (!productId) {
+    return await keepCurrentBillingPlanResponse(env, user, "Google Play purchase did not include a product id. Your current BEX plan was kept.", {
+      code: "GOOGLE_PLAY_PRODUCT_ID_MISSING"
+    });
+  }
+  return await applyGooglePlayScopedPlan(env, user, {
+    ...body,
+    productId,
+    purchaseToken: normalizeGooglePurchaseToken(body),
+    orderId: normalizeGoogleOrderId(body),
+    expirationDateMs: body?.expirationDateMs ?? body?.expiration_date_ms ?? null
+  }, body?.source || "purchase");
+}
+
+async function handleGooglePlayRestore(env, user, body) {
+  const purchases = Array.isArray(body?.purchases) ? body.purchases : [];
+  const usable = [];
+  for (const item of purchases) {
+    const productId = cleanAppleTx(item?.productId || item?.product_id || item?.sku);
+    if (!productId || !googlePlayProductMeta(productId)) continue;
+    const purchaseToken = normalizeGooglePurchaseToken(item);
+    const orderId = normalizeGoogleOrderId(item);
+    const owner = await findGooglePurchaseOwner(env, purchaseToken, orderId);
+    if (owner && owner.user_id && owner.user_id !== user.id) continue;
+    usable.push({ ...item, productId, purchaseToken, orderId });
+  }
+
+  if (!usable.length) {
+    return await keepCurrentBillingPlanResponse(env, user, "No Google Play purchase linked to this BEX account was found. Your current BEX plan was kept active.", {
+      code: "GOOGLE_PLAY_NO_ACCOUNT_SCOPED_PURCHASE"
+    });
+  }
+
+  usable.sort((a, b) => {
+    const ar = googlePlayProductMeta(a.productId)?.rank || 0;
+    const br = googlePlayProductMeta(b.productId)?.rank || 0;
+    if (br !== ar) return br - ar;
+    return Number(b.purchaseTimeMs || b.purchaseDateMs || 0) - Number(a.purchaseTimeMs || a.purchaseDateMs || 0);
+  });
+
+  return await applyGooglePlayScopedPlan(env, user, usable[0], "restore");
+}
+
+/* ---------------- END GOOGLE PLAY ACCOUNT-SCOPED BILLING ---------------- */
+
+
 
 /* ---------------- APPLE IAP ACCOUNT-SCOPED BILLING ---------------- */
 
@@ -2812,12 +3140,7 @@ async function findAppleTransactionOwner(env, originalTransactionId, transaction
 }
 
 function displayApplePlanName(plan, billing = "") {
-  const p = String(plan || "free").toLowerCase();
-  if (p === "lifetime") return "LIFETIME";
-  if (p === "vip_auto" || p === "vip") return billing === "yearly" ? "VIP Yearly" : "VIP Monthly";
-  if (p === "pro") return billing === "yearly" ? "PRO Yearly" : "PRO Monthly";
-  if (p === "basic") return billing === "yearly" ? "BASIC Yearly" : "BASIC Monthly";
-  return "FREE";
+  return displayPlanNameForBilling(plan, billing);
 }
 
 async function getAppleBillingStatus(env, user) {
