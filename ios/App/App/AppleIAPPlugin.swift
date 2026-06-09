@@ -67,7 +67,6 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
                             "productId": transaction.productID,
                             "transactionId": String(transaction.id),
                             "originalTransactionId": String(transaction.originalID),
-                            "signedTransactionInfo": transaction.jwsRepresentation,
                             "verification": "verified"
                         ])
                     case .unverified(let transaction, let error):
@@ -109,7 +108,6 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
                         "productId": transaction.productID,
                         "transactionId": String(transaction.id),
                         "originalTransactionId": String(transaction.originalID),
-                        "signedTransactionInfo": transaction.jwsRepresentation,
                         "verification": "verified"
                     ])
                 case .unverified(let transaction, let error):
