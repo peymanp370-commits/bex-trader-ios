@@ -7,7 +7,6 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { Eye, EyeOff } from "lucide-react";
 import logoImage from "../../assets/bex-brand-logo.png";
 import { clearLocalAuthState } from "../utils/api";
-import { isNativeIOSApp, restoreAppleIapPurchases } from "../utils/appleIap";
 
 const AUTH_BASE =
   import.meta.env.VITE_API_URL || "https://auth.bextrader.com";
@@ -18,45 +17,6 @@ const HISTORY_BASE =
   "https://bex-mt5-history-ingest.peymanp370.workers.dev";
 
 
-
-async function syncAppleEntitlementsAfterLogin() {
-  if (!isNativeIOSApp()) return;
-  try {
-    const restored = await restoreAppleIapPurchases();
-    const entitlements = Array.isArray((restored as any)?.entitlements) ? (restored as any).entitlements : [];
-    if (!entitlements.length) return;
-
-    const token = (
-      localStorage.getItem("bex_refresh_token") ||
-      localStorage.getItem("refresh_token") ||
-      localStorage.getItem("authToken") ||
-      localStorage.getItem("accessToken") ||
-      localStorage.getItem("token") ||
-      ""
-    ).trim();
-
-    const res = await fetch(`${AUTH_BASE}/api/apple/restore`, {
-      method: "POST",
-      credentials: "include",
-      cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-        accept: "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ entitlements, source: "login_restore" }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data?.ok === false) return;
-
-    const displayPlan = data?.display_plan || data?.plan || data?.user?.plan;
-    if (displayPlan) localStorage.setItem("userPlan", String(displayPlan));
-    if (data?.user) saveAccountProfileToLocalStorage(data.user);
-    window.dispatchEvent(new Event("storage"));
-  } catch {
-    // Login must never fail because restore sync failed. User can still press Restore Purchases on VIP.
-  }
-}
 
 async function clearServerAuthSession() {
   await Promise.allSettled([
@@ -776,7 +736,7 @@ export function Login() {
     localStorage.setItem("userLastName", resultUser?.last_name || "");
     localStorage.setItem("userEmail", resultUser?.email || fallbackIdentity);
     localStorage.setItem("userName", displayName);
-    localStorage.setItem("userPlan", resultUser?.plan || "PRO");
+    localStorage.setItem("userPlan", resultUser?.plan || "free");
     saveAccountProfileToLocalStorage(resultUser || {});
     window.dispatchEvent(new Event("storage"));
   };
@@ -869,7 +829,6 @@ export function Login() {
 
       saveUserToLocalStorage(result.user, cleanIdentity);
       await hydrateAccountProfile(result.user?.email || cleanIdentity);
-      await syncAppleEntitlementsAfterLogin();
       navigate("/app");
     } catch {
       setError(tx(lang, {
@@ -999,6 +958,8 @@ export function Login() {
           .join(": ")
       );
     }
+
+    clearLocalAuthState();
 
     if (data?.refresh_token) {
       localStorage.setItem("bex_refresh_token", data.refresh_token);
@@ -1160,6 +1121,10 @@ export function Login() {
       throw new Error(data?.code || data?.message || "GOOGLE_NATIVE_EXCHANGE_FAILED");
     }
 
+    // Important: native Google login must not inherit the previous account plan/tokens.
+    // We clear only after Google returns successfully so we do not cancel the native activity.
+    clearLocalAuthState();
+
     if (data?.refresh_token) {
       localStorage.setItem("bex_refresh_token", data.refresh_token);
       localStorage.setItem("refresh_token", data.refresh_token);
@@ -1174,7 +1139,6 @@ export function Login() {
 
     saveUserToLocalStorage(user, user?.email || email || "Trader");
     await hydrateAccountProfile(user?.email || email);
-    await syncAppleEntitlementsAfterLogin();
     window.dispatchEvent(new Event("storage"));
     navigate("/app", { replace: true });
   };

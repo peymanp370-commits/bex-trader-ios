@@ -2919,9 +2919,16 @@ async function applyGooglePlayScopedPlan(env, user, input, source = "purchase") 
     });
   }
 
-  // A purchase token is strongly preferred. Some Android PaymentRequest builds only return
-  // order/request details; for those builds we still keep the entitlement account-scoped,
-  // but mark the record as google_play_unverified until Play Developer API verification is added.
+  // Never upgrade a BEX account from client-side plan/product values alone.
+  // Google Play must return at least a purchase token or order/request id so the entitlement
+  // can be account-scoped and later verified by the Google Play Developer API.
+  if (!purchaseToken && !orderId) {
+    return await keepCurrentBillingPlanResponse(env, user, "Google Play did not return purchase proof. Your current BEX plan was kept.", {
+      code: "GOOGLE_PLAY_PURCHASE_PROOF_MISSING",
+      google_product_id: productId
+    });
+  }
+
   const owner = await findGooglePurchaseOwner(env, purchaseToken, orderId);
   if (owner && owner.user_id && owner.user_id !== user.id) {
     return await keepCurrentBillingPlanResponse(env, user, "This Google Play purchase is already linked to another BEX account. Your current account was not upgraded.", {
@@ -2981,7 +2988,7 @@ async function applyGooglePlayScopedPlan(env, user, input, source = "purchase") 
     user.email || null,
     meta.plan,
     meta.billing,
-    purchaseToken ? "active" : "active_unverified_google_play",
+    "active",
     null,
     null,
     null,
