@@ -14,6 +14,7 @@ export type ApplePurchaseResult = {
   originalTransactionId?: string;
   environment?: string;
   verification?: string;
+  signedTransactionInfo?: string;
   reason?: string;
   error?: string;
   message?: string;

@@ -96,22 +96,34 @@ export function VIP() {
   const storeEffectivePlan = (plan?: string | null, billing?: string | null, provider?: string | null) => {
     const normalized = normalizePlanId(plan);
     const display = normalized === "lifetime" ? "LIFETIME" : normalized === "vip" ? "VIP_AUTO" : normalized === "pro" ? "PRO" : normalized === "basic" ? "BASIC" : "FREE";
+
+    // Canonical plan sync: remove stale plan keys so AppHeader/Home/VIP cannot disagree.
+    const stalePlanKeys = [
+      "bex_user_plan", "activePlan", "bex_active_plan", "subscription_plan", "bex_subscription_plan",
+      "entitlement", "bex_entitlement", "plan", "bex_plan", "subscription", "bex_subscription", "tier", "bex_tier",
+      "appleProductId", "appleTransactionId"
+    ];
+    stalePlanKeys.forEach((key) => localStorage.removeItem(key));
     localStorage.setItem("userPlan", display);
-    if (billing) localStorage.setItem("billingCycle", billing);
-    if (provider) localStorage.setItem("billingProvider", provider);
+    localStorage.setItem("bexEffectivePlan", display);
+    localStorage.setItem("billingCycle", billing || "");
+    localStorage.setItem("billingProvider", provider || "backend");
+
     setBackendPlan(display);
-    if (billing) setBackendBilling(billing);
-    if (provider) setBackendProvider(provider);
+    setBackendBilling(billing || "");
+    setBackendProvider(provider || "backend");
     window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new CustomEvent("bexPlanChanged", { detail: { plan: display, billing: billing || "", provider: provider || "backend" } }));
   };
 
   const refreshBackendPlan = async () => {
     try {
       setPlanLoading(true);
       const vip = await fetchMyVip();
-      const plan = (vip as any)?.user?.plan || (vip as any)?.vip?.plan || "free";
-      const billing = (vip as any)?.billing?.billing || (vip as any)?.billing?.plan || "";
-      const provider = (vip as any)?.billing?.provider || "backend";
+      const billingRecord = (vip as any)?.billing_record || (vip as any)?.billing || (vip as any)?.vip?.billing_record || null;
+      const plan = billingRecord?.plan || (vip as any)?.user?.plan || (vip as any)?.vip?.user?.plan || (vip as any)?.vip?.plan || "free";
+      const billing = billingRecord?.billing || "";
+      const provider = billingRecord?.provider || billingRecord?.stripe_customer_id || "backend";
       storeEffectivePlan(plan, billing, provider);
     } catch {
       // Keep the last known UI state if backend is temporarily unavailable.
@@ -168,9 +180,10 @@ export function VIP() {
     if (!response.ok || data?.ok === false) {
       throw new Error(data?.message || data?.error || "Apple backend sync failed");
     }
-    const nextPlan = data?.effective_plan || data?.user?.plan || data?.plan;
-    const nextBilling = data?.billing || data?.billing_plan || "";
-    const nextProvider = data?.provider || "apple";
+    const billingRecord = data?.billing_record || data?.billing || null;
+    const nextPlan = data?.effective_plan || billingRecord?.plan || data?.user?.plan || data?.plan;
+    const nextBilling = billingRecord?.billing || data?.billing_cycle || data?.billing_plan || data?.billing || "";
+    const nextProvider = billingRecord?.provider || data?.provider || "apple";
     if (nextPlan) storeEffectivePlan(nextPlan, nextBilling, nextProvider);
     return data;
   };
@@ -347,10 +360,12 @@ export function VIP() {
         const confirmed = productMetaFromId(result.productId);
         await syncAppleWithBackend("/api/apple/sync", {
           mode: "purchase_mismatch",
+          productId: result.productId,
           requestedProductId: productId,
           confirmedProductId: result.productId,
           transactionId: result.transactionId || "",
           originalTransactionId: result.originalTransactionId || "",
+          signedTransactionInfo: (result as any).signedTransactionInfo || "",
           environment: result.environment || "unknown",
         });
         alert(`Apple confirmed ${result.productId}, not ${productId}. BEX kept your real ${confirmed.plan.toUpperCase()} entitlement.`);
@@ -365,12 +380,14 @@ export function VIP() {
         requestedBilling: plan.id === "lifetime" ? "lifetime" : billingCycle,
         transactionId: result.transactionId || "",
         originalTransactionId: result.originalTransactionId || "",
+        signedTransactionInfo: (result as any).signedTransactionInfo || "",
         environment: result.environment || "unknown",
       });
 
       localStorage.setItem("appleProductId", productId);
       localStorage.setItem("appleTransactionId", result.transactionId || "");
-      alert(synced?.message || subscribedMessage(plan.name));
+      await refreshBackendPlan();
+      alert(synced?.message || `Apple ${plan.name} access is active.`);
       navigate("/app");
     } catch (e: any) {
       const rawMessage = String(e?.message || e?.error || e || "");

@@ -183,13 +183,18 @@ function readStoredPlan(): PlanInfo {
 
     const jsonKeys = ["user", "bex_user", "auth_user", "profile", "bex_profile", "currentUser", "bex_current_user", "session", "bex_session"];
 
+    // Canonical subscription state is userPlan/bexEffectivePlan only.
+    // Do not choose the highest rank from old cached keys; that caused stale LIFETIME/VIP badges.
+    const canonical = normalizePlan(localStorage.getItem("userPlan")) || normalizePlan(localStorage.getItem("bexEffectivePlan"));
+    if (canonical) return canonical;
+
     const candidates = [
-      ...planKeys.map((key) => normalizePlan(localStorage.getItem(key))),
       ...jsonKeys.flatMap(readJsonPlanCandidates),
+      ...planKeys.map((key) => key === "userPlan" ? null : normalizePlan(localStorage.getItem(key))),
     ].filter(Boolean) as PlanInfo[];
 
-    const best = candidates.sort((a, b) => b.rank - a.rank)[0];
-    return best || { key: "FREE", label: "FREE", rank: PLAN_RANK.FREE };
+    const first = candidates[0];
+    return first || { key: "FREE", label: "FREE", rank: PLAN_RANK.FREE };
   } catch {
     return { key: "FREE", label: "FREE", rank: PLAN_RANK.FREE };
   }
