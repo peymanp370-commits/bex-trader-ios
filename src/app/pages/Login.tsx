@@ -105,10 +105,14 @@ const initializeNativeGoogleLogin = async () => {
   await SocialLogin.initialize({
     google: isIOS
       ? {
+          // Keep iOS initialization minimal. Passing extra web/server IDs can make
+          // the native Google SDK choose the wrong flow and fail as "Load failed".
           iOSClientId: GOOGLE_IOS_CLIENT_ID,
           mode: "online",
         }
       : {
+          // Android native Google sign-in must use the WEB client id here.
+          // Do not pass Android client id or iOS ids into the Android path.
           webClientId: GOOGLE_WEB_CLIENT_ID,
           mode: "online",
         },
@@ -746,7 +750,7 @@ export function Login() {
     localStorage.setItem("userLastName", resultUser?.last_name || "");
     localStorage.setItem("userEmail", resultUser?.email || fallbackIdentity);
     localStorage.setItem("userName", displayName);
-    localStorage.setItem("userPlan", resultUser?.plan || "free");
+    localStorage.setItem("userPlan", resultUser?.plan || "PRO");
     saveAccountProfileToLocalStorage(resultUser || {});
     window.dispatchEvent(new Event("storage"));
   };
@@ -839,7 +843,7 @@ export function Login() {
 
       saveUserToLocalStorage(result.user, cleanIdentity);
       await hydrateAccountProfile(result.user?.email || cleanIdentity);
-      navigate("/app");
+        navigate("/app");
     } catch {
       setError(tx(lang, {
         en: "Failed to login",
@@ -968,8 +972,6 @@ export function Login() {
           .join(": ")
       );
     }
-
-    clearLocalAuthState();
 
     if (data?.refresh_token) {
       localStorage.setItem("bex_refresh_token", data.refresh_token);
@@ -1130,10 +1132,6 @@ export function Login() {
     if (!res.ok || data?.ok === false) {
       throw new Error(data?.code || data?.message || "GOOGLE_NATIVE_EXCHANGE_FAILED");
     }
-
-    // Important: native Google login must not inherit the previous account plan/tokens.
-    // We clear only after Google returns successfully so we do not cancel the native activity.
-    clearLocalAuthState();
 
     if (data?.refresh_token) {
       localStorage.setItem("bex_refresh_token", data.refresh_token);
