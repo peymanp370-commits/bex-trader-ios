@@ -90,30 +90,40 @@ type NativeGoogleResponse = {
   };
 };
 
-let nativeSocialLoginInitialized = false;
+let nativeGoogleLoginInitialized = false;
+let nativeAppleLoginInitialized = false;
 
-const initializeNativeSocialLogin = async () => {
-  if (nativeSocialLoginInitialized) return;
+const initializeNativeGoogleLogin = async () => {
+  if (nativeGoogleLoginInitialized) return;
 
   const isIOS = Capacitor.getPlatform() === "ios";
 
+  // CRITICAL: initialize ONLY Google here.
+  // Do not include apple: {} in the Google path, because on iOS that can touch
+  // AuthenticationServices/Apple Account and show an Apple password prompt
+  // while the user tapped Continue with Google.
   await SocialLogin.initialize({
     google: isIOS
       ? {
-          // Keep iOS initialization minimal. Passing extra web/server IDs can make
-          // the native Google SDK choose the wrong flow and fail as "Load failed".
           iOSClientId: GOOGLE_IOS_CLIENT_ID,
           mode: "online",
         }
       : {
-          // Android native Google sign-in must use the WEB client id here.
-          // Do not pass Android client id or iOS ids into the Android path.
           webClientId: GOOGLE_WEB_CLIENT_ID,
           mode: "online",
         },
-    // IMPORTANT: iOS native Apple must NOT use the Service ID.
-    // Capgo iOS docs initialize Apple with an empty object and let
-    // AuthenticationServices use the signed app Bundle ID entitlement.
+  } as any);
+
+  nativeGoogleLoginInitialized = true;
+};
+
+const initializeNativeAppleLogin = async () => {
+  if (nativeAppleLoginInitialized) return;
+
+  const isIOS = Capacitor.getPlatform() === "ios";
+
+  // Apple is initialized only after the user taps Continue with Apple.
+  await SocialLogin.initialize({
     apple: isIOS
       ? {}
       : {
@@ -122,7 +132,7 @@ const initializeNativeSocialLogin = async () => {
         },
   } as any);
 
-  nativeSocialLoginInitialized = true;
+  nativeAppleLoginInitialized = true;
 };
 
 function tokenString(value: any): string {
@@ -994,7 +1004,7 @@ export function Login() {
       // Use ONLY @capgo/capacitor-social-login for Apple on iOS.
       // Do NOT use @capacitor-community/apple-sign-in in this project.
       appleStage = "initialize";
-      await initializeNativeSocialLogin();
+      await initializeNativeAppleLogin();
 
       appleStage = "plugin_login";
       const appleResult = await SocialLogin.login({
@@ -1156,7 +1166,7 @@ export function Login() {
       // close the Google Play Services activity and return
       // "activity is cancelled by the user" even after an account is selected.
       googleStage = "initialize";
-      await initializeNativeSocialLogin();
+      await initializeNativeGoogleLogin();
 
       googleStage = "plugin_login";
       const googleResult = await SocialLogin.login({
