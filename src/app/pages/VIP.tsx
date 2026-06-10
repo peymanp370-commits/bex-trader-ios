@@ -290,10 +290,24 @@ export function VIP() {
         throw new Error(result?.message || result?.error || "Apple purchase failed");
       }
 
+      const returnedProductId = String(result.productId || "").trim();
+
+      if (returnedProductId && returnedProductId !== productId) {
+        console.error("Apple product mismatch blocked", {
+          requestedProductId: productId,
+          returnedProductId,
+          planId: plan.id,
+          billingCycle: appleCycle,
+          result,
+        });
+        alert(`Apple returned ${returnedProductId}, but you selected ${productId}. Purchase was blocked to prevent activating the wrong plan.`);
+        return;
+      }
+
       const server = await postAppleBilling("/api/apple/sync", {
         source: "purchase",
-        productId: result.productId || productId,
-        confirmedProductId: result.productId || productId,
+        productId,
+        confirmedProductId: productId,
         requestedProductId: productId,
         transactionId: result.transactionId || "",
         originalTransactionId: result.originalTransactionId || result.transactionId || "",
@@ -340,45 +354,7 @@ export function VIP() {
     }
   };
 
-  const planTier = (planId: string) => {
-    const p = String(planId || "").trim().toLowerCase();
-    if (p === "lifetime") return 4;
-    if (p === "vip" || p === "vip_auto" || p === "vip-auto" || p === "vip_auto") return 3;
-    if (p === "pro") return 2;
-    if (p === "basic") return 1;
-    return 0;
-  };
-
-  const currentStoredPlan = () => {
-    const raw =
-      localStorage.getItem("serverPlan") ||
-      localStorage.getItem("activePlan") ||
-      localStorage.getItem("userPlan") ||
-      localStorage.getItem("subscription_plan") ||
-      localStorage.getItem("plan") ||
-      localStorage.getItem("bex_user_plan") ||
-      localStorage.getItem("bex_plan") ||
-      "free";
-    const p = String(raw || "").trim().toLowerCase();
-    if (p === "lifetime") return "lifetime";
-    if (p === "vip" || p === "vip_auto" || p === "vip-auto") return "vip_auto";
-    if (p === "pro") return "pro";
-    if (p === "basic") return "basic";
-    return "free";
-  };
-
-  const isLowerPlanThanCurrent = (planId: string) => {
-    const currentRank = planTier(currentStoredPlan());
-    const targetRank = planTier(checkoutPlanId(planId));
-    return currentRank > 0 && targetRank > 0 && targetRank < currentRank;
-  };
-
   const startPlanCheckout = async (plan: (typeof plans)[0]) => {
-    if (isLowerPlanThanCurrent(plan.id)) {
-      alert("You already have a higher BEX plan active. To downgrade, manage the renewal inside your Apple subscriptions. BEX will keep your current plan active until Apple changes the entitlement.");
-      return;
-    }
-
     if (isAndroidInstalledApp()) {
       await startGooglePlayBilling(plan);
       return;
