@@ -51,6 +51,87 @@ export const APPLE_IAP_PRODUCT_IDS = {
   },
 } as const;
 
+export type AppleProductPlan = {
+  plan: "basic" | "pro" | "vip" | "lifetime";
+  billing: "monthly" | "yearly" | "lifetime";
+  storagePlan: "BASIC" | "PRO" | "VIP_AUTO" | "LIFETIME";
+  tier: number;
+};
+
+const APPLE_PRODUCT_PLAN_MAP: Record<string, AppleProductPlan> = {
+  [APPLE_IAP_PRODUCT_IDS.basic.monthly]: { plan: "basic", billing: "monthly", storagePlan: "BASIC", tier: 100 },
+  [APPLE_IAP_PRODUCT_IDS.basic.yearly]: { plan: "basic", billing: "yearly", storagePlan: "BASIC", tier: 100 },
+  [APPLE_IAP_PRODUCT_IDS.pro.monthly]: { plan: "pro", billing: "monthly", storagePlan: "PRO", tier: 200 },
+  [APPLE_IAP_PRODUCT_IDS.pro.yearly]: { plan: "pro", billing: "yearly", storagePlan: "PRO", tier: 200 },
+  [APPLE_IAP_PRODUCT_IDS.vip.monthly]: { plan: "vip", billing: "monthly", storagePlan: "VIP_AUTO", tier: 300 },
+  [APPLE_IAP_PRODUCT_IDS.vip.yearly]: { plan: "vip", billing: "yearly", storagePlan: "VIP_AUTO", tier: 300 },
+  [APPLE_IAP_PRODUCT_IDS.lifetime.lifetime]: { plan: "lifetime", billing: "lifetime", storagePlan: "LIFETIME", tier: 400 },
+};
+
+export function applePlanForProductId(productId: string): AppleProductPlan | null {
+  const id = String(productId || "").trim();
+  return APPLE_PRODUCT_PLAN_MAP[id] || null;
+}
+
+export function isKnownAppleProductId(productId: string) {
+  return Boolean(applePlanForProductId(productId));
+}
+
+function isActiveAppleSubscription(entitlement: AppleEntitlement, nowMs: number) {
+  const productPlan = applePlanForProductId(entitlement.productId || "");
+  if (!productPlan || productPlan.billing === "lifetime") return false;
+
+  // StoreKit subscriptions should include expirationDateMs. Treat missing
+  // expiration as active only for subscription product IDs returned directly
+  // from Transaction.currentEntitlements, and reject clearly expired records.
+  const expiration = Number(entitlement.expirationDateMs || 0);
+  return !expiration || expiration > nowMs - 5 * 60 * 1000;
+}
+
+export function chooseBestAppleRestoreEntitlements(entitlements: AppleEntitlement[]) {
+  const nowMs = Date.now();
+  const seen = new Set<string>();
+
+  const clean = (Array.isArray(entitlements) ? entitlements : [])
+    .filter((item) => item && item.productId && item.isUpgraded !== true)
+    .filter((item) => {
+      const productId = String(item.productId || "").trim();
+      if (!isKnownAppleProductId(productId)) return false;
+      const key = [
+        productId,
+        item.originalTransactionId || "",
+        item.transactionId || "",
+        item.expirationDateMs || "",
+      ].join("|");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+  const activeSubscriptions = clean
+    .filter((item) => isActiveAppleSubscription(item, nowMs))
+    .sort((a, b) => {
+      const pa = applePlanForProductId(a.productId || "");
+      const pb = applePlanForProductId(b.productId || "");
+      const tierDiff = (pb?.tier || 0) - (pa?.tier || 0);
+      if (tierDiff) return tierDiff;
+      return Number(b.expirationDateMs || b.purchaseDateMs || 0) - Number(a.expirationDateMs || a.purchaseDateMs || 0);
+    });
+
+  // Critical restore rule:
+  // If Apple returns both an old lifetime sandbox entitlement and a current
+  // monthly/yearly subscription, the active subscription wins. This prevents
+  // Restore from upgrading a BASIC/PRO/VIP subscription account back to
+  // LIFETIME just because the tester Apple ID still owns an old lifetime item.
+  if (activeSubscriptions.length) return [activeSubscriptions[0]];
+
+  const lifetime = clean
+    .filter((item) => applePlanForProductId(item.productId || "")?.billing === "lifetime")
+    .sort((a, b) => Number(b.purchaseDateMs || 0) - Number(a.purchaseDateMs || 0));
+
+  return lifetime.length ? [lifetime[0]] : [];
+}
+
 export function isNativeIOSApp() {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios";
 }

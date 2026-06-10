@@ -3103,6 +3103,57 @@ function appleProductMeta(productId) {
   return APPLE_PRODUCT_CATALOG[key] || null;
 }
 
+function isAppleLifetimeProduct(productId) {
+  return String(productId || "").trim() === "vip_lifetime";
+}
+
+function isAppleEntitlementActive(item, now = Date.now()) {
+  if (!item || item.isUpgraded === true) return false;
+  const exp = Number(item.expirationDateMs || 0);
+  if (!Number.isFinite(exp) || exp <= 0) return true;
+  return exp > now;
+}
+
+function appleRestoreSortScore(item, hasSelectedProduct = false, now = Date.now()) {
+  const meta = appleProductMeta(item?.productId);
+  if (!meta) return -999;
+  const active = isAppleEntitlementActive(item, now);
+  const lifetime = isAppleLifetimeProduct(item.productId);
+
+  // Restore must not blindly choose an old lifetime entitlement over the
+  // active subscription the user selected in the app. Without a selected
+  // product, prefer currently-active subscriptions; use lifetime only when
+  // no active subscription is available.
+  let group = 0;
+  if (hasSelectedProduct) group = active ? 30 : 20;
+  else if (active && !lifetime) group = 30;
+  else if (active && lifetime) group = 20;
+  else group = 10;
+
+  return group + Number(meta.rank || 0);
+}
+
+function pickAppleRestoreEntitlement(items, selectedProductId = "") {
+  const now = Date.now();
+  const selected = cleanAppleTx(selectedProductId);
+  const selectedMeta = selected ? appleProductMeta(selected) : null;
+  let pool = Array.isArray(items) ? items.slice() : [];
+
+  if (selectedMeta) {
+    pool = pool.filter((item) => item.productId === selected);
+    if (!pool.length) return { ok: false, code: "APPLE_SELECTED_ENTITLEMENT_NOT_FOUND", selected_product_id: selected };
+  }
+
+  pool.sort((a, b) => {
+    const sa = appleRestoreSortScore(a, !!selectedMeta, now);
+    const sb = appleRestoreSortScore(b, !!selectedMeta, now);
+    if (sb !== sa) return sb - sa;
+    return Number(b.purchaseDateMs || 0) - Number(a.purchaseDateMs || 0);
+  });
+
+  return pool[0] ? { ok: true, item: pool[0], selected_product_id: selected || null } : { ok: false, code: "APPLE_NO_USABLE_RESTORE_ENTITLEMENT" };
+}
+
 function billingRank(plan) {
   const p = String(plan || "free").trim().toLowerCase();
   if (p === "lifetime") return 4;
@@ -3192,6 +3243,23 @@ async function applyAppleScopedPlan(env, user, input, source = "purchase") {
     return await keepCurrentPlanResponse(env, user, "Apple returned an unknown BEX product. Your current plan was kept.", {
       code: "APPLE_PRODUCT_UNKNOWN",
       apple_product_id: productId || null
+    });
+  }
+
+  const restoreSelectedProductId = cleanAppleTx(input.restoreSelectedProductId || input.selectedProductId || input.requestedProductId);
+  if (source === "restore" && restoreSelectedProductId && appleProductMeta(restoreSelectedProductId) && restoreSelectedProductId !== productId) {
+    return await keepCurrentPlanResponse(env, user, "Apple restore product mismatch was blocked. Your current BEX plan was kept.", {
+      code: "APPLE_RESTORE_PRODUCT_MISMATCH_BLOCKED",
+      selected_product_id: restoreSelectedProductId,
+      apple_product_id: productId
+    });
+  }
+
+  if (source === "restore" && isAppleLifetimeProduct(productId) && restoreSelectedProductId && !isAppleLifetimeProduct(restoreSelectedProductId)) {
+    return await keepCurrentPlanResponse(env, user, "Apple restore tried to activate Lifetime from a subscription restore. Your current BEX plan was kept.", {
+      code: "APPLE_RESTORE_LIFETIME_MISMATCH_BLOCKED",
+      selected_product_id: restoreSelectedProductId,
+      apple_product_id: productId
     });
   }
 
@@ -3317,8 +3385,18 @@ function normalizeAppleEntitlement(input) {
 }
 
 async function handleAppleIapRestore(env, user, body) {
+  const selectedProductId = cleanAppleTx(
+    body?.selectedProductId ||
+    body?.selected_product_id ||
+    body?.requestedProductId ||
+    body?.requested_product_id
+  );
+  const rawEntitlementProductIds = Array.isArray(body?.rawEntitlementProductIds)
+    ? body.rawEntitlementProductIds.map(cleanAppleTx).filter(Boolean)
+    : [];
   const entitlements = Array.isArray(body?.entitlements) ? body.entitlements.map(normalizeAppleEntitlement) : [];
   const usable = [];
+
   for (const item of entitlements) {
     if (!item.productId || item.isUpgraded || !appleProductMeta(item.productId)) continue;
     const owner = await findAppleTransactionOwner(env, item.originalTransactionId, item.transactionId);
@@ -3328,18 +3406,36 @@ async function handleAppleIapRestore(env, user, body) {
 
   if (!usable.length) {
     return await keepCurrentPlanResponse(env, user, "No Apple purchase linked to this BEX account was found. Your current BEX plan was kept active.", {
-      code: "APPLE_NO_ACCOUNT_SCOPED_ENTITLEMENT"
+      code: "APPLE_NO_ACCOUNT_SCOPED_ENTITLEMENT",
+      selected_product_id: selectedProductId || null,
+      raw_entitlement_product_ids: rawEntitlementProductIds
     });
   }
 
-  usable.sort((a, b) => {
-    const ar = appleProductMeta(a.productId)?.rank || 0;
-    const br = appleProductMeta(b.productId)?.rank || 0;
-    if (br !== ar) return br - ar;
-    return Number(b.purchaseDateMs || 0) - Number(a.purchaseDateMs || 0);
-  });
+  const picked = pickAppleRestoreEntitlement(usable, selectedProductId);
+  if (!picked.ok || !picked.item) {
+    return await keepCurrentPlanResponse(env, user, "Apple restore could not match the selected product to this BEX account. Your current BEX plan was kept active.", {
+      code: picked.code || "APPLE_RESTORE_SELECTION_BLOCKED",
+      selected_product_id: picked.selected_product_id || selectedProductId || null,
+      raw_entitlement_product_ids: rawEntitlementProductIds,
+      usable_product_ids: usable.map((item) => item.productId)
+    });
+  }
 
-  return await applyAppleScopedPlan(env, user, usable[0], "restore");
+  if (selectedProductId && appleProductMeta(selectedProductId) && picked.item.productId !== selectedProductId) {
+    return await keepCurrentPlanResponse(env, user, "Apple restore product mismatch was blocked. Your current BEX plan was kept active.", {
+      code: "APPLE_RESTORE_PRODUCT_MISMATCH_BLOCKED",
+      selected_product_id: selectedProductId,
+      apple_product_id: picked.item.productId,
+      raw_entitlement_product_ids: rawEntitlementProductIds
+    });
+  }
+
+  return await applyAppleScopedPlan(env, user, {
+    ...picked.item,
+    restoreSelectedProductId: selectedProductId || null,
+    rawEntitlementProductIds
+  }, "restore");
 }
 
 /* ---------------- END APPLE IAP ACCOUNT-SCOPED BILLING ---------------- */

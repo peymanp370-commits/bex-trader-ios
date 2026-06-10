@@ -5,7 +5,9 @@ import { SideMenu } from "../components/SideMenu";
 import { AppHeader } from "../components/AppHeader";
 import { getLanguage, tr, formatNumber } from "../utils/i18n";
 import {
+  applePlanForProductId,
   appleProductIdForPlan,
+  chooseBestAppleRestoreEntitlements,
   getAppleActiveEntitlements,
   isNativeIOSApp,
   restoreApplePurchases,
@@ -97,10 +99,13 @@ export function VIP() {
         ""
     ).trim();
     const provider = String(payload?.provider || payload?.billing_record?.provider || "").trim();
-    const storagePlan = normalizePlanForStorage(plan || billingPlan);
+    const appleProductPlan = provider === "apple" ? applePlanForProductId(productId) : null;
+    const effectivePlan = appleProductPlan?.plan || plan || billingPlan || "free";
+    const effectiveBilling = appleProductPlan?.billing || billing;
+    const storagePlan = appleProductPlan?.storagePlan || normalizePlanForStorage(effectivePlan);
 
     localStorage.setItem("userPlan", storagePlan);
-    localStorage.setItem("serverPlan", plan || billingPlan || "free");
+    localStorage.setItem("serverPlan", effectivePlan || "free");
     localStorage.setItem("activePlan", storagePlan);
     localStorage.setItem("subscription_plan", storagePlan);
     localStorage.setItem("plan", storagePlan);
@@ -110,10 +115,10 @@ export function VIP() {
       if (provider === "google_play") localStorage.setItem("googlePlayProductId", productId);
       else localStorage.setItem("appleProductId", productId);
     }
-    if (billing) {
-      localStorage.setItem("billingCycle", billing);
-      if (provider === "google_play") localStorage.setItem("googlePlayBillingCycle", billing);
-      else localStorage.setItem("appleBillingCycle", billing);
+    if (effectiveBilling) {
+      localStorage.setItem("billingCycle", effectiveBilling);
+      if (provider === "google_play") localStorage.setItem("googlePlayBillingCycle", effectiveBilling);
+      else localStorage.setItem("appleBillingCycle", effectiveBilling);
     }
     if (transactionId) {
       if (provider === "google_play") localStorage.setItem("googlePlayOrderId", transactionId);
@@ -142,14 +147,31 @@ export function VIP() {
   const postGooglePlayBilling = (path: string, body: any) => postBilling(path, body, "Google Play billing");
 
   const normalizeAppleEntitlements = (payload: any): AppleEntitlement[] => {
+    const normalizeItem = (item: any): AppleEntitlement | null => {
+      const productId = String(item?.productId || item || "").trim();
+      if (!productId || !applePlanForProductId(productId)) return null;
+      return {
+        ...(typeof item === "object" ? item : {}),
+        productId,
+      };
+    };
+
     const direct = Array.isArray(payload?.entitlements) ? payload.entitlements : [];
-    if (direct.length) return direct.filter((x: any) => x && x.productId && x.isUpgraded !== true);
+    if (direct.length) {
+      return direct
+        .map(normalizeItem)
+        .filter((x: AppleEntitlement | null): x is AppleEntitlement => Boolean(x && x.productId && x.isUpgraded !== true));
+    }
+
     const ids = [
       ...(Array.isArray(payload?.productIds) ? payload.productIds : []),
       ...(Array.isArray(payload?.subscriptions) ? payload.subscriptions : []),
       ...(Array.isArray(payload?.restored) ? payload.restored : []),
     ];
-    return Array.from(new Set(ids.map((id: any) => String(id || "").trim()).filter(Boolean))).map((productId) => ({ productId }));
+
+    return Array.from(new Set(ids.map((id: any) => String(id || "").trim()).filter(Boolean)))
+      .map((productId) => normalizeItem(productId))
+      .filter((x: AppleEntitlement | null): x is AppleEntitlement => Boolean(x));
   };
 
   const checkoutPlanId = (planId: string) => {
@@ -388,12 +410,36 @@ export function VIP() {
     try {
       const restored = await restoreApplePurchases();
       const active = await getAppleActiveEntitlements().catch(() => null);
-      const entitlements = [
+      const rawEntitlements = [
         ...normalizeAppleEntitlements(restored),
         ...normalizeAppleEntitlements(active),
       ];
+      const entitlements = chooseBestAppleRestoreEntitlements(rawEntitlements);
+      const selectedProductId = String(entitlements[0]?.productId || "").trim();
 
-      const server = await postAppleBilling("/api/apple/restore", { entitlements });
+      if (!selectedProductId) {
+        alert("No active Apple purchase was found for this Apple ID.");
+        return;
+      }
+
+      const server = await postAppleBilling("/api/apple/restore", {
+        entitlements,
+        selectedProductId,
+        rawEntitlementProductIds: rawEntitlements.map((item) => item.productId).filter(Boolean),
+      });
+
+      const serverProductId = String(
+        server?.product_id ||
+          server?.apple_product_id ||
+          server?.billing_record?.apple_product_id ||
+          ""
+      ).trim();
+      const serverPlan = String(server?.effective_plan || server?.app_plan || server?.user?.plan || server?.plan || "").toLowerCase();
+
+      if (selectedProductId !== "vip_lifetime" && (serverProductId === "vip_lifetime" || serverPlan === "lifetime")) {
+        throw new Error("Apple restore mismatch blocked: a subscription restore tried to activate Lifetime. Please contact support.");
+      }
+
       applyBillingStateFromServer(server);
       alert(server?.message || "Restore completed. Your BEX plan was refreshed.");
       navigate("/app");
