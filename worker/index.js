@@ -3206,13 +3206,13 @@ async function applyAppleScopedPlan(env, user, input, source = "purchase") {
   }
 
   const hasAppleTransactionProof = !!(transactionId || originalTransactionId);
-
   if (source === "purchase" && !hasAppleTransactionProof) {
     return await keepCurrentPlanResponse(env, user, "Apple did not return transaction proof. Your current BEX plan was kept.", {
       code: "APPLE_TRANSACTION_PROOF_MISSING",
       apple_product_id: productId
     });
   }
+
   const owner = await findAppleTransactionOwner(env, originalTransactionId, transactionId);
   if (owner && owner.user_id && owner.user_id !== user.id) {
     return await keepCurrentPlanResponse(env, user, "This Apple purchase is already linked to another BEX account. Your current account was not upgraded.", {
@@ -3360,6 +3360,35 @@ async function handleAppleIapRestore(env, user, body) {
     });
   }
 
+  const existing = await getUserBillingRow(env, user.id);
+  const existingProvider = String(existing?.provider || "").toLowerCase();
+  const existingProductId = cleanAppleTx(existing?.apple_product_id || "");
+  const existingMeta = appleProductMeta(existingProductId);
+  const existingRank = billingRank(existing?.plan || user.plan || "free");
+
+  // Restore must refresh the Apple purchase already linked to this BEX
+  // account, not blindly activate the highest product returned by the
+  // sandbox Apple ID. This prevents an old vip_lifetime entitlement on the
+  // tester Apple ID from upgrading a fresh BASIC/PRO/VIP subscription.
+  if (existingProvider === "apple" && existingProductId && existingMeta) {
+    const currentProduct = usable
+      .filter((item) => item.productId === existingProductId)
+      .sort((a, b) => Number(b.purchaseDateMs || 0) - Number(a.purchaseDateMs || 0))[0];
+
+    if (currentProduct) {
+      return await applyAppleScopedPlan(env, user, currentProduct, "restore");
+    }
+
+    const hasLifetimeCandidate = usable.some((item) => isAppleLifetimeProduct(item.productId));
+    if (hasLifetimeCandidate && existingRank > 0 && existingRank < 4) {
+      return await keepCurrentPlanResponse(env, user, "Apple restore returned a Lifetime entitlement, but your current Apple subscription was kept to prevent a wrong upgrade.", {
+        code: "APPLE_RESTORE_LIFETIME_BLOCKED_OVER_CURRENT_SUBSCRIPTION",
+        current_apple_product_id: existingProductId,
+        returned_product_ids: usable.map((item) => item.productId)
+      });
+    }
+  }
+
   usable.sort((a, b) => {
     const ar = appleProductMeta(a.productId)?.rank || 0;
     const br = appleProductMeta(b.productId)?.rank || 0;
@@ -3389,4 +3418,3 @@ async function makeUniqueUsername(db, baseUsername) {
     i += 1;
   }
 }
-
