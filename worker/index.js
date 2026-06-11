@@ -3347,11 +3347,28 @@ function normalizeAppleEntitlement(input) {
 async function handleAppleIapRestore(env, user, body) {
   const entitlements = Array.isArray(body?.entitlements) ? body.entitlements.map(normalizeAppleEntitlement) : [];
   const usable = [];
+
   for (const item of entitlements) {
     if (!item.productId || item.isUpgraded || !appleProductMeta(item.productId)) continue;
+
     const owner = await findAppleTransactionOwner(env, item.originalTransactionId, item.transactionId);
     if (owner && owner.user_id && owner.user_id !== user.id) continue;
+
     usable.push(item);
+  }
+
+  const existing = await getUserBillingRow(env, user.id);
+  const existingProvider = String(existing?.provider || "").toLowerCase();
+  const existingProductId = cleanAppleTx(existing?.apple_product_id || "");
+  const existingMeta = appleProductMeta(existingProductId);
+  const currentPlan = String(existing?.plan || user.plan || "free").toLowerCase();
+  const currentRank = billingRank(currentPlan);
+
+  if (existingProvider === "admin" || currentPlan === "vip_auto") {
+    return await keepCurrentPlanResponse(env, user, "Your admin VIP access was kept. Apple Restore cannot change this account.", {
+      code: "APPLE_RESTORE_ADMIN_ACCOUNT_KEPT",
+      returned_product_ids: usable.map((item) => item.productId)
+    });
   }
 
   if (!usable.length) {
@@ -3360,16 +3377,6 @@ async function handleAppleIapRestore(env, user, body) {
     });
   }
 
-  const existing = await getUserBillingRow(env, user.id);
-  const existingProvider = String(existing?.provider || "").toLowerCase();
-  const existingProductId = cleanAppleTx(existing?.apple_product_id || "");
-  const existingMeta = appleProductMeta(existingProductId);
-  const existingRank = billingRank(existing?.plan || user.plan || "free");
-
-  // Restore must refresh the Apple purchase already linked to this BEX
-  // account, not blindly activate the highest product returned by the
-  // sandbox Apple ID. This prevents an old vip_lifetime entitlement on the
-  // tester Apple ID from upgrading a fresh BASIC/PRO/VIP subscription.
   if (existingProvider === "apple" && existingProductId && existingMeta) {
     const currentProduct = usable
       .filter((item) => item.productId === existingProductId)
@@ -3379,22 +3386,43 @@ async function handleAppleIapRestore(env, user, body) {
       return await applyAppleScopedPlan(env, user, currentProduct, "restore");
     }
 
-    const hasLifetimeCandidate = usable.some((item) => isAppleLifetimeProduct(item.productId));
-    if (hasLifetimeCandidate && existingRank > 0 && existingRank < 4) {
-      return await keepCurrentPlanResponse(env, user, "Apple restore returned a Lifetime entitlement, but your current Apple subscription was kept to prevent a wrong upgrade.", {
-        code: "APPLE_RESTORE_LIFETIME_BLOCKED_OVER_CURRENT_SUBSCRIPTION",
-        current_apple_product_id: existingProductId,
+    return await keepCurrentPlanResponse(env, user, "Apple Restore returned different products than your current BEX subscription. Your current plan was kept to prevent a wrong upgrade.", {
+      code: "APPLE_RESTORE_CURRENT_PRODUCT_NOT_RETURNED_KEEP_CURRENT",
+      current_apple_product_id: existingProductId,
+      returned_product_ids: usable.map((item) => item.productId)
+    });
+  }
+
+  if (currentRank > 0) {
+    const notHigher = usable
+      .filter((item) => {
+        const meta = appleProductMeta(item.productId);
+        return meta && Number(meta.rank || 0) <= currentRank;
+      })
+      .sort((a, b) => {
+        const ar = appleProductMeta(a.productId)?.rank || 0;
+        const br = appleProductMeta(b.productId)?.rank || 0;
+        if (br !== ar) return br - ar;
+        return Number(b.purchaseDateMs || 0) - Number(a.purchaseDateMs || 0);
+      });
+
+    if (!notHigher.length) {
+      return await keepCurrentPlanResponse(env, user, "Apple Restore returned a higher plan, but Restore cannot upgrade your BEX account. Your current plan was kept.", {
+        code: "APPLE_RESTORE_HIGHER_PLAN_BLOCKED",
+        current_plan: currentPlan,
         returned_product_ids: usable.map((item) => item.productId)
       });
     }
+
+    return await applyAppleScopedPlan(env, user, notHigher[0], "restore");
   }
 
-  usable.sort((a, b) => {
-    const ar = appleProductMeta(a.productId)?.rank || 0;
-    const br = appleProductMeta(b.productId)?.rank || 0;
-    if (br !== ar) return br - ar;
-    return Number(b.purchaseDateMs || 0) - Number(a.purchaseDateMs || 0);
-  });
+  if (usable.length !== 1) {
+    return await keepCurrentPlanResponse(env, user, "Apple Restore returned multiple purchases. No plan was changed to prevent wrong VIP/Lifetime activation. Please purchase the exact plan from BEX.", {
+      code: "APPLE_RESTORE_MULTIPLE_ENTITLEMENTS_KEEP_CURRENT",
+      returned_product_ids: usable.map((item) => item.productId)
+    });
+  }
 
   return await applyAppleScopedPlan(env, user, usable[0], "restore");
 }
