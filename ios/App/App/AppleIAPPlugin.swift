@@ -57,18 +57,42 @@ public class AppleIAPPlugin: CAPPlugin, CAPBridgedPlugin {
                     return
                 }
 
+                guard product.id == productId else {
+                    call.resolve([
+                        "ok": false,
+                        "reason": "product_lookup_mismatch",
+                        "requestedProductId": productId,
+                        "returnedProductId": product.id,
+                        "message": "Apple returned a different product before purchase."
+                    ])
+                    return
+                }
+
                 let result = try await product.purchase()
                 switch result {
                 case .success(let verification):
                     switch verification {
                     case .verified(let transaction):
-                        let payload = entitlementPayload(transaction)
+                        var payload = entitlementPayload(transaction)
+                        payload["requestedProductId"] = productId
+
+                        guard transaction.productID == productId else {
+                            payload["ok"] = false
+                            payload["reason"] = "purchase_product_mismatch"
+                            payload["requestedProductId"] = productId
+                            payload["returnedProductId"] = transaction.productID
+                            payload["message"] = "Apple completed or returned a different product than requested."
+                            call.resolve(payload)
+                            return
+                        }
+
                         await transaction.finish()
                         call.resolve(payload.merging(["ok": true, "verification": "verified"]) { _, new in new })
                     case .unverified(let transaction, let error):
                         var payload = entitlementPayload(transaction)
                         payload["ok"] = false
                         payload["verification"] = "unverified"
+                        payload["requestedProductId"] = productId
                         payload["error"] = error.localizedDescription
                         call.resolve(payload)
                     }
