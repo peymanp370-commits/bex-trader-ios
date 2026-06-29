@@ -44,7 +44,7 @@ function readStorageValue(keys: string[]): string | null {
   return null;
 }
 
-function getClientId(): string {
+function getClientId(): string | null {
   return (
     readStorageValue([
       "bex_client_id",
@@ -52,11 +52,11 @@ function getClientId(): string {
       "vip_client_id",
       "BEX_CLIENT_ID",
       "bex.vip.client_id",
-    ]) || "client_peymanp370_main"
+    ]) || null
   );
 }
 
-function getAccountLogin(): string {
+function getAccountLogin(): string | null {
   return (
     readStorageValue([
       "bex_account_login",
@@ -64,19 +64,35 @@ function getAccountLogin(): string {
       "mt5_account_login",
       "BEX_ACCOUNT_LOGIN",
       "bex.vip.account_login",
-    ]) || "5047666801"
+    ]) || null
   );
 }
 
 async function saveNativeToken(token: string) {
   const platform = Capacitor.getPlatform();
+  const clientId = getClientId();
+  const accountLogin = getAccountLogin();
+
+  // Do NOT silently bind an unidentified device to the developer's own
+  // account. If the user hasn't logged in yet (or storage is empty/cleared),
+  // there is no safe owner to fall back to - skip the backend registration
+  // call entirely rather than registering this device under someone else's
+  // client_id/account_login. The token listener still ran, so iOS APNS
+  // registration itself is unaffected; we just don't bind it to an account
+  // until we actually know whose device this is.
+  if (!clientId || !accountLogin) {
+    console.warn(
+      "BEX native push: no logged-in client_id/account_login yet, skipping device registration"
+    );
+    return { ok: false, skipped: true, reason: "no_identity_yet" };
+  }
 
   const payload = {
     token,
     device_token: token,
     platform,
-    client_id: getClientId(),
-    account_login: getAccountLogin(),
+    client_id: clientId,
+    account_login: accountLogin,
     bundle_id: "com.bextrader.app",
     device_label: getDeviceLabel(),
     user_agent: getUserAgent(),
