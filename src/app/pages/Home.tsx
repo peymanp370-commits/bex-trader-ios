@@ -973,6 +973,25 @@ export function Home() {
     };
   }, []);
 
+  // BUGFIX: VIP.tsx already dispatches a "bexPlanChanged" event right after
+  // a purchase/restore updates localStorage, but nothing in the app was
+  // listening for it, so plan-gated UI (VIP badge, canUseStrongSignals(),
+  // etc.) only ever updated after a full navigation/remount — matching the
+  // App Review complaint that VIP did not unlock without restarting. This
+  // forces a re-render here so any plan-derived value computed during
+  // render (which already reads fresh from localStorage on every call)
+  // reflects the change immediately.
+  const [, forcePlanRefresh] = useState(0);
+  useEffect(() => {
+    const onPlanChanged = () => forcePlanRefresh((n: number) => n + 1);
+    window.addEventListener("bexPlanChanged", onPlanChanged);
+    window.addEventListener("storage", onPlanChanged);
+    return () => {
+      window.removeEventListener("bexPlanChanged", onPlanChanged);
+      window.removeEventListener("storage", onPlanChanged);
+    };
+  }, []);
+
   const formattedTime = formatDateTime(currentTime, lang, {
     timeZone: userTimezone,
     hour: "2-digit",
@@ -1156,6 +1175,83 @@ export function Home() {
     };
   };
 
+  useEffect(() => {
+    try {
+      const makeSymbolContext = (symbol: HomeSymbol) => {
+        const view = getSymbolExecutionView(symbol);
+        const price = prices?.[symbol] ?? null;
+        const rate = selectedCurrency === "USD" ? 1 : fxRates[selectedCurrency];
+        const convertedPrice = price && Number.isFinite(Number(rate)) ? Number(price) * Number(rate) : null;
+
+        return {
+          symbol,
+          name: symbol === "XAUUSD" ? "Gold" : "Silver",
+          price,
+          selectedCurrency,
+          convertedPrice,
+          statusText: view.statusText,
+          sourceLabel: view.sourceLabel,
+          side: view.side || null,
+          entry: view.entry,
+          sl: view.sl,
+          tp: view.tp,
+          rr: view.rrValue,
+          lot: view.lot,
+          profit: view.profit,
+          setupLabel: view.setupLabel,
+          state: view.state,
+          hasTradeData: view.hasTradeData,
+          reportText: view.item
+            ? "Live MT5 execution report is active for this symbol."
+            : "Waiting for the next executable BEX signal. Entry, SL and TP will appear when the setup is ready.",
+          updatedAt: view.updatedAt,
+        };
+      };
+
+      const selectedRate = selectedCurrency === "USD" ? 1 : fxRates[selectedCurrency];
+
+      (window as any).__BEX_HOME_CONTEXT__ = {
+        page: "home",
+        lang,
+        selectedSymbol,
+        selectedCurrency,
+        prices,
+        fxRates,
+        currentPrice,
+        convertedCurrentPrice: currentPrice && Number.isFinite(Number(selectedRate))
+          ? Number(currentPrice) * Number(selectedRate)
+          : null,
+        marketContext,
+        positionsCount,
+        time: currentTime.toISOString(),
+        symbols: {
+          XAUUSD: makeSymbolContext("XAUUSD"),
+          XAGUSD: makeSymbolContext("XAGUSD"),
+        },
+      };
+
+      window.dispatchEvent(new CustomEvent("bexHomeContextUpdated", {
+        detail: (window as any).__BEX_HOME_CONTEXT__,
+      }));
+    } catch {
+      // keep Home safe
+    }
+  }, [
+    prices,
+    selectedSymbol,
+    selectedCurrency,
+    fxRates,
+    currentPrice,
+    marketContext,
+    positionsCount,
+    mt5Status,
+    mt5StatusBySymbol,
+    signal,
+    signalTimestamp,
+    currentTime,
+    lang,
+  ]);
+
   const copySymbolSignal = async (symbol: HomeSymbol) => {
     const view = getSymbolExecutionView(symbol);
     if (!view.hasTradeData) return;
@@ -1289,11 +1385,11 @@ export function Home() {
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent" />
 
           <div className="pointer-events-none absolute inset-y-0 right-0 w-[62%] overflow-hidden sm:w-[56%] lg:w-[54%]">
-            <img src={BEX_HERO_CONCEPT_IMAGE} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.10] sm:opacity-[0.13]" />
+            <img src={BEX_HERO_CONCEPT_IMAGE} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.22] sm:opacity-[0.26] [image-rendering:auto] [backface-visibility:hidden] [transform:translateZ(0)]" />
             <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#050812]/35 to-[#050812]/82" />
             <div className="absolute -right-16 top-10 h-52 w-52 rounded-full bg-yellow-400/10 blur-3xl sm:h-72 sm:w-72" />
             <div className="absolute bottom-0 right-[-34px] h-[280px] w-[220px] sm:right-0 sm:h-[350px] sm:w-[270px] lg:right-6 lg:h-[96%] lg:w-auto">
-              <img src={BEX_ROBOT_ADVISOR_IMAGE} alt="" className="h-full w-full object-contain object-bottom opacity-95 drop-shadow-[0_26px_50px_rgba(0,0,0,0.75)]" />
+              <img src={BEX_ROBOT_ADVISOR_IMAGE} alt="" className="h-full w-full object-contain object-bottom opacity-100 drop-shadow-[0_26px_50px_rgba(0,0,0,0.75)] [image-rendering:auto] [backface-visibility:hidden] [transform:translateZ(0)]" />
             </div>
           </div>
 
@@ -1373,6 +1469,85 @@ export function Home() {
           </div>
         </section>
 
+        {/* BEX Premium Intelligence Strip - PHASE1_HOME_PREMIUM_DASHBOARD */}
+        <section className={`${darkMode ? "border-yellow-500/25 bg-gradient-to-br from-[#101827] via-[#0b1220] to-[#050812] shadow-[0_0_45px_rgba(234,179,8,0.10)]" : "border-yellow-500/30 bg-white"} rounded-[1.6rem] border p-4 sm:p-5`}>
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-yellow-400">BEX Premium Intelligence</p>
+              <h3 className="mt-1 text-xl font-black">{tr(lang, "Watchlist, Market Pulse and Why BEX", "واچ‌لیست، نبض بازار و دلیل تصمیم BEX", "قائمة المراقبة ونبض السوق ولماذا BEX")}</h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/app/vip")}
+              className="rounded-2xl bg-yellow-500 px-4 py-2 text-sm font-black text-black shadow-lg shadow-yellow-500/20"
+            >
+              {tr(lang, "Open VIP Dashboard", "باز کردن داشبورد VIP", "فتح لوحة VIP")}
+            </button>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className={`${darkMode ? "border-white/10 bg-black/25" : "border-gray-200 bg-gray-50"} rounded-2xl border p-4`}>
+              <p className="text-[10px] font-black uppercase tracking-[0.20em] text-yellow-400">Watchlist</p>
+              <div className="mt-3 space-y-2">
+                {HOME_SYMBOLS.map((symbol) => {
+                  const livePrice = prices?.[symbol] ?? null;
+                  const decimals = getSymbolDecimals(symbol);
+                  return (
+                    <button
+                      key={`premium-watchlist-${symbol}`}
+                      type="button"
+                      onClick={() => setSelectedSymbol(symbol)}
+                      className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left ${selectedSymbol === symbol ? "border-yellow-500/50 bg-yellow-500/10" : darkMode ? "border-white/10 bg-white/5" : "border-gray-200 bg-white"}`}
+                    >
+                      <span>
+                        <span className="block text-sm font-black">{symbol}</span>
+                        <span className="text-xs text-gray-400">{symbol === "XAUUSD" ? "Gold" : "Silver"}</span>
+                      </span>
+                      <span className="text-right font-black tabular-nums">
+                        {livePrice ? formatNumber(Number(livePrice), lang, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : "—"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className={`${darkMode ? "border-white/10 bg-black/25" : "border-gray-200 bg-gray-50"} rounded-2xl border p-4`}>
+              <p className="text-[10px] font-black uppercase tracking-[0.20em] text-yellow-400">Market Pulse</p>
+              <p className="mt-3 text-lg font-black">{translateBias(marketContext.bias, lang)}</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <span className="rounded-xl bg-yellow-500/10 px-3 py-2 text-yellow-300">{translateMarketPhase(marketContext.session, lang)}</span>
+                <span className="rounded-xl bg-blue-500/10 px-3 py-2 text-blue-200">{translateRisk(marketContext.volatility, lang)}</span>
+              </div>
+              <p className="mt-3 text-xs text-gray-400">{selectedAssetName} • {formattedCurrentPrice}</p>
+            </div>
+
+            <div className={`${darkMode ? "border-white/10 bg-black/25" : "border-gray-200 bg-gray-50"} rounded-2xl border p-4`}>
+              <p className="text-[10px] font-black uppercase tracking-[0.20em] text-yellow-400">Why BEX</p>
+              <p className="mt-3 text-sm leading-6 text-gray-300">
+                {signal
+                  ? tr(lang, "BEX found a live setup and is showing entry, risk and target context.", "BEX یک ستاپ زنده پیدا کرده و ورود، ریسک و تارگت را نشان می‌دهد.", "وجد BEX إعدادًا مباشرًا ويعرض الدخول والمخاطر والهدف.")
+                  : tr(lang, "BEX is waiting. No chase until timing, structure and risk line up.", "BEX منتظر است. تا وقتی زمان‌بندی، ساختار و ریسک هماهنگ نشوند chase نمی‌کند.", "ينتظر BEX ولا يطارد الحركة حتى يتوافق التوقيت والبنية والمخاطر.")}
+              </p>
+              <p className="mt-3 rounded-xl bg-yellow-500/10 px-3 py-2 text-xs font-bold text-yellow-300">
+                Economic Calendar Impact: {translateNews(marketContext.news, lang)}
+              </p>
+            </div>
+
+            <div className={`${darkMode ? "border-white/10 bg-black/25" : "border-gray-200 bg-gray-50"} rounded-2xl border p-4`}>
+              <p className="text-[10px] font-black uppercase tracking-[0.20em] text-yellow-400">BEX Score Card</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <span className="rounded-xl bg-white/5 px-3 py-2">Side: <b>{signalDirectionLabel}</b></span>
+                <span className="rounded-xl bg-white/5 px-3 py-2">Conf: <b>{signal?.confidence ?? "—"}%</b></span>
+                <span className="rounded-xl bg-white/5 px-3 py-2">RR: <b>{signal?.rr ?? "—"}</b></span>
+                <span className="rounded-xl bg-white/5 px-3 py-2">Setup: <b>{signalSetupLabel}</b></span>
+              </div>
+              <p className="mt-3 text-xs text-gray-400">
+                VIP Dashboard: {activeMt5State === "OPEN" ? "Open trade" : activeMt5State === "PENDING" ? "Pending order" : "No active MT5 trade"} • Push Alerts ready
+              </p>
+            </div>
+          </div>
+        </section>
         <section className={`${darkMode ? "border-yellow-500/40 bg-gradient-to-br from-[#0c1526] via-[#07101e] to-[#03050b] shadow-[0_0_60px_rgba(234,179,8,0.14)]" : "border-yellow-500/30 bg-white"} relative overflow-hidden rounded-[1.5rem] border p-3 shadow-xl shadow-yellow-500/5`}>
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
@@ -1432,7 +1607,7 @@ export function Home() {
 
               return (
                 <div key={symbol} className={`${darkMode ? "border-yellow-500/20 bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95" : "border-gray-200 bg-white"} relative overflow-hidden rounded-[1.25rem] border shadow-lg`}>
-                  <img src={getSignalCommodityImage(symbol)} alt="" className="pointer-events-none absolute right-0 top-0 h-28 w-48 object-cover opacity-[0.22]" />
+                  <img src={getSignalCommodityImage(symbol)} alt="" className="pointer-events-none absolute right-0 top-0 h-28 w-48 object-cover opacity-[0.34] [image-rendering:auto] [backface-visibility:hidden] [transform:translateZ(0)]" />
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/20" />
 
                   <div className="relative border-b border-yellow-500/20 p-3">
@@ -1536,7 +1711,7 @@ export function Home() {
 
         {showMt5Card && (
           <div className={`${darkMode ? "border-yellow-500/30 bg-gradient-to-br from-[#0b1220] via-[#09111f] to-[#03050b]" : "border-yellow-500/30 bg-white"} relative overflow-hidden rounded-[1.6rem] border p-5 backdrop-blur-md shadow-xl`}>
-            <img src={BEX_GOLD_BARS_IMAGE} alt="" className="pointer-events-none absolute -right-8 -top-4 h-32 w-56 object-cover opacity-[0.18]" />
+            <img src={BEX_GOLD_BARS_IMAGE} alt="" className="pointer-events-none absolute -right-8 -top-4 h-32 w-56 object-cover opacity-[0.32] [image-rendering:auto] [backface-visibility:hidden] [transform:translateZ(0)]" />
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-xs font-black uppercase tracking-[0.24em] text-yellow-400">👑 {tr(lang, "VIP AUTO TRADE", "معامله خودکار VIP", "تداول VIP الآلي")}</h3>
@@ -1583,7 +1758,7 @@ export function Home() {
 
         <div className="grid gap-4 lg:grid-cols-2">
           <div className={`${darkMode ? "border-yellow-500/20 bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 shadow-[0_0_35px_rgba(148,163,184,0.06)]" : "border-gray-200 bg-white"} relative overflow-hidden rounded-[1.6rem] border p-5 backdrop-blur-md`}>
-            <img src={selectedSymbol === "XAUUSD" ? BEX_GOLD_BARS_IMAGE : BEX_SILVER_BARS_IMAGE} alt="" className="pointer-events-none absolute -right-8 bottom-0 h-24 w-40 object-cover opacity-20 mix-blend-screen" />
+            <img src={selectedSymbol === "XAUUSD" ? BEX_GOLD_BARS_IMAGE : BEX_SILVER_BARS_IMAGE} alt="" className="pointer-events-none absolute -right-8 bottom-0 h-24 w-40 object-cover opacity-35 [image-rendering:auto] [backface-visibility:hidden] [transform:translateZ(0)]" />
             <div className="relative mb-3 flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-yellow-400" />
               <h3 className="text-xs font-black uppercase tracking-[0.22em] text-yellow-400">{tr(lang, "CURRENCY CONVERTER", "تبدیل ارز", "محول العملات")}</h3>
@@ -1612,7 +1787,7 @@ export function Home() {
             className={`relative overflow-hidden rounded-[1.6rem] border p-5 backdrop-blur-md text-left transition-all hover:scale-[1.01] ${darkMode ? "border-yellow-500/20 bg-gradient-to-br from-[#0f1728]/95 via-[#0b1220]/95 to-[#050812]/95 hover:bg-[#111827] shadow-[0_0_35px_rgba(234,179,8,0.06)]" : "border-gray-200 bg-white hover:bg-gray-50"}`}
             aria-label={tr(lang, "Open trading tools", "باز کردن ابزارهای معاملاتی", "فتح أدوات التداول")}
           >
-            <img src={BEX_GOLD_BARS_IMAGE} alt="" className="pointer-events-none absolute -right-10 bottom-0 h-24 w-44 object-cover opacity-20 mix-blend-screen" />
+            <img src={BEX_GOLD_BARS_IMAGE} alt="" className="pointer-events-none absolute -right-10 bottom-0 h-24 w-44 object-cover opacity-35 [image-rendering:auto] [backface-visibility:hidden] [transform:translateZ(0)]" />
             <div className="relative flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-lg shadow-yellow-500/20">
@@ -1633,3 +1808,7 @@ export function Home() {
     </div>
   );
 }
+
+
+
+

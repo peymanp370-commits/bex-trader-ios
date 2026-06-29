@@ -354,3 +354,7 @@ export function Signal() {
     </div>
   );
 }
+
+
+const BEX_PHASE2_SIGNAL_ERROR_COPY = "Signal error. Please refresh or try again.";
+const BEX_PHASE2_SIGNAL_NO_DATA_COPY = "No data is available yet. BEX is waiting for a valid setup.";

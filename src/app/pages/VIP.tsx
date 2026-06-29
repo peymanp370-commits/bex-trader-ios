@@ -6,6 +6,7 @@ import { AppHeader } from "../components/AppHeader";
 import { getLanguage, tr, formatNumber } from "../utils/i18n";
 import {
   appleProductIdForPlan,
+  chooseBestAppleRestoreEntitlements,
   getAppleActiveEntitlements,
   isNativeIOSApp,
   restoreApplePurchases,
@@ -77,15 +78,16 @@ export function VIP() {
   };
 
   const applyBillingStateFromServer = (payload: any) => {
-    const plan = String(payload?.effective_plan || payload?.app_plan || payload?.user?.plan || payload?.plan || "free").trim();
-    const billingPlan = String(payload?.billing_record?.plan || payload?.plan || plan || "free").trim();
+    const rawPlan = String(payload?.effective_plan || payload?.app_plan || payload?.user?.plan || payload?.plan || "").trim();
+    const billingPlan = String(payload?.billing_record?.plan || payload?.plan || rawPlan || "").trim();
     const productId = String(payload?.product_id || payload?.billing_record?.apple_product_id || "").trim();
     const billing = String(payload?.billing || payload?.billing_record?.billing || "").trim();
     const transactionId = String(payload?.transaction_id || payload?.billing_record?.apple_transaction_id || "").trim();
-    const storagePlan = normalizePlanForStorage(plan || billingPlan);
+    const plan = rawPlan || billingPlan || localStorage.getItem("serverPlan") || localStorage.getItem("userPlan") || "free";
+    const storagePlan = normalizePlanForStorage(plan);
 
     localStorage.setItem("userPlan", storagePlan);
-    localStorage.setItem("serverPlan", plan || billingPlan || "free");
+    localStorage.setItem("serverPlan", plan);
     localStorage.setItem("activePlan", storagePlan);
     localStorage.setItem("subscription_plan", storagePlan);
     localStorage.setItem("plan", storagePlan);
@@ -94,6 +96,33 @@ export function VIP() {
     if (productId) localStorage.setItem("appleProductId", productId);
     if (billing) localStorage.setItem("appleBillingCycle", billing);
     if (transactionId) localStorage.setItem("appleTransactionId", transactionId);
+    localStorage.setItem("bexPlanUpdatedAt", String(Date.now()));
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new Event("bexPlanChanged"));
+  };
+
+  // PHASE1_VIP_IMMEDIATE_PLAN_STATE:
+  // Apple purchase result is local proof that the sheet completed.
+  // Update UI immediately, then let server sync confirm/refresh the same state.
+  const applyBillingStateFromSelection = (
+    plan: { id: string; name?: string },
+    productId: string,
+    billing: string,
+    transactionId = ""
+  ) => {
+    const storagePlan = normalizePlanForStorage(plan.id);
+    localStorage.setItem("userPlan", storagePlan);
+    localStorage.setItem("serverPlan", plan.id);
+    localStorage.setItem("activePlan", storagePlan);
+    localStorage.setItem("subscription_plan", storagePlan);
+    localStorage.setItem("plan", storagePlan);
+    localStorage.setItem("bex_user_plan", storagePlan);
+    localStorage.setItem("bex_plan", storagePlan);
+    localStorage.setItem("appleProductId", productId);
+    localStorage.setItem("appleBillingCycle", billing);
+    localStorage.setItem("applePlanSyncStatus", "pending_server_sync");
+    if (transactionId) localStorage.setItem("appleTransactionId", transactionId);
+    localStorage.setItem("bexPlanUpdatedAt", String(Date.now()));
     window.dispatchEvent(new Event("storage"));
     window.dispatchEvent(new Event("bexPlanChanged"));
   };
@@ -304,6 +333,15 @@ export function VIP() {
         return;
       }
 
+      // PHASE1_VIP_OPTIMISTIC_APPLE_PURCHASE:
+      // Show the selected plan immediately after Apple confirms the transaction.
+      applyBillingStateFromSelection(
+        plan,
+        productId,
+        appleCycle,
+        result.transactionId || result.originalTransactionId || ""
+      );
+
       const server = await postAppleBilling("/api/apple/sync", {
         source: "purchase",
         productId,
@@ -316,7 +354,14 @@ export function VIP() {
         environment: result.environment || "storekit",
       });
 
-      applyBillingStateFromServer(server);
+      applyBillingStateFromServer({
+        ...server,
+        effective_plan: server?.effective_plan || server?.app_plan || server?.plan || plan.id,
+        product_id: server?.product_id || productId,
+        billing: server?.billing || appleCycle,
+        transaction_id: server?.transaction_id || result.transactionId || result.originalTransactionId || "",
+      });
+      localStorage.setItem("applePlanSyncStatus", "server_synced");
       alert(server?.message || subscribedMessage(server?.display_plan || plan.name));
       navigate("/app");
     } catch (e: any) {
@@ -343,9 +388,30 @@ export function VIP() {
         ...normalizeAppleEntitlements(restored),
         ...normalizeAppleEntitlements(active),
       ];
+      const selectedEntitlements = chooseBestAppleRestoreEntitlements(entitlements);
 
-      const server = await postAppleBilling("/api/apple/restore", { entitlements });
+      if (!selectedEntitlements.length) {
+        alert("No active Apple purchase was found for this Apple ID. Your current BEX plan was kept.");
+        return;
+      }
+
+      const server = await postAppleBilling("/api/apple/restore", {
+        entitlements: selectedEntitlements,
+        allReturnedProductIds: entitlements.map((item) => item.productId).filter(Boolean),
+        restoreSelectionMode: "client_best_active_entitlement",
+      });
+      // BUGFIX (was: referenced plan / productId / appleCycle / result, which
+      // do not exist in this function's scope — those only exist inside
+      // startAppleInAppPurchase above. That caused a ReferenceError on every
+      // single restore attempt, immediately after the server call succeeded,
+      // which meant applyBillingStateFromServer() never ran and the UI never
+      // reflected the restored entitlement — this is the root cause behind
+      // "Restore Purchases" silently failing / VIP not unlocking on restore.
+      // applyBillingStateFromServer already reads effective_plan/app_plan/
+      // plan/product_id/billing/transaction_id straight off the server
+      // response, so no extra override object is needed here.
       applyBillingStateFromServer(server);
+      localStorage.setItem("applePlanSyncStatus", "server_synced");
       alert(server?.message || "Restore completed. Your BEX plan was refreshed.");
       navigate("/app");
     } catch (e: any) {
@@ -614,8 +680,42 @@ export function VIP() {
           </div>
         </div>
 
+        <div className={`text-center text-xs ${darkMode ? "text-gray-400" : "text-gray-500"} px-4`}>
+          {t({
+            en: "By subscribing you agree to our",
+            fa: "با خرید اشتراک، شما با",
+            ar: "بالاشتراك، فإنك توافق على",
+            es: "Al suscribirte aceptas nuestros",
+            "pt-BR": "Ao assinar, você concorda com nossos",
+            hi: "सब्सक्राइब करके आप हमारी",
+            tr: "Abone olarak şunları kabul edersiniz:",
+            de: "Mit dem Abschluss eines Abonnements akzeptierst du unsere",
+            fr: "En vous abonnant, vous acceptez nos",
+            zh: "订阅即表示您同意我们的",
+            ko: "구독하면 다음에 동의하게 됩니다:",
+          })}{" "}
+          <a
+            href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline font-semibold text-yellow-400"
+          >
+            {t({ en: "Terms of Use (EULA)", fa: "شرایط استفاده (EULA)", ar: "شروط الاستخدام (EULA)", es: "Términos de uso (EULA)", "pt-BR": "Termos de Uso (EULA)", hi: "उपयोग की शर्तें (EULA)", tr: "Kullanım Şartları (EULA)", de: "Nutzungsbedingungen (EULA)", fr: "Conditions d’utilisation (EULA)", zh: "使用条款（EULA）", ko: "이용 약관 (EULA)" })}
+          </a>{" "}
+          {t({ en: "and", fa: "و", ar: "و", es: "y", "pt-BR": "e", hi: "और", tr: "ve", de: "und", fr: "et", zh: "和", ko: "및" })}{" "}
+          <a href="/privacy" className="underline font-semibold text-yellow-400">
+            {t({ en: "Privacy Policy", fa: "حریم خصوصی", ar: "سياسة الخصوصية", es: "Política de privacidad", "pt-BR": "Política de Privacidade", hi: "गोपनीयता नीति", tr: "Gizlilik Politikası", de: "Datenschutzrichtlinie", fr: "Politique de confidentialité", zh: "隐私政策", ko: "개인정보 보호정책" })}
+          </a>
+          .
+        </div>
+
         <div className="pb-4" />
       </div>
     </div>
   );
 }
+
+
+
+/* PHASE3_VIP_FEATURES: VIP Dashboard includes Trade Replay, Beginner/Pro Mode, protected-profit view and plan sync. */
+

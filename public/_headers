@@ -1,0 +1,8 @@
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/*.png
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/assets/*
+  Cache-Control: no-cache, no-store, must-revalidate

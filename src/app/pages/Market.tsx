@@ -620,3 +620,6 @@ export function Market() {
     </div>
   );
 }
+
+
+const BEX_PHASE2_MARKET_NO_DATA_COPY = "No data is available yet. Refresh market data or check your connection.";

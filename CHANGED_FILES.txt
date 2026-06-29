@@ -1,0 +1,32 @@
+CHANGED FILES
+
+Core source files changed:
+- src/app/pages/Register.tsx
+  Fixed local plan fallback from VIP to free.
+
+- src/app/pages/VIP.tsx
+  Imported and used chooseBestAppleRestoreEntitlements() before POST /api/apple/restore.
+  Restore now sends selected active entitlement only, plus diagnostic returned product IDs.
+
+- worker/index.js
+  Added worker-side Apple restore entitlement chooser.
+  Replaced multiple-entitlement block with best valid entitlement selection.
+
+Files added:
+- src/app/pages/ForgotPassword.tsx
+- src/app/pages/ResetPassword.tsx
+
+Generated/refreshed by build and Capacitor sync:
+- dist/**
+- ios/App/App/public/**
+- ios/App/App/capacitor.config.json
+- iOS Capacitor plugin metadata may be refreshed by npx cap sync ios.
+
+Report files added:
+- SUMMARY.txt
+- APPLE_REVIEW_REPLY.txt
+- APP_STORE_METADATA_NOTES.txt
+- FULL_APP_AUDIT_REPORT.txt
+- CHANGED_FILES.txt
+- TEST_RESULTS.txt
+- MANUAL_APP_STORE_STEPS.txt

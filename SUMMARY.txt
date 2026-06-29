@@ -1,0 +1,34 @@
+BEX iOS P145B FINAL FIX PACKAGE
+SAFE: NO DEPLOY / NO APP STORE SUBMIT / NO PRODUCTION DB RESET / NO REAL TRADING ACTION
+
+What I fixed directly in source:
+
+1. Register plan bug fixed
+- File: src/app/pages/Register.tsx
+- Old behavior: new registered users could default localStorage userPlan to VIP if backend did not return a plan.
+- New behavior: fallback is free, not VIP. This prevents fake local VIP state and App Review confusion.
+
+2. Apple Restore Purchases flow hardened
+- File: src/app/pages/VIP.tsx
+- Restore now uses chooseBestAppleRestoreEntitlements() before calling backend.
+- If StoreKit returns multiple sandbox entitlements, the app selects the best active valid entitlement instead of sending a confusing multi-entitlement payload.
+- If no active Apple entitlement is found, the UI shows a clear message and does not fake-upgrade the user.
+
+3. Backend Apple restore selection hardened
+- File: worker/index.js
+- Added worker-side best-entitlement selection for Apple restore.
+- This prevents restore from blocking just because Apple sandbox returns multiple old purchases.
+- Active subscription wins first; lifetime is used only when no active subscription exists.
+
+4. Missing source pages restored so production build passes
+- Added src/app/pages/ForgotPassword.tsx
+- Added src/app/pages/ResetPassword.tsx
+- These routes already existed in routes.tsx but the source files were missing, which broke npm run build.
+
+5. Build and iOS sync verified
+- npm run build: PASSED
+- npx cap sync ios: PASSED
+- iOS public assets were refreshed from the new build.
+
+Important manual requirement:
+Before submitting to Apple, deploy the patched auth worker source in worker/index.js to the live auth.bextrader.com route. The iOS app depends on live POST /api/apple/sync and POST /api/apple/restore. If the frontend is submitted but the live worker is old, VIP unlock can still fail in App Review.

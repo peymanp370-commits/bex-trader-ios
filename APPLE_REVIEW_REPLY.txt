@@ -1,0 +1,17 @@
+Hello App Review Team,
+
+Thank you for the review. We have addressed the reported issues in this new submission.
+
+1. VIP subscription unlock issue
+After a successful Apple sandbox purchase, the app now syncs the Apple transaction with our backend, refreshes the user billing/profile state, and unlocks the correct BEX plan immediately in the app.
+
+2. Restore Purchases
+We added a distinct visible “Restore Purchases” button on the subscription/VIP screen. Tapping this button initiates the Apple restore flow, syncs the selected active entitlement with our backend, refreshes the user state, and updates the app UI. This is not only an automatic restore on launch.
+
+3. Terms of Use / EULA
+We added the Terms of Use / EULA link in the app and will include it in the App Store metadata. We use Apple’s Standard EULA:
+https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
+We also verified the app build and iOS Capacitor sync. A screen recording can be provided showing purchase/restore and VIP access refresh.
+
+Thank you.

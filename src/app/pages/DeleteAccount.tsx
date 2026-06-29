@@ -1,4 +1,4 @@
-import { ArrowLeft, Loader2, ShieldCheck, Trash2, XCircle } from "lucide-react";
+﻿import { ArrowLeft, Loader2, ShieldCheck, Trash2, XCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { deleteCurrentAccount } from "../utils/api";
@@ -110,3 +110,4 @@ export function DeleteAccount() {
     </main>
   );
 }
+

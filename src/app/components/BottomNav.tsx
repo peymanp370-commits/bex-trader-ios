@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+﻿import { Link, useLocation } from "react-router-dom";
 import { Home, BarChart3, LineChart, Crown, Settings, Wrench, UserCircle } from "lucide-react";
 import { tr } from "../utils/i18n";
 import { useLangState } from "../store/useLang";
@@ -43,3 +43,4 @@ export function BottomNav() {
     </nav>
   );
 }
+

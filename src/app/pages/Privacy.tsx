@@ -1,4 +1,4 @@
-import { ArrowLeft, ShieldCheck, Mail } from "lucide-react";
+﻿import { ArrowLeft, ShieldCheck, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getLanguage, isRTL, tr } from "../utils/i18n";
 
@@ -349,3 +349,4 @@ export function Privacy() {
     </main>
   );
 }
+

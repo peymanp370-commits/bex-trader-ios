@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logoImage from "../../assets/bex-brand-logo.png";
 import { LANGUAGE_OPTIONS, tr } from "../utils/i18n";
@@ -125,3 +125,4 @@ export function Welcome() {
     </div>
   );
 }
+

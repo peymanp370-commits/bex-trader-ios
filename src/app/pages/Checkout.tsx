@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle, Crown, Loader2, ShieldCheck, XCircle } from "lucide-react";
+﻿import { ArrowLeft, CheckCircle, Crown, Loader2, ShieldCheck, XCircle } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { getLanguage, tr } from "../utils/i18n";
@@ -214,3 +214,4 @@ export function Checkout() {
     </div>
   );
 }
+

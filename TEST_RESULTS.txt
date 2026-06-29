@@ -1,0 +1,251 @@
+TEST RESULTS - P145B
+
+Summary:
+- npm ci --legacy-peer-deps --include=dev: FAILED in this container because sharp/@capacitor/assets attempted to download libvips from github.com and DNS/network returned EAI_AGAIN.
+- npm ci --legacy-peer-deps --include=dev --ignore-scripts: PASSED.
+- npm run build after adding missing pages and P145B fixes: PASSED.
+- npx cap sync ios after build: PASSED.
+- node --check worker/index.js: PASSED.
+- node --check cloudflare-worker/worker.js: PASSED.
+- CocoaPods/xcodebuild were not available in this Linux container, so native iOS archive was not run here.
+
+Detailed logs:
+
+===== test_run_ci.log =====
+===== npm ci --legacy-peer-deps --include=dev =====
+npm warn deprecated git-semver-tags@4.1.1: This package is no longer maintained. For the JavaScript API, please use @conventional-changelog/git-client instead.
+npm warn deprecated git-raw-commits@2.0.11: This package is no longer maintained. For the JavaScript API, please use @conventional-changelog/git-client instead.
+npm warn deprecated q@1.5.1: You or someone you depend on is using Q, the JavaScript Promise library that gave JavaScript developers strong feelings about promises. They can almost certainly migrate to the native JavaScript promise now. Thank you literally everyone for joining me in this bet against the odds. Be excellent to each other.
+npm warn deprecated
+npm warn deprecated (For a CapTP with native promises, see @endo/eventual-send and @endo/captp)
+npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+npm warn deprecated tar@6.2.1: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated uuid@7.0.3: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated glob@9.3.5: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm error code 1
+npm error path /mnt/data/bex_ios_145_work/asli 8/node_modules/@capacitor/assets/node_modules/sharp
+npm error command failed
+npm error command sh -c (node install/libvips && node install/dll-copy && prebuild-install) || (node install/can-compile && node-gyp rebuild && node install/dll-copy)
+npm error sharp: Downloading https://github.com/lovell/sharp-libvips/releases/download/v8.14.5/libvips-8.14.5-linux-x64.tar.br
+npm error sharp: Please see https://sharp.pixelplumbing.com/install for required dependencies
+npm error sharp: Installation error: getaddrinfo EAI_AGAIN github.com
+npm error A complete log of this run can be found in: /home/oai/.npm/_logs/2026-06-29T17_30_16_237Z-debug-0.log
+NPM_CI_EXIT=1
+===== npm run build =====
+
+> @figma/my-make-file@0.0.1 build
+> vite build
+
+sh: 1: vite: not found
+BUILD_EXIT=127
+===== npx cap sync ios =====
+npm error could not determine executable to run
+npm error A complete log of this run can be found in: /home/oai/.npm/_logs/2026-06-29T17_30_38_938Z-debug-0.log
+CAP_SYNC_EXIT=1
+
+
+===== test_run_ci_ignore_scripts.log =====
+===== npm ci --legacy-peer-deps --include=dev --ignore-scripts =====
+npm warn deprecated git-raw-commits@2.0.11: This package is no longer maintained. For the JavaScript API, please use @conventional-changelog/git-client instead.
+npm warn deprecated git-semver-tags@4.1.1: This package is no longer maintained. For the JavaScript API, please use @conventional-changelog/git-client instead.
+npm warn deprecated q@1.5.1: You or someone you depend on is using Q, the JavaScript Promise library that gave JavaScript developers strong feelings about promises. They can almost certainly migrate to the native JavaScript promise now. Thank you literally everyone for joining me in this bet against the odds. Be excellent to each other.
+npm warn deprecated
+npm warn deprecated (For a CapTP with native promises, see @endo/eventual-send and @endo/captp)
+npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+npm warn deprecated tar@6.2.1: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated uuid@7.0.3: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated glob@9.3.5: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+added 725 packages, and audited 726 packages in 15s
+
+96 packages are looking for funding
+  run `npm fund` for details
+
+18 vulnerabilities (3 low, 2 moderate, 13 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues possible, run:
+  npm audit fix --force
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+NPM_CI_IGNORE_SCRIPTS_EXIT=0
+===== npm run build =====
+
+> @figma/my-make-file@0.0.1 build
+> vite build
+
+[36mvite v6.3.5 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 11 modules transformed.
+[31m✗[39m Build failed in 583ms
+[31merror during build:
+[31mCould not resolve "./pages/ForgotPassword" from "src/app/routes.tsx"[31m
+file: [36m/mnt/data/bex_ios_145_work/asli 8/src/app/routes.tsx[31m
+    at getRollupError (file:///mnt/data/bex_ios_145_work/asli%208/node_modules/rollup/dist/es/shared/parseAst.js:406:41)
+    at error (file:///mnt/data/bex_ios_145_work/asli%208/node_modules/rollup/dist/es/shared/parseAst.js:402:42)
+    at ModuleLoader.handleInvalidResolvedId (file:///mnt/data/bex_ios_145_work/asli%208/node_modules/rollup/dist/es/shared/node-entry.js:22126:24)
+    at file:///mnt/data/bex_ios_145_work/asli%208/node_modules/rollup/dist/es/shared/node-entry.js:22086:26[39m
+BUILD_EXIT=1
+===== npx cap sync ios =====
+[error] Could not find the web assets directory: ./dist.
+        Please create it and make sure it has an index.html file. You can change the path of this directory in capacitor.config.json (webDir option). You may need to compile the web assets for your app (typically npm run build). More info: https://capacitorjs.com/docs/basics/workflow#sync-your-project
+CAP_SYNC_EXIT=1
+
+
+===== test_run_build_after_pages.log =====
+===== npm run build after Forgot/Reset pages =====
+
+> @figma/my-make-file@0.0.1 build
+> vite build
+
+[36mvite v6.3.5 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 2292 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                          [39m[1m[2m  1.04 kB[22m[1m[22m[2m │ gzip:   0.52 kB[22m
+[2mdist/[22m[2massets/[22m[32mbex-brand-logo-Dm7rtFG9.png  [39m[1m[2m149.55 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[35mindex-C_HpVJjc.css           [39m[1m[2m174.79 kB[22m[1m[22m[2m │ gzip:  24.95 kB[22m
+[2mdist/[22m[2massets/[22m[36mweb-CoZYZP32.js              [39m[1m[2m  0.38 kB[22m[1m[22m[2m │ gzip:   0.25 kB[22m
+[2mdist/[22m[2massets/[22m[36mweb-CfGr0zhO.js              [39m[1m[2m  0.76 kB[22m[1m[22m[2m │ gzip:   0.36 kB[22m
+[2mdist/[22m[2massets/[22m[36mweb-D5Wm7gzO.js              [39m[1m[2m 23.61 kB[22m[1m[22m[2m │ gzip:   6.71 kB[22m
+[2mdist/[22m[2massets/[22m[36mindex-DA_NwZOZ.js            [39m[1m[33m914.98 kB[39m[22m[2m │ gzip: 289.47 kB[22m
+[33m
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m✓ built in 4.20s[39m
+BUILD_EXIT=0
+===== npx cap sync ios after build =====
+[36m🔧 Configuring dynamic provider dependencies for SocialLogin[0m
+[1m
+Provider configuration:[0m
+  [32m✔[0m [1mGoogle[0m: [32menabled[0m
+  [31m✖[0m [1mFacebook[0m: [31mdisabled[0m
+  [32m✔[0m [1mApple[0m: [32menabled[0m
+  [31m✖[0m [1mTwitter[0m: [31mdisabled[0m
+
+[34mℹ Configuring iOS dependencies...[0m
+[32m✔ Modified podspec[0m
+[32m✔ Configuration complete
+[0m
+✔ Copying web assets from dist to ios/App/App/public in 50.02ms
+✔ Creating capacitor.config.json in ios/App/App in 600.68μs
+✔ copy ios in 148.85ms
+✔ Updating iOS plugins in 17.63ms
+[warn] Skipping pod install because CocoaPods is not installed
+[warn] Unable to find "xcodebuild". Skipping xcodebuild clean step...
+✔ Updating iOS native dependencies with pod install in 7.55ms
+[info] Found 5 Capacitor plugins for ios:
+       @capacitor-community/http@1.4.1
+       @capacitor/app@7.1.2
+       @capacitor/browser@7.0.5
+       @capacitor/push-notifications@7.0.6
+       @capgo/capacitor-social-login@7.20.0
+✔ update ios in 84.99ms
+[info] Sync finished in 0.41s
+CAP_SYNC_EXIT=0
+
+
+===== grep_checks.log =====
+===== Critical grep checks =====
+-- bad VIP fallback --
+-- restore selection usage --
+src/app/utils/appleIap.ts:109:export function chooseBestAppleRestoreEntitlements(entitlements: AppleEntitlement[]) {
+src/app/pages/VIP.tsx:9:  chooseBestAppleRestoreEntitlements,
+src/app/pages/VIP.tsx:391:      const selectedEntitlements = chooseBestAppleRestoreEntitlements(entitlements);
+worker/index.js:3355:function chooseBestAppleRestoreEntitlementForWorker(entitlements) {
+worker/index.js:3458:  const selected = chooseBestAppleRestoreEntitlementForWorker(usable);
+-- auth endpoints --
+src/app/utils/api.ts:4:  import.meta.env.VITE_API_URL || "https://auth.bextrader.com";
+src/app/utils/api.ts:87:    const domains = [undefined, window.location.hostname, ".bextrader.com", "auth.bextrader.com"];
+src/app/pages/Checkout.tsx:6:const AUTH_BASE = import.meta.env.VITE_API_URL || "https://auth.bextrader.com";
+src/app/pages/Login.tsx:12:  import.meta.env.VITE_API_URL || "https://auth.bextrader.com";
+src/app/pages/Login.tsx:135:          redirectUrl: "https://auth.bextrader.com/auth/apple/callback",
+src/app/pages/VIP.tsx:56:  const AUTH_BASE = (import.meta as any).env?.VITE_API_URL || "https://auth.bextrader.com";
+src/app/pages/VIP.tsx:345:      const server = await postAppleBilling("/api/apple/sync", {
+src/app/pages/VIP.tsx:398:      const server = await postAppleBilling("/api/apple/restore", {
+src/app/pages/Register.tsx:8:  import.meta.env.VITE_API_URL || "https://auth.bextrader.com";
+src/app/pages/ForgotPassword.tsx:4:const AUTH_BASE = (import.meta as any).env?.VITE_API_URL || "https://auth.bextrader.com";
+src/app/pages/ForgotPassword.tsx:19:      const res = await fetch(`${AUTH_BASE}/auth/forgot-password`, {
+src/app/pages/ResetPassword.tsx:4:const AUTH_BASE = (import.meta as any).env?.VITE_API_URL || "https://auth.bextrader.com";
+src/app/pages/ResetPassword.tsx:26:      const res = await fetch(`${AUTH_BASE}/auth/reset-password`, {
+worker/index.js:45:            "POST /auth/forgot-password",
+worker/index.js:46:            "POST /auth/reset-password",
+worker/index.js:65:            "POST /api/apple/sync",
+worker/index.js:66:            "POST /api/apple/restore",
+worker/index.js:319:        // by opening https://auth.bextrader.com/auth/logout directly.
+worker/index.js:483:      if (url.pathname === "/api/apple/sync" && request.method === "POST") {
+worker/index.js:491:      if (url.pathname === "/api/apple/restore" && request.method === "POST") {
+worker/index.js:1059:      if (url.pathname === "/auth/forgot-password" && request.method === "POST") {
+worker/index.js:1152:      if (url.pathname === "/auth/reset-password" && request.method === "POST") {
+worker/index.js:1630:    "https://auth.bextrader.com",
+worker/wrangler.toml:14:GOOGLE_REDIRECT_URI = "https://auth.bextrader.com/auth/google/callback"
+worker/wrangler.toml:18:APPLE_REDIRECT_URI = "https://auth.bextrader.com/auth/apple/callback"
+worker/wrangler.toml:22:route = "auth.bextrader.com/*"
+worker/index.backup-before-auth-bearer-local.js:45:            "POST /auth/forgot-password",
+worker/index.backup-before-auth-bearer-local.js:46:            "POST /auth/reset-password",
+worker/index.backup-before-auth-bearer-local.js:314:        // by opening https://auth.bextrader.com/auth/logout directly.
+worker/index.backup-before-auth-bearer-local.js:950:      if (url.pathname === "/auth/forgot-password" && request.method === "POST") {
+worker/index.backup-before-auth-bearer-local.js:1043:      if (url.pathname === "/auth/reset-password" && request.method === "POST") {
+worker/index.backup-before-auth-bearer-local.js:1512:    "https://auth.bextrader.com",
+-- localhost refs --
+worker/index.js:1487:    return origin.hostname === "localhost" || origin.hostname === "127.0.0.1";
+worker/index.js:1523:  if (!requestHost || isLocalRequest(request) || requestHost === "localhost" || isIpHostname(requestHost)) {
+worker/index.js:1625:  // localhost/custom-scheme origins. If this does not match exactly, the app sees
+worker/index.js:1631:    "capacitor://localhost",
+worker/index.js:1632:    "ionic://localhost",
+worker/index.js:1633:    "bextrader://localhost",
+worker/index.js:1635:    "http://localhost",
+worker/index.js:1636:    "http://localhost:3000",
+worker/index.js:1637:    "http://localhost:4200",
+worker/index.js:1638:    "http://localhost:5173",
+worker/index.js:1639:    "http://localhost:8080",
+worker/index.js:1640:    "http://localhost:8100",
+worker/index.js:1641:    "https://localhost",
+worker/index.js:1642:    "https://localhost:3000",
+worker/index.js:1643:    "https://localhost:4200",
+worker/index.js:1644:    "https://localhost:5173",
+worker/index.js:1645:    "https://localhost:8080",
+worker/index.js:1646:    "https://localhost:8100",
+worker/index.js:1647:    "http://127.0.0.1",
+worker/index.js:1648:    "http://127.0.0.1:3000",
+worker/index.js:1649:    "http://127.0.0.1:4200",
+worker/index.js:1650:    "http://127.0.0.1:5173",
+worker/index.js:1651:    "http://127.0.0.1:8080",
+worker/index.js:1652:    "http://127.0.0.1:8100",
+worker/index.js:1653:    "https://127.0.0.1",
+worker/index.js:1654:    "https://127.0.0.1:3000",
+worker/index.js:1655:    "https://127.0.0.1:4200",
+worker/index.js:1656:    "https://127.0.0.1:5173",
+worker/index.js:1657:    "https://127.0.0.1:8080",
+worker/index.js:1658:    "https://127.0.0.1:8100",
+worker/index.js:1667:    /^https?:\/\/localhost(?::\d+)?$/i.test(origin) ||
+worker/index.js:1669:    /^capacitor:\/\/localhost(?::\d+)?$/i.test(origin) ||
+worker/index.js:1670:    /^ionic:\/\/localhost(?::\d+)?$/i.test(origin) ||
+worker/index.backup-before-auth-bearer-local.js:1368:    return origin.hostname === "localhost" || origin.hostname === "127.0.0.1";
+worker/index.backup-before-auth-bearer-local.js:1404:  if (!requestHost || isLocalRequest(request) || requestHost === "localhost" || isIpHostname(requestHost)) {
+worker/index.backup-before-auth-bearer-local.js:1513:    "capacitor://localhost",
+worker/index.backup-before-auth-bearer-local.js:1514:    "ionic://localhost",
+worker/index.backup-before-auth-bearer-local.js:1515:    "bextrader://localhost",
+worker/index.backup-before-auth-bearer-local.js:1516:    "http://localhost",
+worker/index.backup-before-auth-bearer-local.js:1517:    "http://localhost:3000",
+worker/index.backup-before-auth-bearer-local.js:1518:    "http://localhost:5173",
+worker/index.backup-before-auth-bearer-local.js:1519:    "http://127.0.0.1",
+worker/index.backup-before-auth-bearer-local.js:1520:    "http://127.0.0.1:3000",
+worker/index.backup-before-auth-bearer-local.js:1521:    "http://127.0.0.1:5173"
+cloudflare-worker/push-server.js:57:  console.log("Push server running on http://localhost:3000");
+
+
+===== node_checks.log =====
+===== node --check worker/index.js =====
+WORKER_CHECK_EXIT=0
+===== node --check cloudflare-worker/worker.js =====
+APP_WORKER_CHECK_EXIT=0
+

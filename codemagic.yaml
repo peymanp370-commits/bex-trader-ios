@@ -1,30 +1,16 @@
 workflows:
   ios-capacitor-release:
     name: BEX Trader iOS Release
-    max_build_duration: 90
+    max_build_duration: 60
     instance_type: mac_mini_m2
-
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: "main"
-          include: true
-          source: true
-      cancel_previous_builds: true
 
     environment:
       node: 22
       xcode: latest
-      cocoapods: default
       groups:
         - appstore
       vars:
         BUNDLE_ID: "com.bextrader.app"
-    cache:
-      cache_paths:
-        - $HOME/Library/Caches/CocoaPods
-        - $HOME/.npm
 
     scripts:
       - name: Install dependencies
@@ -33,6 +19,7 @@ workflows:
           rm -rf node_modules
           npm install --legacy-peer-deps
           chmod -R u+x node_modules/.bin || true
+          ls -la node_modules/.bin/vite || true
 
       - name: Verify Capacitor config
         script: |
@@ -43,10 +30,8 @@ workflows:
       - name: Build web app
         script: |
           echo "=== BUILD WEB APP WITHOUT EXECUTING .BIN WRAPPER ==="
-          if [ ! -f node_modules/vite/bin/vite.js ]; then
-            echo "vite not found in node_modules after npm install. Check package.json devDependencies."
-            exit 1
-          fi
+          rm -f node_modules/.bin/vite || true
+          npm install vite@latest --save-dev --legacy-peer-deps
           node node_modules/vite/bin/vite.js build
 
       - name: Sync existing iOS project
@@ -67,10 +52,6 @@ workflows:
           grep -n "bextrader" ios/App/App/Info.plist || true
           grep -n "CFBundleURLSchemes" ios/App/App/Info.plist || true
 
-          echo "=== SET EXPORT COMPLIANCE (AVOID MANUAL ENCRYPTION QUESTION) ==="
-          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist 2>/dev/null || \
-          /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" ios/App/App/Info.plist
-
           echo "=== CLEAN BAD XCODE FILES ==="
           find ios -name Package.resolved -delete || true
           find ios -name "*.xcuserstate" -delete || true
@@ -80,9 +61,9 @@ workflows:
           rm -rf ~/Library/Developer/Xcode/DerivedData/* || true
 
           echo "=== FORCE IOS DEPLOYMENT TARGET 15 FOR STOREKIT2 ==="
-          perl -0pi -e "s/platform :ios, '14\.0'/platform :ios, '15.0'/g" ios/App/Podfile || true
+          perl -0pi -e 's/platform :ios, '''14\.0'''/platform :ios, '''15.0'''/g' ios/App/Podfile || true
           perl -0pi -e 's/IPHONEOS_DEPLOYMENT_TARGET = 14\.0;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/g' ios/App/App.xcodeproj/project.pbxproj || true
-          perl -0pi -e "s/s\.ios\.deployment_target\s*=\s*'14\.0'/s.ios.deployment_target  = '15.0'/g" ios/capacitor-cordova-ios-plugins/*.podspec || true
+          perl -0pi -e 's/s\.ios\.deployment_target  = '''14\.0'''/s.ios.deployment_target  = '''15.0'''/g' ios/capacitor-cordova-ios-plugins/*.podspec || true
 
           echo "=== POD INSTALL ==="
           cd ios/App

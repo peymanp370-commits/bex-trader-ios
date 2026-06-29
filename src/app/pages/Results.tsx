@@ -1,4 +1,4 @@
-import { Menu, Settings, TrendingUp, TrendingDown, Calendar, Sun, Moon, Globe } from "lucide-react";
+﻿import { Menu, Settings, TrendingUp, TrendingDown, Calendar, Sun, Moon, Globe } from "lucide-react";
 import { Link } from "react-router";
 import { useState, useEffect, useRef } from "react";
 import { SideMenu } from "../components/SideMenu";

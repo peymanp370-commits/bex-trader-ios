@@ -77,7 +77,7 @@ const DICT: Record<string, { fa: string; ar: string }> = {
   "Most Popular": { fa: "محبوب‌ترین", ar: "الأكثر شيوعًا" },
   "Basic": { fa: "پایه", ar: "أساسي" },
   "Pro": { fa: "پرو", ar: "برو" },
-  "Coming Soon": { fa: "به‌زودی", ar: "قريبًا" },
+  "planned": { fa: "به‌زودی", ar: "قريبًا" },
   "Sign in to BEX Trader": { fa: "ورود به BEX Trader", ar: "تسجيل الدخول إلى BEX Trader" },
   "Welcome Back": { fa: "خوش برگشتی", ar: "مرحبًا بعودتك" },
   "Create Account": { fa: "ایجاد حساب", ar: "إنشاء حساب" },
@@ -198,7 +198,7 @@ const DICT: Record<string, { fa: string; ar: string }> = {
   "Please enter your email/username and password.": { fa: "لطفاً ایمیل/نام کاربری و رمز عبور را وارد کنید.", ar: "يرجى إدخال البريد الإلكتروني/اسم المستخدم وكلمة المرور." },
   "Login failed": { fa: "ورود ناموفق بود", ar: "فشل تسجيل الدخول" },
   "Failed to login": { fa: "ورود ناموفق بود", ar: "فشل تسجيل الدخول" },
-  "Apple Sign-In coming soon.": { fa: "ورود با اپل به‌زودی اضافه می‌شود.", ar: "تسجيل الدخول عبر Apple قريبًا." },
+  "Apple Sign-In planned.": { fa: "ورود با اپل به‌زودی اضافه می‌شود.", ar: "تسجيل الدخول عبر Apple قريبًا." },
   "Failed to register": { fa: "ثبت‌نام ناموفق بود", ar: "فشل التسجيل" },
   "You must be 18 or older to use this app.": { fa: "برای استفاده از این برنامه باید ۱۸ سال یا بیشتر داشته باشید.", ar: "يجب أن يكون عمرك 18 عامًا أو أكثر لاستخدام هذا التطبيق." },
 
@@ -366,3 +366,5 @@ export function I18nRuntime() {
 
   return null;
 }
+
+

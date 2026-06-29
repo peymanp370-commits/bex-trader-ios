@@ -475,3 +475,6 @@ export function MyStats() {
 }
 
 export default MyStats;
+
+
+const BEX_PHASE2_STATS_NO_DATA_COPY = "No data is available yet. Closed trades will appear here after sync.";

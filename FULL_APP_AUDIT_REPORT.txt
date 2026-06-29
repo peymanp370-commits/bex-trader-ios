@@ -1,0 +1,81 @@
+FULL APP AUDIT REPORT - P145B
+
+Scope
+This was a source-level and build-level audit/fix pass on the provided BEX_iOS_Patched_Source_v1.0_145.zip. No production deploy, no App Store submit, no DB reset, and no real trading action was performed.
+
+Apple rejection items
+
+1. VIP unlock after Apple sandbox purchase
+Status: Source fixed / build verified.
+- VIP.tsx calls Apple native purchase through startAppleIapPurchase().
+- After purchase success it posts transaction data to POST /api/apple/sync.
+- UI applies optimistic selected plan immediately, then applies backend billing state.
+- Backend route POST /api/apple/sync exists in worker/index.js and maps Apple product IDs to BEX plans.
+Remaining live requirement: the patched worker/index.js must be deployed to auth.bextrader.com before resubmission.
+
+2. Restore Purchases button
+Status: Source fixed / build verified.
+- A distinct Restore Purchases action exists on the VIP/subscription screen.
+- Restore calls StoreKit restorePurchases() and getActiveEntitlements().
+- P145B now selects the best valid active Apple entitlement on the client before backend restore.
+- P145B also selects the best valid restore entitlement server-side, so sandbox accounts with multiple old entitlements do not get blocked unnecessarily.
+
+3. Terms of Use / EULA
+Status: In-app source present and metadata text prepared.
+- Apple Standard EULA link should be added to App Store metadata:
+  https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+- APP_STORE_METADATA_NOTES.txt contains exact text.
+
+Auth / account flows
+
+- Login page exists and builds.
+- Register page exists and builds.
+- P145B fixed Register.tsx so new accounts no longer fallback to local VIP when backend does not return plan.
+- Forgot Password and Reset Password routes existed but source pages were missing. P145B added both pages, connected to backend routes:
+  POST /auth/forgot-password
+  POST /auth/reset-password
+- Google login references auth.bextrader.com and existing callback routes.
+- Apple login references native/plugin and auth callback flow.
+
+Plan / subscription state
+
+- Local plan storage is normalized in VIP.tsx.
+- Purchase and restore both refresh local state via applyBillingStateFromServer().
+- Product IDs detected in source:
+  basic_monthly_v4, basic_yearly_v4, pro_monthly_v4, pro_yearly_v4, vip_monthly_v4, vip_yearly_v4, vip_lifetime.
+- Backend Apple catalog maps these to basic/pro/vip_auto/lifetime.
+
+Worker/API connections found
+
+Main auth base:
+- https://auth.bextrader.com
+
+Important auth/billing endpoints used by app or worker:
+- POST /api/apple/sync - present in worker/index.js
+- POST /api/apple/restore - present in worker/index.js
+- POST /auth/forgot-password - present in worker/index.js
+- POST /auth/reset-password - present in worker/index.js
+- Google/Apple auth callback routes are present in worker source.
+
+Trading/app worker references:
+- https://bex-app.peymanp370.workers.dev is referenced as APP_API_BASE in src/app/utils/api.ts.
+- Trading/dashboard/signal pages compile in the production build. Live endpoint behavior still requires online environment/sandbox testing.
+
+Mobile/iPad/iPhone
+
+- React/Vite build passed.
+- npx cap sync ios passed and copied fresh web assets into ios/App/App/public.
+- The build environment here does not have CocoaPods or xcodebuild, so native pod install/archive was not completed here. Codemagic or Mac/Xcode must perform final native archive.
+
+Risks / remaining manual checks
+
+1. Highest risk: live auth worker not deployed.
+If auth.bextrader.com is still running an older worker, Apple Review can still fail VIP unlock.
+
+2. Apple product configuration must match product IDs.
+If App Store Connect has different IDs, StoreKit purchase/restore will fail.
+
+3. Real Apple sandbox purchase was not executed in this container.
+The code compiles and syncs, but final sandbox testing must be done on iOS/TestFlight/App Store review build.
+
+4. npm ci without ignore-scripts failed here because sharp tried to download libvips from github.com and DNS/network failed. This is environment-related. npm ci --ignore-scripts allowed the app build to run and pass. On Codemagic/Mac with normal network, standard install should be used.

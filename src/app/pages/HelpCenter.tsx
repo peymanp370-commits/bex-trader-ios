@@ -26,7 +26,7 @@ type Article = {
 const supportedPlatforms = [
   { name: "MetaTrader 5", short: "MT5", status: "Supported", note: "Uses the BEX trading connector / EA." },
   { name: "MetaTrader 4", short: "MT4", status: "Supported", note: "Uses the BEX trading connector / EA when available for your broker." },
-  { name: "cTrader", short: "cTrader", status: "Coming Soon", note: "Planned for brokers that allow automated execution." },
+  { name: "cTrader", short: "cTrader", status: "Planned", note: "Planned for brokers that allow automated execution." },
   { name: "TradeLocker", short: "TradeLocker", status: "Planned", note: "Can be added if the platform/broker allows automation or API/webhook execution." },
   { name: "Broker API / Webhook", short: "API", status: "Planned", note: "For brokers that provide official automation access." },
 ];
@@ -245,7 +245,7 @@ export function HelpCenter() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search help articles..."
+            placeholder="Search BEX help articles"
             className="w-full rounded-2xl border border-yellow-500/20 bg-[#0b1220] py-4 pl-12 pr-4 text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/60"
           />
         </div>
@@ -292,3 +292,5 @@ export function HelpCenter() {
     </div>
   );
 }
+
+

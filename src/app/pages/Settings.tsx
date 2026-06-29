@@ -1,4 +1,4 @@
-import {
+﻿import {
   ChevronRight,
   Globe,
   Clock,
@@ -582,3 +582,4 @@ export function Settings() {
     </div>
   );
 }
+

@@ -33,6 +33,24 @@ type AppleIAPPlugin = {
 
 const AppleIAP = registerPlugin<AppleIAPPlugin>("AppleIAP");
 
+// PHASE1_APPLE_IAP_GUARD:
+// Keep StoreKit plugin failures readable and prevent silent plan-state bugs.
+async function withAppleIapGuard<T>(context: string, run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (error: any) {
+    const message = String(error?.message || error?.error || error?.code || error || "APPLE_IAP_ERROR");
+    // PHASE2_APPLE_IAP_LAST_ERROR: keep the last StoreKit/plugin error visible to VIP UI/debug.
+    try {
+      localStorage.setItem("appleIapLastError", message);
+      localStorage.setItem("appleIapLastErrorAt", String(Date.now()));
+    } catch {
+      // ignore storage issues
+    }
+    throw new Error(`Apple IAP ${context} failed: ${message}`);
+  }
+}
+
 export const APPLE_IAP_PRODUCT_IDS = {
   basic: {
     monthly: "basic_monthly_v4",
@@ -153,7 +171,7 @@ export async function startAppleIapPurchase(productId: string) {
     throw new Error("Apple product id is missing.");
   }
 
-  return AppleIAP.purchase({ productId });
+  return withAppleIapGuard("purchase", () => AppleIAP.purchase({ productId }));
 }
 
 
@@ -161,7 +179,7 @@ export async function restoreApplePurchases() {
   if (!isNativeIOSApp()) {
     throw new Error("Restore Purchases is only available inside the iOS app.");
   }
-  return AppleIAP.restorePurchases();
+  return withAppleIapGuard("restore", () => AppleIAP.restorePurchases());
 }
 
 // Backward-compatible alias used by Login.tsx and older screens.
@@ -174,5 +192,7 @@ export async function getAppleActiveEntitlements() {
   if (!isNativeIOSApp()) {
     throw new Error("Apple entitlements are only available inside the iOS app.");
   }
-  return AppleIAP.getActiveEntitlements();
+  return withAppleIapGuard("active_entitlements", () => AppleIAP.getActiveEntitlements());
 }
+
+

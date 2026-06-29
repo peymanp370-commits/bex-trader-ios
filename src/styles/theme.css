@@ -179,3 +179,23 @@
     line-height: 1.5;
   }
 }
+
+/* PHASE1_BEX_PREMIUM_TOKENS */
+:root {
+  --bex-bg: #050812;
+  --bex-card: #0b1220;
+  --bex-card-soft: #111a2a;
+  --bex-gold: #f5c542;
+  --bex-gold-deep: #b8871b;
+  --bex-green: #22c55e;
+  --bex-red: #ef4444;
+  --bex-radius-card: 1.6rem;
+  --bex-shadow-gold: 0 0 45px rgba(234, 179, 8, 0.12);
+}
+
+.bex-premium-card {
+  border-radius: var(--bex-radius-card);
+  background: linear-gradient(145deg, rgba(17,26,42,0.96), rgba(5,8,18,0.98));
+  border: 1px solid rgba(245,197,66,0.22);
+  box-shadow: var(--bex-shadow-gold);
+}

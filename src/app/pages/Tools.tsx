@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { ShieldCheck, TrendingUp, Server, Copy, Zap, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getLanguage, tr } from "../utils/i18n";
@@ -332,3 +332,4 @@ export function Tools() {
     </div>
   );
 }
+

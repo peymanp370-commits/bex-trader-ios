@@ -37,13 +37,22 @@ function getHeyBexAuth() {
       "auth_token",
       "BEX_TOKEN",
     ]),
+    // NOTE: these two used to fall back to a hardcoded literal identity
+    // ("client_peymanp370_main" / "5047666801") whenever nothing was found
+    // in storage. Those are the app owner's real account/client values —
+    // fine when they genuinely come from the owner's own authenticated
+    // session/profile, but wrong as a silent default handed to every
+    // visitor who has no account connected. They must only ever surface
+    // here when a real session/profile actually put them in storage under
+    // one of the keys below — never as a blind fallback. Default to "" so
+    // "no identity" is explicit and checkable via hasHeyBexAccountIdentity().
     client_id: firstLocalStorageValue([
       "bex_vip_client_id",
       "vipClientId",
       "client_id",
       "clientId",
       "BEX_CLIENT_ID",
-    ]),
+    ], ""),
     account: firstLocalStorageValue([
       "bex_mt5_account_login",
       "mt5_account_login",
@@ -52,8 +61,19 @@ function getHeyBexAuth() {
       "loginId",
       "account",
       "BEX_ACCOUNT",
-    ]),
+    ], ""),
   };
+}
+
+/**
+ * True only when a real client_id or account login was actually found in
+ * storage (i.e. came from a genuine logged-in session / loaded profile —
+ * including the owner's own session, when it is really the owner who is
+ * logged in). False for any visitor/user with no account connected. Never
+ * true because of a hardcoded fallback.
+ */
+function hasHeyBexAccountIdentity(auth: { client_id: string; account: string }): boolean {
+  return Boolean(auth.client_id || auth.account);
 }
 
 async function askHeyBex(text: string): Promise<HeyBexAskResponse> {
@@ -796,7 +816,9 @@ function buildHeyBexDeepAppAnswer(command: string): string | null {
     /\b(hesab|account|profile|amare man|trade haye man)\b/i,
     /حساب|پروفایل|آمار من|معاملات من/
   ])) {
-    return "Account shows your personal account information and your own stats when connected. If it does not load, check login, internet, and BEX support.";
+    return hasHeyBexAccountIdentity(getHeyBexAuth())
+      ? "Account shows your personal account information and your own stats when connected. If it does not load, check login, internet, and BEX support."
+      : "Your account isn't connected yet, so personal account info and your own stats aren't available right now. Log in and connect your MT5 account, then try again.";
   }
 
   if (heyBexHas(command, [

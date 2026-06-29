@@ -3344,6 +3344,44 @@ function normalizeAppleEntitlement(input) {
   };
 }
 
+function isAppleSubscriptionEntitlementActive(item, nowMs = Date.now()) {
+  const meta = appleProductMeta(item?.productId);
+  if (!meta) return false;
+  if (meta.billing === "lifetime") return false;
+  const expiration = Number(item?.expirationDateMs || 0);
+  return !expiration || expiration > nowMs - 5 * 60 * 1000;
+}
+
+function chooseBestAppleRestoreEntitlementForWorker(entitlements) {
+  const nowMs = Date.now();
+  const seen = new Set();
+  const cleanItems = (Array.isArray(entitlements) ? entitlements : [])
+    .filter((item) => item && item.productId && item.isUpgraded !== true && appleProductMeta(item.productId))
+    .filter((item) => {
+      const key = [item.productId, item.originalTransactionId || "", item.transactionId || "", item.expirationDateMs || ""].join("|");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+  const activeSubscriptions = cleanItems
+    .filter((item) => isAppleSubscriptionEntitlementActive(item, nowMs))
+    .sort((a, b) => {
+      const ar = appleProductMeta(a.productId)?.rank || 0;
+      const br = appleProductMeta(b.productId)?.rank || 0;
+      if (br !== ar) return br - ar;
+      return Number(b.expirationDateMs || b.purchaseDateMs || 0) - Number(a.expirationDateMs || a.purchaseDateMs || 0);
+    });
+
+  if (activeSubscriptions.length) return activeSubscriptions[0];
+
+  const lifetime = cleanItems
+    .filter((item) => appleProductMeta(item.productId)?.billing === "lifetime")
+    .sort((a, b) => Number(b.purchaseDateMs || 0) - Number(a.purchaseDateMs || 0));
+
+  return lifetime[0] || null;
+}
+
 async function handleAppleIapRestore(env, user, body) {
   const entitlements = Array.isArray(body?.entitlements) ? body.entitlements.map(normalizeAppleEntitlement) : [];
   const usable = [];
@@ -3417,14 +3455,15 @@ async function handleAppleIapRestore(env, user, body) {
     return await applyAppleScopedPlan(env, user, notHigher[0], "restore");
   }
 
-  if (usable.length !== 1) {
-    return await keepCurrentPlanResponse(env, user, "Apple Restore returned multiple purchases. No plan was changed to prevent wrong VIP/Lifetime activation. Please purchase the exact plan from BEX.", {
-      code: "APPLE_RESTORE_MULTIPLE_ENTITLEMENTS_KEEP_CURRENT",
+  const selected = chooseBestAppleRestoreEntitlementForWorker(usable);
+  if (!selected) {
+    return await keepCurrentPlanResponse(env, user, "No active Apple purchase linked to this BEX account was found. Your current BEX plan was kept active.", {
+      code: "APPLE_RESTORE_NO_USABLE_SELECTED_ENTITLEMENT",
       returned_product_ids: usable.map((item) => item.productId)
     });
   }
 
-  return await applyAppleScopedPlan(env, user, usable[0], "restore");
+  return await applyAppleScopedPlan(env, user, selected, "restore");
 }
 
 /* ---------------- END APPLE IAP ACCOUNT-SCOPED BILLING ---------------- */

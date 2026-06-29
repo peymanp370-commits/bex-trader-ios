@@ -1,0 +1,35 @@
+MANUAL APP STORE / DEPLOY STEPS BEFORE RESUBMISSION
+
+1. Deploy backend auth worker
+- Deploy the patched worker/index.js to the live auth.bextrader.com Cloudflare Worker route.
+- Required live endpoints:
+  POST https://auth.bextrader.com/api/apple/sync
+  POST https://auth.bextrader.com/api/apple/restore
+  POST https://auth.bextrader.com/auth/forgot-password
+  POST https://auth.bextrader.com/auth/reset-password
+
+2. Confirm App Store Connect
+- Paid Apps Agreement active.
+- Apple IAP products configured and available for sandbox review.
+- Product IDs match source exactly.
+- EULA link added to metadata.
+
+3. Build iOS
+- Build number should be newer than rejected build 1.0 (144), for example 1.0 (145) or 1.0 (146).
+- Run npm ci --legacy-peer-deps or npm install --legacy-peer-deps on the build machine.
+- Run npm run build.
+- Run npx cap sync ios.
+- Archive/upload from Xcode or Codemagic.
+
+4. Sandbox smoke test
+- Sign in/register with a test account.
+- Open VIP page.
+- Purchase VIP monthly or yearly through Apple sandbox.
+- Confirm VIP unlocks immediately.
+- Log out/in or reinstall and use Restore Purchases.
+- Confirm VIP restores and UI refreshes.
+
+5. Do not submit if
+- The live auth worker has not been deployed.
+- /api/apple/sync or /api/apple/restore returns 404/500.
+- App still shows Basic after successful Apple sandbox purchase.

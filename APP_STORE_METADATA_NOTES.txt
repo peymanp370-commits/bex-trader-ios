@@ -1,0 +1,21 @@
+APP STORE CONNECT METADATA NOTES
+
+Paste this in the App Description or the subscription/legal section of the metadata:
+
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
+Recommended App Review Notes:
+
+This build fixes the Apple IAP review issues. The VIP subscription purchase flow now syncs the Apple sandbox transaction to our backend and refreshes the app entitlement immediately. A distinct Restore Purchases button is available on the VIP/subscription screen and performs a user-triggered restore/sync. The app uses Apple’s Standard EULA: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
+Manual App Store Connect checks:
+- Paid Apps Agreement must be active.
+- IAP product IDs must exist in App Store Connect and match the app source:
+  basic_monthly_v4
+  basic_yearly_v4
+  pro_monthly_v4
+  pro_yearly_v4
+  vip_monthly_v4
+  vip_yearly_v4
+  vip_lifetime
+- Upload a screen recording if Apple asks, showing Buy VIP, immediate unlock, and Restore Purchases.

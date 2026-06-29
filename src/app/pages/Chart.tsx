@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import * as RechartsPrimitive from "recharts";
 import { ArrowLeft } from "lucide-react";
 
@@ -700,3 +700,4 @@ export function Chart({
     </div>
   );
 }
+

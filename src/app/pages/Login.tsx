@@ -1211,7 +1211,6 @@ export function Login() {
       await handleNativeAppleSignIn();
       return;
     }
-
     if (provider === "google" && Capacitor.isNativePlatform()) {
       await handleNativeGoogleSignIn();
       return;
@@ -1663,11 +1662,11 @@ export function Login() {
               </span>
             </button>
 
-            {Capacitor.getPlatform() === "ios" && (
+            {Capacitor.isNativePlatform() && (
               <button
                 type="button"
                 onClick={handleAppleSignIn}
-                disabled={loading || socialLoading === "google"}
+                disabled={loading || !!socialLoading}
                 className="w-full flex items-center justify-center gap-3 bg-black text-white border border-gray-700 py-3 rounded-xl font-semibold hover:border-gray-500 transition-all disabled:opacity-50"
               >
                 <AppleIcon />
@@ -1760,3 +1759,7 @@ export function Login() {
     </div>
   );
 }
+
+
+
+

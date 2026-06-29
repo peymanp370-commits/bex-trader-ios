@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logoImage from "../../assets/bex-brand-logo.png";
 import { getLanguage, tr, type Lang } from "../utils/i18n";
@@ -200,3 +200,4 @@ export function AgeVerification() {
     </div>
   );
 }
+

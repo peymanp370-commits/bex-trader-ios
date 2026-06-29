@@ -44,7 +44,12 @@ function readStorageValue(keys: string[]): string | null {
   return null;
 }
 
-function getClientId(): string | null {
+function getClientId(): string {
+  // NOTE: previously fell back to a hardcoded developer test value
+  // ("client_peymanp370_main") when nothing was found in storage. That
+  // caused every user without a saved client_id to silently register
+  // their push token under someone else's identity. Return "" instead
+  // so the caller can detect "we don't know who this is" explicitly.
   return (
     readStorageValue([
       "bex_client_id",
@@ -52,11 +57,16 @@ function getClientId(): string | null {
       "vip_client_id",
       "BEX_CLIENT_ID",
       "bex.vip.client_id",
-    ]) || null
+    ]) || ""
   );
 }
 
-function getAccountLogin(): string | null {
+function getAccountLogin(): string {
+  // NOTE: previously fell back to a hardcoded developer test account
+  // number ("5047666801") when nothing was found in storage. That caused
+  // every user without a connected MT5 account to silently register
+  // their push token under someone else's account. Return "" instead so
+  // the caller can detect "we don't know who this is" explicitly.
   return (
     readStorageValue([
       "bex_account_login",
@@ -64,8 +74,20 @@ function getAccountLogin(): string | null {
       "mt5_account_login",
       "BEX_ACCOUNT_LOGIN",
       "bex.vip.account_login",
-    ]) || null
+    ]) || ""
   );
+}
+
+/**
+ * True only when we have at least one real, stored identifier (client_id
+ * or account_login) to attach this device's push token to. If this is
+ * false, we must not register the push token at all — registering it
+ * under no identifier (or worse, a fallback identifier) would silently
+ * attach the token to the wrong account, as the old hardcoded fallback
+ * values did.
+ */
+function hasUserOrAccountForPush(): boolean {
+  return Boolean(getClientId() || getAccountLogin());
 }
 
 async function saveNativeToken(token: string) {
@@ -73,18 +95,13 @@ async function saveNativeToken(token: string) {
   const clientId = getClientId();
   const accountLogin = getAccountLogin();
 
-  // Do NOT silently bind an unidentified device to the developer's own
-  // account. If the user hasn't logged in yet (or storage is empty/cleared),
-  // there is no safe owner to fall back to - skip the backend registration
-  // call entirely rather than registering this device under someone else's
-  // client_id/account_login. The token listener still ran, so iOS APNS
-  // registration itself is unaffected; we just don't bind it to an account
-  // until we actually know whose device this is.
-  if (!clientId || !accountLogin) {
-    console.warn(
-      "BEX native push: no logged-in client_id/account_login yet, skipping device registration"
-    );
-    return { ok: false, skipped: true, reason: "no_identity_yet" };
+  // Defense in depth: even if this function is ever called from another
+  // code path in the future, never send a push-token registration that
+  // has no real client_id and no real account_login. Doing so previously
+  // meant the token got silently attached to a hardcoded fallback
+  // account that did not belong to this user.
+  if (!clientId && !accountLogin) {
+    throw new Error("missing_user_or_account_for_push_registration");
   }
 
   const payload = {
@@ -144,6 +161,19 @@ export async function enableBexNativePushNotifications(): Promise<{
   try {
     if (!Capacitor.isNativePlatform()) {
       return { ok: false, native: false, reason: "not_native_platform" };
+    }
+
+    // Do not request permission or register for push at all if we have no
+    // real identity (client_id / account_login) to attach the token to.
+    // Previously this case silently fell through and registered the
+    // token under a hardcoded developer account. Now we bail out early
+    // with an explicit, callable-checkable reason instead.
+    if (!hasUserOrAccountForPush()) {
+      return {
+        ok: false,
+        native: true,
+        reason: "missing_user_or_account_for_push_registration",
+      };
     }
 
     // Re-run registration on each app open/focus so iOS can refresh or re-emit the APNS token.

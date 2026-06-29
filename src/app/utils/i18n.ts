@@ -1,4 +1,4 @@
-export type SupportedLanguage =
+﻿export type SupportedLanguage =
   | "en"
   | "fa"
   | "ar"
@@ -545,3 +545,4 @@ export function formatAvg(value: number, lang: SupportedLanguage = getLanguage()
 export function formatTrades(symbol: string, count: number, lang: SupportedLanguage = getLanguage()) {
   return `${symbol} • ${formatNumber(count, lang)} ${tr(lang, PHRASES.TRADES)}`;
 }
+

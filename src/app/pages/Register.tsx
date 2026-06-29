@@ -1,4 +1,4 @@
-import { useNavigate, Link } from "react-router-dom";
+﻿import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import logoImage from "../../assets/bex-brand-logo.png";
@@ -320,7 +320,7 @@ export function Register() {
       localStorage.setItem("userLastName", result.user?.last_name || cleanLastName);
       localStorage.setItem("userEmail", result.user?.email || cleanEmail);
       localStorage.setItem("userName", displayName);
-      localStorage.setItem("userPlan", result.user?.plan || "VIP");
+      localStorage.setItem("userPlan", result.user?.plan || "free");
       localStorage.setItem("userLanguage", lang);
       localStorage.setItem("language", lang);
       localStorage.setItem("lang", lang);
@@ -617,3 +617,4 @@ export function Register() {
     </div>
   );
 }
+

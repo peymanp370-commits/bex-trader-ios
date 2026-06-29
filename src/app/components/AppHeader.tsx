@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { ArrowLeft, Menu, Moon, Settings, Sun, UserCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import bexLogoTransparent from "../../assets/bex-brand-logo.png";
+import bexLogoTransparent from "../../assets/bex-header-logo.png";
 
 type AppHeaderProps = {
   title: string;
@@ -296,7 +296,7 @@ export function AppHeader({
         <img
           src={bexLogoTransparent}
           alt="BEX Trader"
-          className="h-[74px] w-[118px] shrink-0 object-contain object-center sm:h-[84px] sm:w-[142px]"
+          className="h-[118px] w-[260px] object-contain object-center drop-shadow-[0_12px_26px_rgba(0,0,0,0.65)]"
         />
 
         <div className="min-w-0 overflow-visible">
@@ -340,3 +340,18 @@ export function AppHeader({
     </header>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

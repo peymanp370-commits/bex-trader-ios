@@ -1,4 +1,4 @@
-import { ArrowLeft, FileText, Mail } from "lucide-react";
+﻿import { ArrowLeft, FileText, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getLanguage, isRTL, tr } from "../utils/i18n";
 
@@ -110,3 +110,4 @@ export function Terms() {
     </main>
   );
 }
+

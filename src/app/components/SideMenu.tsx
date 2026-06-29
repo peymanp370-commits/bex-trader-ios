@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+﻿import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, LineChart, BarChart3, Crown, Settings, X, UserRound, Shield, FileText, Lock, LogOut } from "lucide-react";
 import { tr } from "../utils/i18n";
 import { useLangState } from "../store/useLang";
@@ -64,3 +64,4 @@ export function SideMenu({ open, onClose }: SideMenuProps) {
     </div>
   );
 }
+

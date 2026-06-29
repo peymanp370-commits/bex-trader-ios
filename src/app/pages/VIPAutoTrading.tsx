@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Copy, KeyRound, Menu, RefreshCw, Save, ShieldCheck, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SideMenu } from "../components/SideMenu";
@@ -280,3 +280,4 @@ export function VIPAutoTrading() {
     </div>
   );
 }
+
